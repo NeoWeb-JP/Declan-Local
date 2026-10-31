@@ -80,6 +80,13 @@ class Settings(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.save({'visitors_present': 'input_boolean.authority', 'guest_mode': 'input_boolean.authority'})
 
+    def test_guest_owner_and_name_roles_are_distinct(self):
+        self.entities.update({'person.owner','input_text.names'})
+        with self.assertRaises(ValueError):
+            self.save({'guest_owner_one':'person.owner','guest_owner_two':'person.owner'})
+        with self.assertRaises(ValueError):
+            self.save({'guest_names':'input_text.names','guest_staying_names':'input_text.names'})
+
     def test_unchanged_missing_mapping_can_be_kept_or_removed(self):
         self.save({'satellite_media_players': {BED: PLAYER}})
         self.entities.clear()

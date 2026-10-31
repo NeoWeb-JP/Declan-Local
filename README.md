@@ -9,6 +9,15 @@ speech. Visitors do not gain permissions. Quiet hours are independent, and
 private names/morning replies are suppressed for visitors. See
 [speech privacy and the remaining guest-authority work](docs/guest-persona.md).
 
+With the separate automatic-handover helpers explicitly configured and enabled,
+“Mike and Kathy are staying with us” records visitors without immediately
+granting authority. Both configured owners must then remain confirmed away for
+two minutes. Owner return removes only automatic authority; manual handovers
+remain. “Guests have left” clears visitor/staying declarations; “cancel guest
+handover” explicitly cancels authority. The dedicated suspension signal needs
+to be checked by your existing away-simulation automation; this update does not
+edit or cancel automations. See [guest handover setup](docs/guest-persona.md).
+
 ### Reusable voice phrases
 
 The **Voice cache** section in the Jarvis sidebar lists saved speech and storage

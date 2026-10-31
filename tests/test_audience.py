@@ -41,6 +41,14 @@ class AudienceTests(unittest.TestCase):
         hass.data = {}
         self.assertEqual(audience.mode(hass), 'Guest')
 
+    def test_staying_signal_cannot_be_overridden_by_visitors_off(self):
+        hass=house()
+        hass.data['jarvis_local']['settings']['guests_staying']='input_boolean.staying'
+        original=hass.states.get
+        for state in ('on','unknown','unavailable'):
+            hass.states.get=lambda entity,state=state:types.SimpleNamespace(state=state) if entity=='input_boolean.staying' else original(entity)
+            self.assertEqual(audience.mode(hass),'Guest')
+
     def test_quiet_helper_is_independent_and_fails_quiet(self):
         for state in ('on', 'unknown', 'unavailable'):
             hass = house(quiet=state)

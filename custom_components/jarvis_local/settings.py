@@ -7,6 +7,9 @@ _LOGGER = logging.getLogger(__name__)
 KEY = 'jarvis_local.settings'
 FIELDS = {'weather':'weather', 'thermostat':'climate', 'car_cable_sensor':'binary_sensor', 'car_battery_sensor':'sensor', 'guest_mode':'input_boolean', 'guest_names':'input_text', 'music_script':'script', 'personality_script':'script', 'phonetic_script':'script'}
 PRIVACY_FIELDS = {'visitors_present': 'input_boolean', 'quiet_hours': 'input_boolean'}
+PRIVACY_FIELDS.update({'guests_staying':'input_boolean', 'guest_auto_enable':'input_boolean',
+    'guest_owner_one':'person', 'guest_owner_two':'person', 'guest_away_suspend':'input_boolean',
+    'guest_staying_names':'input_text'})
 FIELDS.update(PRIVACY_FIELDS)
 
 def _read_legacy(path):
@@ -71,9 +74,15 @@ async def save(hass, data):
         if hass.states.get(satellite) is None or hass.states.get(player) is None:
             raise ValueError('Choose an existing Assist satellite and media player for each new mapping')
     cleaned['satellite_media_players']=dict(players)
-    privacy_ids=[cleaned[key] for key in ('guest_mode', 'visitors_present', 'quiet_hours') if cleaned.get(key)]
+    privacy_ids=[cleaned[key] for key in ('guest_mode', 'visitors_present', 'quiet_hours', 'guests_staying', 'guest_auto_enable', 'guest_away_suspend') if cleaned.get(key)]
     if len(privacy_ids) != len(set(privacy_ids)):
         raise ValueError('Guest authority, visitor presence and quiet hours need separate helpers')
+    for first, second in (('guest_owner_one', 'guest_owner_two'), ('guest_names', 'guest_staying_names')):
+        if cleaned.get(first) and cleaned.get(first) == cleaned.get(second):
+            raise ValueError('Guest owner sensors and name helper roles must be distinct')
+    controller=hass.data.get('jarvis_local', {}).get('guest_authority')
+    if controller:
+        await controller.prepare_settings(cleaned)
     await Store(hass, 1, KEY).async_save(cleaned)
     hass.data['jarvis_local']['settings']=cleaned
 

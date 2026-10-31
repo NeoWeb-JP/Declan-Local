@@ -39,6 +39,10 @@ function fixture(){
  const {panel,els,calls,controls}=fixture();
  panel.settings={weather:'weather.home',satellite_media_players:{[bedroom]:'media_player.bedroom'}};
  await panel.openSettings();
+ const fields=els['.settings-fields'].querySelectorAll('select');
+ for(const key of ['visitors_present','quiet_hours','guests_staying','guest_staying_names','guest_auto_enable','guest_owner_one','guest_owner_two','guest_away_suspend']){
+   assert(fields.some(field=>field.dataset.key===key),'Guest policy selector is visible: '+key);
+ }
  assert.equal(panel.open,true);
  assert.equal(els['.satellite-fields'].children.length,1);
  let row=els['.satellite-fields'].children[0];

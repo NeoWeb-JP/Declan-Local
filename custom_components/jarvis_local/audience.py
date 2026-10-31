@@ -16,6 +16,9 @@ def mode(hass):
     An absent/unavailable visitor or authority helper is not evidence that the
     room is private. Speaker identity cannot override this decision.
     """
+    settings = hass.data.get('jarvis_local', {}).get('settings', {})
+    if settings.get('guests_staying') and helper_state(hass, 'guests_staying') != 'off':
+        return 'Guest'
     if helper_state(hass, 'visitors_present') == 'off' and helper_state(hass, 'guest_mode') == 'off':
         return 'Home'
     return 'Guest'

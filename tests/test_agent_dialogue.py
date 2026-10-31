@@ -1,6 +1,6 @@
 """Dialogue integration tests with mocked Home Assistant services."""
 import sys,types,unittest
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 import test_commands as fixtures
 conv=types.ModuleType('homeassistant.components.conversation')
 class ConversationEntity:pass
@@ -99,6 +99,26 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn('Jaco',guest.response.speech)
         self.assertTrue(all(call[0][:2] == ('script','jarvis_local_good_morning') for call in self.hass.services.calls))
         self.assertEqual(self.hass.states.values['input_boolean.authority'].state,'off')
+
+    async def test_staying_declaration_preview_and_dispatch_without_embedded_actions(self):
+        ids={'guest_mode':'input_boolean.permission','guest_names':'input_text.in_charge',
+             'visitors_present':'input_boolean.visitors','guests_staying':'input_boolean.staying',
+             'guest_staying_names':'input_text.staying_names'}
+        controller=types.SimpleNamespace(command=AsyncMock(return_value='Staying declaration recorded.'))
+        self.hass.data={'jarvis_local':{'settings':ids,'guest_authority':controller}}
+        for entity in ids.values():
+            self.hass.states.values[entity]=fixtures.State(entity,'Guest helper','off' if entity.startswith('input_boolean.') else '')
+        preview=await self.agent.async_handle(UserInput('preview Mike and Kathy are staying with us'))
+        self.assertIn('Preview only',preview.response.speech)
+        controller.command.assert_not_awaited()
+        actual=await self.agent.async_handle(UserInput('Mike and Kathy are staying with us'))
+        self.assertIn('recorded',actual.response.speech)
+        self.assertEqual(controller.command.call_args.args[0],{'operation':'staying','names':'mike and kathy'})
+        controller.command.reset_mock()
+        rejected=await self.agent.async_handle(UserInput('Mike and turn office on are staying with us'))
+        controller.command.assert_not_awaited()
+        self.assertIn('Nothing was changed',rejected.response.speech)
+        self.assertEqual(self.hass.services.calls,[])
     async def test_switch_backed_compound_followup(self):
         self.hass.data={'jarvis_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
         self.hass.states.values['switch.queen']=fixtures.State('switch.queen','Queen Lamp')

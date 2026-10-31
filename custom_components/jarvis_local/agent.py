@@ -258,21 +258,10 @@ class JarvisAgent(conversation.ConversationEntity):
                                         self.hass, user_input.context, fallback, action=action))
                                 continue
                             if step['kind'] == 'guest':
-                                data=step['data']; operation=data['operation']
-                                if operation=='status':
-                                    mode=self.hass.states.get(get(self.hass, 'guest_mode')).state
-                                    names=self.hass.states.get(get(self.hass, 'guest_names')).state.strip()
-                                    if mode=='off': replies.append('Guest Mode is off. Nobody is currently assigned.')
-                                    elif not names: replies.append('Guest Mode is on, but no names are recorded.')
-                                    else: replies.append('Guest Mode is on. In charge: '+names+'.')
-                                elif operation=='set':
-                                    await self.hass.services.async_call('input_text','set_value',{'entity_id':get(self.hass, 'guest_names'),'value':data['names']},blocking=True,context=user_input.context)
-                                    await self.hass.services.async_call('input_boolean','turn_on',{'entity_id':get(self.hass, 'guest_mode')},blocking=True,context=user_input.context)
-                                    replies.append('Guest Mode is on. In charge: '+data['names']+'.')
-                                else:
-                                    await self.hass.services.async_call('input_text','set_value',{'entity_id':get(self.hass, 'guest_names'),'value':''},blocking=True,context=user_input.context)
-                                    await self.hass.services.async_call('input_boolean','turn_off',{'entity_id':get(self.hass, 'guest_mode')},blocking=True,context=user_input.context)
-                                    replies.append('Guest Mode is off and the names are cleared.')
+                                controller=self.hass.data['jarvis_local'].get('guest_authority')
+                                if controller is None:
+                                    raise ValueError('Guest handover controller is unavailable')
+                                replies.append(await controller.command(step['data'],user_input.context))
                                 continue
                             if step['kind'] == 'media_control':
                                 await self.hass.services.async_call('media_player',step['name'],step['data'],blocking=True,context=user_input.context)

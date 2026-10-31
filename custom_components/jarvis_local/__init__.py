@@ -56,7 +56,12 @@ async def async_setup_entry(hass, entry):
             sidebar_title="Home Voice Assistant", sidebar_icon="mdi:robot",
             module_url="/jarvis_local/panel.js?v=" + quote(data["version"], safe=""),
             config={"agent_id":data["agent"].entity_id}, require_admin=True)
+        from .guest_authority import create as create_guest_authority
+        data['guest_authority'] = await create_guest_authority(hass)
     except Exception:
+        if data.get('guest_authority'):
+            await data['guest_authority'].stop()
+        frontend.async_remove_panel(hass, "jarvis-local-app")
         await data["timers"].stop()
         await hass.config_entries.async_unload_platforms(entry, ["conversation", "tts"])
         raise
@@ -64,6 +69,8 @@ async def async_setup_entry(hass, entry):
 
 async def async_unload_entry(hass, entry):
     if await hass.config_entries.async_unload_platforms(entry, ["conversation", "tts"]):
+        await hass.data[DOMAIN]['guest_authority'].stop()
+        hass.data[DOMAIN].pop('guest_authority', None)
         await hass.data[DOMAIN]["timers"].stop()
         frontend.async_remove_panel(hass, "jarvis-local-app")
         hass.data[DOMAIN].pop("agent", None)
