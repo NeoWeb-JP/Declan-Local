@@ -44,6 +44,8 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
 <small>Build and save reusable speech in Home Assistant. Saving requests only missing clips from your configured provider and may use credits.</small>
 <div class="tools"><button type="button" class="refresh-voice-cache">Refresh voice cache</button></div>
 <p class="voice-cache-summary" role="status">Open to load saved speech.</p><small class="voice-cache-source"></small>
+<p class="voice-budget" role="status"></p>
+<details class="catalogue-preparation"><summary>Prepare Home and Guest recordings</summary><small>Review the exact static replies first. Preparing missing recordings may use provider credits; it does not play audio or run household actions.</small><label>Replies <select class="catalogue-modes"><option value="both">Home and Guest</option><option value="Home">Home only</option><option value="Guest">Guest only</option></select></label><button type="button" class="review-catalogue">Review recordings and estimated usage</button><p class="catalogue-summary" role="status"></p><div class="catalogue-lines"></div><label><input type="checkbox" class="catalogue-approved"> I reviewed these exact sentences and approve the estimated provider use.</label><div class="tools"><button type="button" class="prepare-catalogue" disabled>Prepare missing recordings</button><button type="button" class="stop-catalogue" disabled>Stop after current recording</button></div><p class="catalogue-status" role="status"></p></details>
 <h3>Build a sentence</h3><small>Tap words or phrases below to add them in order. Solid buttons have a saved clip for this voice; dashed buttons may need recording. Up to 8 clips per sentence.</small>
 <div class="tools phrase-suggestions" aria-label="Words and phrases for sentence builder"></div>
 <div class="sentence-box"><label>Add a word or phrase <input class="sentence-new-part" aria-label="Word or phrase to add" maxlength="200" placeholder="e.g. jazz"></label> <button type="button" class="add-sentence-part">Add to sentence</button><small>Use saved clips below, or type a new word or phrase here. Missing clips are requested from your speech provider when you save.</small><div class="sentence-tokens" aria-label="Selected sentence clips"></div>
@@ -80,6 +82,11 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     this.root.querySelector('.voice-cache-section').ontoggle=e=>{if(e.target.open)this.loadVoiceCache();};
     this.root.querySelector('.saved-recordings').ontoggle=e=>{if(e.target.open)this.loadVoiceCache();};
     this.root.querySelector('.refresh-voice-cache').onclick=()=>this.loadVoiceCache();
+    this.root.querySelector('.review-catalogue').onclick=()=>this.reviewCatalogue();
+    this.root.querySelector('.prepare-catalogue').onclick=()=>this.prepareCatalogue();
+    this.root.querySelector('.stop-catalogue').onclick=()=>{this.catalogueStop=true;this.root.querySelector('.catalogue-status').textContent='Stopping after the current recording. Completed audio will be kept.';};
+    this.root.querySelector('.catalogue-approved').onchange=()=>this.updateCatalogueControls();
+    this.root.querySelector('.catalogue-modes').onchange=()=>{this.cataloguePlan=null;this.root.querySelector('.catalogue-approved').checked=false;this.updateCatalogueControls();};
     this.root.querySelector('.previous-recordings').onclick=()=>this.changeRecordingPage(-1);
     this.root.querySelector('.next-recordings').onclick=()=>this.changeRecordingPage(1);
     this.root.querySelector('.recording-search').oninput=()=>{this.recordingPage=1;clearTimeout(this.recordingSearchTimer);this.root.querySelector('.recording-search-status').textContent='Searching saved recordings…';this.recordingSearchTimer=setTimeout(()=>this.loadVoiceCache(),200);};
@@ -272,6 +279,68 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     if(next===(this.recordingPage || 1))return;
     this.recordingPage=next;await this.loadVoiceCache();
   }
+  updateCatalogueControls() {
+    const plan=this.cataloguePlan, busy=!!this.catalogueBusy || !!this.catalogueReviewBusy;
+    const approved=this.root.querySelector('.catalogue-approved');
+    const fits=plan && (plan.usage?.remaining_characters == null || plan.maximum_characters<=plan.usage.remaining_characters);
+    this.root.querySelector('.prepare-catalogue').disabled=busy || !plan || !approved.checked || !plan.missing_count || !plan.cache_enabled || !plan.storage_available || !plan.usage?.storage_available || !fits;
+    this.root.querySelector('.review-catalogue').disabled=busy;
+    this.root.querySelector('.catalogue-modes').disabled=busy;
+    approved.disabled=busy;
+    this.root.querySelector('.stop-catalogue').disabled=!this.catalogueBusy;
+  }
+  async reviewCatalogue() {
+    if(this.catalogueBusy || this.catalogueReviewBusy)return;
+    this.catalogueReviewBusy=true;
+    this.cataloguePlan=null;
+    this.root.querySelector('.catalogue-approved').checked=false;
+    this.updateCatalogueControls();
+    const selected=this.root.querySelector('.catalogue-modes').value;
+    const modes=selected==='both'?['Home','Guest']:[selected];
+    const summary=this.root.querySelector('.catalogue-summary');
+    summary.textContent='Reviewing static replies and saved audio. No speech is being generated.';
+    try {
+      const plan=await this._hass.callWS({type:'jarvis_local/review_voice_catalogue',modes});
+      this.cataloguePlan=plan;
+      const lines=this.root.querySelector('.catalogue-lines');lines.replaceChildren();
+      for(const line of plan.lines){
+        const row=document.createElement('p');
+        row.textContent=line.mode+' / '+line.category+': '+line.text+' '+(line.cached?'[Saved]':'[Missing]');
+        lines.append(row);
+      }
+      const rate=plan.usage?.credits_per_character;
+      summary.textContent=(plan.voice?'Provider '+plan.voice.provider+'; voice '+plan.voice.voice+'; revision '+plan.voice.revision+'. ':'')+plan.missing_count+' missing recordings; at most '+plan.maximum_characters+' characters to request. '+(rate?((plan.maximum_characters*rate).toFixed(2)+' estimated credits at your configured rate. '):'Credit estimate is unavailable until you configure a rate. ')+'Your provider account is authoritative. '+(!plan.cache_enabled?'Enable the voice cache first. ':'')+(!plan.storage_available?'Cache storage is full. ':'')+(plan.usage?.remaining_characters != null && plan.maximum_characters>plan.usage.remaining_characters?'This plan exceeds the remaining daily character limit; choose a smaller catalogue or adjust the limit.':'');
+      this.root.querySelector('.catalogue-status').textContent='Review every sentence before approving preparation. Review expires after 15 minutes.';
+    } catch(_) {
+      this.cataloguePlan=null;
+      summary.textContent='Could not review the catalogue. No audio was requested.';
+    }
+    this.catalogueReviewBusy=false;
+    this.updateCatalogueControls();
+  }
+  async prepareCatalogue() {
+    if(this.catalogueBusy || this.catalogueReviewBusy || !this.root.querySelector('.catalogue-approved').checked || this.root.querySelector('.prepare-catalogue').disabled)return;
+    const plan=this.cataloguePlan;
+    this.catalogueBusy=true;this.catalogueStop=false;this.updateCatalogueControls();
+    let completed=0,failed=false;
+    const status=this.root.querySelector('.catalogue-status');
+    try {
+      for(const line of plan.lines.filter(line=>!line.cached)){
+        if(this.catalogueStop)break;
+        status.textContent='Preparing '+(completed+1)+' of '+plan.missing_count+'. Stop takes effect after the current recording.';
+        const result=await this._hass.callWS({type:'jarvis_local/prepare_voice_catalogue',token:plan.token,line_id:line.id,approved:true});
+        if(!result.saved)throw new Error('Recording was not saved');
+        completed++;
+      }
+    } catch(_) {failed=true;}
+    finally {
+      this.catalogueBusy=false;this.cataloguePlan=null;
+      this.root.querySelector('.catalogue-approved').checked=false;
+      this.updateCatalogueControls();
+      status.textContent=completed+' recordings prepared or reused. '+(failed?'Preparation stopped; check provider, budget and storage, then review again before retrying.':this.catalogueStop?'Stopped. Completed audio is kept; review again to continue.':'Finished. Review again to check remaining recordings.');
+      await this.loadVoiceCache();
+    }
+  }
   async loadVoiceCache() {
     if(!this._hass)return;
     if(this.loadingVoiceCache){this.voiceCacheRefreshPending=true;return;}
@@ -288,6 +357,9 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
       const sourceNames={elevenlabs_cached:'Saved whole sentence',elevenlabs_generated:'Whole sentence requested from provider',elevenlabs_phrase_cached:'Reused saved clips or assembled response',elevenlabs_phrase_generated:'Generated missing clips',elevenlabs_category_cached:'Saved alternative response',xtts_cached:'Saved fallback voice',xtts_generated:'Fallback voice generated'};
       const hitRate=data.usage?.cache_hit_pct;
       const failures=data.usage?.provider_failures || {};
+      const budget=data.budget;
+      const budgetNode=this.root.querySelector('.voice-budget');
+      if(budgetNode && budget)budgetNode.textContent='UTC day '+budget.day+': '+budget.primary_attempts+' reserved primary requests, '+budget.primary_characters+' characters. '+(budget.estimated_credits == null?'Credit estimate not configured. ':budget.estimated_credits+' estimated credits. ')+(budget.remaining_characters == null?'No local daily character limit. ':budget.remaining_characters+' characters remain within the local daily limit. ')+'Estimates include failed requests and may include HA cache hits; your provider account is authoritative.'+(!budget.storage_available?' Primary accounting storage is unavailable; new primary requests are blocked.':'');
       this.root.querySelector('.voice-cache-source').textContent='Latest Voice Manager request: '+(sourceNames[data.usage?.last_source] || 'None since restart')+'. '+(data.usage?.generated_clips || 0)+' new clips this session. '+(hitRate == null?'No cache hit rate yet. ':hitRate+'% of successful requests reused saved audio. ')+(failures.primary || 0)+' primary provider failures; '+(failures.fallback || 0)+' fallback provider failures. Cache '+(data.enabled?'enabled':'disabled')+'; phrase assembly '+(data.phrases_enabled?'enabled':'disabled')+'. Use '+data.entity_id+' in your voice assistant. Stored at '+data.directory+'. Counters reset on restart; Home Assistant may also serve audio from its own cache. These figures are not billed credits. '+(!data.storage_available?'Storage limit reached; new audio will not be saved. ':'')+(data.skipped_writes?data.skipped_writes+' writes skipped to protect storage.':'');
       const suggestions=this.root.querySelector('.phrase-suggestions');suggestions.replaceChildren();
       const voice=data.builder_voice;

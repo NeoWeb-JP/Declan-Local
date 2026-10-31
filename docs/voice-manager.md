@@ -35,18 +35,34 @@ if you change voices or ElevenLabs synthesis settings, or remove the
 cache directory, to avoid returning recordings in the previous voice.
 The options flow provides this setting.
 
-## Outstanding work
+## Live acceptance still required
 
 - Validate against the installed Home Assistant version (entity registration,
   ElevenLabs media-source output and Muse playback).
 - Verify fallback entity `tts.jarvis_xtts` actually exists and works.
-- Optional configurable retention and larger storage limits (the default
-  shared cache now has a 256 MiB cap and 512 MiB free-space reserve).
 - Confirm provider failures beyond the handled exceptions and TTS format
   compatibility. Test failed and concurrent generations end-to-end.
-- Add billed ElevenLabs budget controls and catalogue-wide pre-generation.
+- Review and explicitly prepare the selected static Home/Guest catalogue
+  after installing 0.39.0; this can use provider credits. The preparation UI
+  and durable local character guard are implemented; see the guide below.
+- Check authoritative account usage and provider-side spending restrictions.
+  Local estimates cannot establish actual billing or enforce a cap on calls
+  made directly to the provider by other integrations.
 - Avoid assuming saved audio is encrypted: treat the cache as private
   household data and exclude it from public repositories.
+
+## Reviewed preparation and usage controls (0.39.0)
+
+See [catalogue preparation and daily usage controls](voice-preparation.md).
+Opening a review never generates speech. It shows exact approved static text,
+saved/missing state, selected voice and a maximum character estimate. Preparing
+requires explicit approval and stores whole sentences in the primary voice's
+normal persistent cache. It plays no audio and runs no household actions.
+
+All primary generation paths through this wrapper share a durable UTC-day
+character allowance. Cache hits consume no allowance; failed provider attempts
+remain reserved conservatively. Optional estimated credits use your explicitly
+configured rate. Existing provider credentials and entity/unique IDs are retained.
 
 ## Provider reliability (0.35.1)
 

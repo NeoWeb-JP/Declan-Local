@@ -12,6 +12,8 @@ from .voice_cache import VoiceCache
 from .voice_catalog_fallback import category_alternatives, load_catalogue
 from .voice_provider import generate_from_existing_tts
 from .voice_usage import VoiceUsage
+from .voice_budget import VoiceBudget
+from .voice_catalogue import CataloguePreparation
 from .audience import mode as audience_mode
 from .phrase_library import PhraseLibrary, normalise_audio, phrase_parts
 from .phrase_import import decode_clips
@@ -27,7 +29,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
         "voice_cache", VoiceCache(hass.config.path("jarvis_voice_cache"))
     )
     usage = hass.data["jarvis_local"].setdefault("voice_usage", VoiceUsage())
-    manager = JarvisVoiceManager(entry, cache, usage)
+    budget = hass.data['jarvis_local'].get('voice_budget')
+    if budget is None:
+        from homeassistant.helpers.storage import Store
+        budget = VoiceBudget(Store(hass, 1, 'jarvis_local.voice_usage'))
+        await budget.load()
+        hass.data['jarvis_local']['voice_budget'] = budget
+    manager = JarvisVoiceManager(entry, cache, usage, budget)
     hass.data['jarvis_local']['voice_manager'] = manager
     async_add_entities([manager])
 
@@ -38,12 +46,29 @@ class JarvisVoiceManager(TextToSpeechEntity):
     _attr_supported_languages = ["en"]
     _attr_default_language = "en"
 
-    def __init__(self, entry, cache, usage):
+    def __init__(self, entry, cache, usage, budget=None):
         self._attr_unique_id = f"{entry.entry_id}_voice_manager"
         self._entry = entry
         self._cache = cache
         self._usage = usage
         self._phrases = PhraseLibrary(cache, self._normalise)
+        self._budget = budget or VoiceBudget()
+        self.catalogue = CataloguePreparation(self)
+
+    def budget_snapshot(self):
+        return self._budget.snapshot(self._entry.options.get('primary_daily_character_limit',0),
+            self._entry.options.get('primary_credit_estimate_per_character',0))
+
+    async def _generate_audio(self, *, provider_entity_id, text, language=None, options=None, primary=True):
+        role = 'primary' if primary else 'fallback'
+        await self._budget.reserve(text, role,
+            self._entry.options.get('primary_daily_character_limit',0) if primary else 0)
+        try:
+            return await generate_from_existing_tts(self.hass,provider_entity_id=provider_entity_id,
+                text=text,language=language,options=options)
+        except (HomeAssistantError, ValueError, OSError, TimeoutError) as err:
+            self._usage.record_failure(role)
+            raise HomeAssistantError('Speech provider request failed: '+type(err).__name__) from None
 
     async def _normalise(self, extension, audio):
         from homeassistant.components.ffmpeg import get_ffmpeg_manager
@@ -71,7 +96,7 @@ class JarvisVoiceManager(TextToSpeechEntity):
             raise ValueError('Enable the voice cache before saving sentences')
         identity=self.import_identity()
         async def generate(text):
-            return await generate_from_existing_tts(self.hass,provider_entity_id=identity['provider'],
+            return await self._generate_audio(provider_entity_id=identity['provider'],
                 text=text,language=identity['language'],options=identity['settings'])
         result=await self._phrases.save_sentence(parts,identity,generate,gap_ms)
         self._usage.record('elevenlabs_phrase_generated' if result['generated_clips'] else 'elevenlabs_phrase_cached')
@@ -105,7 +130,7 @@ class JarvisVoiceManager(TextToSpeechEntity):
                         model=provider, language='en', settings=options)
         skipped_before = self._cache.skipped_writes
         async def generate(message):
-            return await generate_from_existing_tts(self.hass, provider_entity_id=provider,
+            return await self._generate_audio(provider_entity_id=provider,
                                                      text=message, language='en', options=options)
         if kind == 'clip':
             extension, audio, hit = await self._phrases.clip(text.strip(), identity, generate)
@@ -147,10 +172,10 @@ class JarvisVoiceManager(TextToSpeechEntity):
             try:
                 provider_options = primary_options if index == 0 else dict(options or {})
                 voice_key = f"{revision}:{selected_voice}" if index == 0 else revision
-                async def request_audio(text=message, entity_id=entity_id, provider_options=provider_options):
-                    return await generate_from_existing_tts(
-                        self.hass, provider_entity_id=entity_id,
-                        text=text, language=language, options=provider_options,
+                async def request_audio(text=message, entity_id=entity_id, provider_options=provider_options, primary=index==0):
+                    return await self._generate_audio(
+                        provider_entity_id=entity_id,
+                        text=text, language=language, options=provider_options, primary=primary,
                     )
                 if config.get("cache_enabled", True):
                     identity = dict(provider=entity_id, voice_id=voice_key, model=entity_id,
@@ -186,7 +211,6 @@ class JarvisVoiceManager(TextToSpeechEntity):
                 _LOGGER.debug("Jarvis TTS cache %s for %s", "hit" if hit else "miss", entity_id)
                 return extension, audio
             except (HomeAssistantError, ValueError, OSError, TimeoutError) as err:
-                self._usage.record_failure("primary" if index == 0 else "fallback")
                 # Provider exception messages may include speech, credentials or URLs.
                 _LOGGER.warning("Jarvis TTS provider %s failed: %s", entity_id, type(err).__name__)
                 errors.append(f"{entity_id}: {type(err).__name__}")

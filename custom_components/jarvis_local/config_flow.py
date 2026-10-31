@@ -60,11 +60,13 @@ class VoiceOptionsFlow(config_entries.OptionsFlow):
             vol.Required("phrase_library_enabled", default=current.get("phrase_library_enabled", True)): bool,
             vol.Required("category_fallback", default=current.get("category_fallback", True)): bool,
             vol.Required("cache_revision", default=current.get("cache_revision", "v1")): str,
+            vol.Optional("primary_daily_character_limit", default=current.get("primary_daily_character_limit",0)):
+                vol.All(vol.Coerce(int),vol.Range(min=0,max=10000000)),
+            vol.Optional("primary_credit_estimate_per_character", default=current.get("primary_credit_estimate_per_character",0)):
+                vol.All(vol.Coerce(float),vol.Range(min=0,max=100)),
         }
         if voice_choices:
             schema[vol.Required("elevenlabs_voice", default=voice_id if voice_id in voice_choices else next(iter(voice_choices)))] = vol.In(voice_choices)
         else:
             schema[vol.Optional("elevenlabs_voice", default=voice_id)] = str
         return vol.Schema(schema)
-
-

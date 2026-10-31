@@ -3,7 +3,7 @@ import asyncio
 import json
 import base64
 import wave
-import probatio as vol
+import voluptuous as vol
 from .voice_profiles import public_profiles, validate_profiles, save_profiles_file
 from homeassistant.components import websocket_api, conversation
 from homeassistant.core import callback
@@ -34,6 +34,7 @@ async def voice_cache(hass,connection,msg):
     except OSError:
         connection.send_error(msg['id'],'storage_error','Could not read voice cache storage');return
     result['usage']=data['voice_usage'].snapshot()
+    result['budget']=manager.budget_snapshot()
     result['directory']=str(cache.directory)
     result['entity_id']=manager.entity_id
     result['enabled']=manager._entry.options.get('cache_enabled',True)
@@ -269,8 +270,47 @@ async def check_voice_bridge(hass,connection,msg):
             results.append({'name':entry.title,'reachable':False,'reason':'TCP connection failed'})
     connection.send_result(msg['id'],{'bridges':results})
 
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/review_voice_catalogue',
+                                vol.Required('modes'):list})
+@websocket_api.async_response
+async def review_voice_catalogue(hass,connection,msg):
+    manager=hass.data.get('jarvis_local',{}).get('voice_manager')
+    if manager is None:
+        connection.send_error(msg['id'],'not_loaded','Voice Manager is not loaded');return
+    try:
+        result=await manager.catalogue.plan(msg['modes'])
+    except (ValueError,OSError):
+        connection.send_error(msg['id'],'review_failed','Could not review the static voice catalogue');return
+    connection.send_result(msg['id'],result)
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/prepare_voice_catalogue',
+    vol.Required('token'):str,vol.Required('line_id'):str,vol.Required('approved'):bool})
+@websocket_api.async_response
+async def prepare_voice_catalogue(hass,connection,msg):
+    if msg.get('approved') is not True:
+        connection.send_error(msg['id'],'review_required','Approve the reviewed text and estimated usage first');return
+    data=hass.data.get('jarvis_local',{})
+    manager=data.get('voice_manager')
+    if manager is None:
+        connection.send_error(msg['id'],'not_loaded','Voice Manager is not loaded');return
+    lock=data.setdefault('phrase_generation_lock',asyncio.Lock())
+    if lock.locked():
+        connection.send_error(msg['id'],'busy','Another speech preparation is running');return
+    try:
+        async with lock:
+            result=await manager.catalogue.prepare(msg['token'],msg['line_id'])
+    except (HomeAssistantError,ValueError,OSError,TimeoutError):
+        connection.send_error(msg['id'],'preparation_failed',
+            'Recording was not completed. Check budget, storage and provider status, then review again before retrying.');return
+    connection.send_result(msg['id'],result)
+
+
 def register(hass):
     for handler in [info,clear,process,check_satellite_mappings,save_settings,save_voice_profiles,set_debug,check_voice_bridge,
                     save_media_search,search_media,
                     voice_cache,voice_cache_audio,prepare_voice_phrase,import_voice_clips,
-                    preview_voice_sentence,save_voice_sentence]:websocket_api.async_register_command(hass,handler)
+                    preview_voice_sentence,save_voice_sentence,review_voice_catalogue,
+                    prepare_voice_catalogue]:websocket_api.async_register_command(hass,handler)

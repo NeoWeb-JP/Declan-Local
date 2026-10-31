@@ -23,7 +23,9 @@
           "phrase_library_enabled": "Reuse clips for music responses",
           "category_fallback": "Use a saved equivalent reply when the primary provider fails",
           "cache_revision": "Voice cache revision",
-          "elevenlabs_voice": "ElevenLabs voice"
+          "elevenlabs_voice": "ElevenLabs voice",
+          "primary_daily_character_limit": "Daily primary character limit (UTC; 0 means unlimited)",
+          "primary_credit_estimate_per_character": "Estimated credits per primary character (0 means unknown)"
         }
       }
     },
@@ -32,4 +34,3 @@
     }
   }
 }
-

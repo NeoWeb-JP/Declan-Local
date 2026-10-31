@@ -241,4 +241,130 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(private)
         self.assertEqual(guest,('wav',audio()))
 
+    async def test_primary_budget_applies_to_admin_and_runtime_without_blocking_saved_or_local_audio(self):
+        self.entry.options.update(primary_daily_character_limit=5,phrase_library_enabled=False)
+        await self.manager.prepare_phrase('hello','sentence')
+        self.assertEqual(len(self.calls),1)
+        await self.manager.async_get_tts_audio('hello','en',{})
+        self.assertEqual(len(self.calls),1)
+        with self.assertRaises(ValueError):await self.manager.prepare_phrase('another','sentence')
+        await self.manager.async_get_tts_audio('another','en',{})
+        self.assertEqual(self.calls[-1],('tts.xtts','another'))
+        self.assertEqual(self.manager.budget_snapshot()['primary_attempts'],1)
+
+    async def test_catalogue_review_is_read_only_and_missing_preparation_is_exact_reusable_audio(self):
+        async def execute(fn,*args):return {'Guest':{'on':['A static reply.','Another static reply.']}}
+        self.manager.hass.async_add_executor_job=execute
+        plan=await self.manager.catalogue.plan(['Guest'])
+        self.assertEqual(self.calls,[])
+        self.assertEqual(plan['missing_count'],2)
+        line=plan['lines'][0]
+        first=await self.manager.catalogue.prepare(plan['token'],line['id'])
+        self.assertTrue(first['saved'])
+        self.assertEqual(self.calls,[('tts.elevenlabs',line['text'])])
+        await self.manager.catalogue.prepare(plan['token'],line['id'])
+        await self.manager.async_get_tts_audio(line['text'],'en',{})
+        self.assertEqual(len(self.calls),1)
+        next_plan=await self.manager.catalogue.plan(['Guest'])
+        self.assertEqual(next_plan['missing_count'],1)
+
+    async def test_catalogue_requires_current_review_identity_and_rejects_dynamic_facts(self):
+        async def execute(fn,*args):return {'Home':{'on':['Static reply.']}}
+        self.manager.hass.async_add_executor_job=execute
+        plan=await self.manager.catalogue.plan(['Home'])
+        self.entry.options['cache_revision']='new'
+        with self.assertRaises(ValueError):await self.manager.catalogue.prepare(plan['token'],plan['lines'][0]['id'])
+        self.assertEqual(self.calls,[])
+        async def dynamic(fn,*args):return {'Home':{'on':['The temperature is {temperature}.']}}
+        self.manager.hass.async_add_executor_job=dynamic
+        with self.assertRaises(ValueError):await self.manager.catalogue.plan(['Home'])
+        self.assertEqual(self.calls,[])
+
+    async def test_catalogue_failed_attempt_is_not_silently_billed_again(self):
+        async def execute(fn,*args):return {'Guest':{'on':['Static reply.']}}
+        self.manager.hass.async_add_executor_job=execute
+        plan=await self.manager.catalogue.plan(['Guest'])
+        async def fail(hass,**kwargs):
+            self.calls.append(kwargs['text'])
+            raise self.module.HomeAssistantError('provider unavailable')
+        with patch.object(self.module,'generate_from_existing_tts',fail):
+            with self.assertRaises(self.module.HomeAssistantError):await self.manager.catalogue.prepare(plan['token'],plan['lines'][0]['id'])
+            with self.assertRaises(ValueError):await self.manager.catalogue.prepare(plan['token'],plan['lines'][0]['id'])
+        self.assertEqual(self.calls,['Static reply.'])
+        self.assertEqual(self.manager.budget_snapshot()['primary_attempts'],1)
+
+    async def test_catalogue_actual_home_and_guest_file_is_reviewable_without_generation(self):
+        async def executor(fn,*args):return fn(*args)
+        self.manager.hass.async_add_executor_job=executor
+        plan=await self.manager.catalogue.plan(['Home','Guest'])
+        self.assertEqual({line['mode'] for line in plan['lines']},{'Home','Guest'})
+        self.assertGreater(plan['missing_count'],20)
+        self.assertEqual(plan['voice']['provider'],'tts.elevenlabs')
+        self.assertEqual(self.calls,[])
+
+    async def test_catalogue_expiry_cost_change_and_disabled_storage_require_new_review(self):
+        async def execute(fn,*args):return {'Guest':{'on':['Static reply.']}}
+        self.manager.hass.async_add_executor_job=execute
+        self.manager.catalogue.clock=lambda:0
+        plan=await self.manager.catalogue.plan(['Guest'])
+        self.manager.catalogue.clock=lambda:901
+        with self.assertRaises(ValueError):await self.manager.catalogue.prepare(plan['token'],plan['lines'][0]['id'])
+        self.manager.catalogue.clock=lambda:902
+        plan=await self.manager.catalogue.plan(['Guest'])
+        self.entry.options['primary_daily_character_limit']=100
+        with self.assertRaises(ValueError):await self.manager.catalogue.prepare(plan['token'],plan['lines'][0]['id'])
+        plan=await self.manager.catalogue.plan(['Guest'])
+        self.cache.min_free_bytes=10**30
+        with self.assertRaises(ValueError):await self.manager.catalogue.prepare(plan['token'],plan['lines'][0]['id'])
+        self.assertEqual(self.calls,[])
+
+    async def test_catalogue_and_runtime_coalesce_one_billable_attempt(self):
+        async def execute(fn,*args):return {'Guest':{'on':['Static reply.']}}
+        self.manager.hass.async_add_executor_job=execute
+        plan=await self.manager.catalogue.plan(['Guest'])
+        started,release=asyncio.Event(),asyncio.Event()
+        async def generate(hass,**kwargs):
+            self.calls.append(kwargs['text']);started.set();await release.wait()
+            return 'wav',audio()
+        with patch.object(self.module,'generate_from_existing_tts',generate):
+            preparing=asyncio.create_task(self.manager.catalogue.prepare(plan['token'],plan['lines'][0]['id']))
+            await started.wait()
+            speaking=asyncio.create_task(self.manager.async_get_tts_audio('Static reply.','en',{}))
+            await asyncio.sleep(0)
+            release.set()
+            await asyncio.gather(preparing,speaking)
+        self.assertEqual(self.calls,['Static reply.'])
+        self.assertEqual(self.manager.budget_snapshot()['primary_attempts'],1)
+
+    async def test_setup_loads_persistent_budget_before_registering_and_does_not_reset_on_reload(self):
+        storage=types.ModuleType('homeassistant.helpers.storage')
+        loads=[]
+        day=self.manager._budget.today()
+        class Store:
+            def __init__(self,*args):pass
+            async def async_load(self):
+                loads.append(True)
+                return {'day':day,'primary_characters':7,'primary_attempts':1,'fallback_characters':0,'fallback_attempts':0}
+            async def async_save(self,data):pass
+        storage.Store=Store
+        hass=types.SimpleNamespace(data={},config=types.SimpleNamespace(path=lambda name:str(Path(self.temp.name)/name)))
+        entities=[]
+        with patch.dict(sys.modules,{'homeassistant.helpers.storage':storage}):
+            await self.module.async_setup_entry(hass,self.entry,entities.extend)
+            await self.module.async_setup_entry(hass,self.entry,entities.extend)
+        self.assertEqual(len(loads),1)
+        self.assertEqual(entities[-1].budget_snapshot()['primary_characters'],7)
+        self.assertIs(entities[-1]._budget,entities[0]._budget)
+
+    async def test_catalogue_cannot_bill_for_previously_saved_line_removed_after_review(self):
+        async def execute(fn,*args):return {'Guest':{'on':['Saved line.','Missing line.']}}
+        self.manager.hass.async_add_executor_job=execute
+        await self.manager.prepare_phrase('Saved line.','sentence')
+        plan=await self.manager.catalogue.plan(['Guest'])
+        line=next(line for line in plan['lines'] if line['cached'])
+        key=self.cache.key(text='Saved line.',extension='wav',**self.manager.import_identity())
+        self.cache.path_for(key,'wav').unlink()
+        with self.assertRaises(ValueError):await self.manager.catalogue.prepare(plan['token'],line['id'])
+        self.assertEqual(len(self.calls),1)
+
 if __name__=='__main__':unittest.main()

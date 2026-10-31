@@ -1,5 +1,13 @@
 # Jarvis Local
 
+### Reviewed voice recordings and usage controls
+
+The Voice cache screen can review the Home/Guest catalogue and prepare only
+missing recordings after explicit approval. New voice options provide a
+persistent daily primary-character limit and an optional credit estimate.
+Reviewing costs no credits; preparing audio may. See
+[preparation, budget limits and live verification](docs/voice-preparation.md).
+
 ### Conversational corrections and weather follow-ups
 
 Say “actually make them a bit dimmer” or “rather turn them off” after a lighting
