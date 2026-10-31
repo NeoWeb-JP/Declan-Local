@@ -101,12 +101,13 @@ When ElevenLabs is unavailable, Jarvis now attempts this order:
 
 Only exact entries in `responses.json` are eligible for alternate wording.
 The implementation currently recognises `general`, `on`, `off`,
-`brightness` and `morning`; Home uses Sassy+Savage,
+`brightness` and `morning`; Home uses Home,
 Guest uses Guest alone. The candidate must already exist in the persistent
 ElevenLabs cache, with matching provider, revision, language and settings.
 No paid request is made to generate an alternate when ElevenLabs is down.
 This may not cover phonetic-script transformations or future unified persona
-catalogues until they are integrated.
+catalogues until they are integrated. Since 0.36.0, the shared visitor-aware
+speech privacy policy selects Home or Guest; unavailable signals use Guest.
 
 **Never substitute** dynamic weather, temperature, time, status details,
 security/error messages, or unknown text. A cached light-on reply cannot

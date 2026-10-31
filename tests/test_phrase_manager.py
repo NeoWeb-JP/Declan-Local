@@ -226,4 +226,19 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('PRIVATE_SPEECH_OR_KEY', '\n'.join(logs.output))
         self.assertEqual(self.usage.snapshot()['provider_failures'], {'primary': 1, 'fallback': 1})
 
+    async def test_cached_alternative_honors_configured_visitor_privacy(self):
+        catalogue={'Home':{'on':['PRIVATE_HOME_A','PRIVATE_HOME_B']},
+                   'Guest':{'on':['Guest A','Guest B']}}
+        self.manager.hass.data={'jarvis_local':{'settings':{'guest_mode':'input_boolean.permission', 'visitors_present':'input_boolean.company'}}}
+        self.manager.hass.states=types.SimpleNamespace(get=lambda entity:types.SimpleNamespace(state='on' if entity=='input_boolean.company' else 'off'))
+        async def executor(fn, *args): return catalogue
+        self.manager.hass.async_add_executor_job=executor
+        async def find(**kwargs):
+            return ('wav', audio()) if kwargs['text'] in {'PRIVATE_HOME_B','Guest B'} else None
+        with patch.object(self.cache,'find_cached_audio',find):
+            private=await self.manager._cached_primary_alternative('PRIVATE_HOME_A','tts.elevenlabs','v1','en',{})
+            guest=await self.manager._cached_primary_alternative('Guest A','tts.elevenlabs','v1','en',{})
+        self.assertIsNone(private)
+        self.assertEqual(guest,('wav',audio()))
+
 if __name__=='__main__':unittest.main()

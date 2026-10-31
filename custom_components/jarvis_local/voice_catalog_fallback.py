@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 SAFE_ACTIONS = frozenset({"general", "on", "off", "brightness", "morning"})
-HOME_MODES = ("Sassy", "Savage")
+HOME_MODES = ("Home",)
 GUEST_MODES = ("Guest",)
 
 

@@ -12,6 +12,7 @@ from .voice_cache import VoiceCache
 from .voice_catalog_fallback import category_alternatives, load_catalogue
 from .voice_provider import generate_from_existing_tts
 from .voice_usage import VoiceUsage
+from .audience import mode as audience_mode
 from .phrase_library import PhraseLibrary, normalise_audio, phrase_parts
 from .phrase_import import decode_clips
 
@@ -213,10 +214,7 @@ class JarvisVoiceManager(TextToSpeechEntity):
             _LOGGER.warning("Jarvis response catalogue unavailable; using normal fallback")
             return None
 
-        guest = (
-            self.hass.states.is_state("input_boolean.guest_mode", "on")
-            or self.hass.states.is_state("input_boolean.jarvis_visitors_present", "on")
-        )
+        guest = audience_mode(self.hass) == 'Guest'
         alternatives = list(category_alternatives(message, catalogue, guest=guest))
         random.shuffle(alternatives)
         for alternate in alternatives:

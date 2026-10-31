@@ -66,6 +66,20 @@ class Settings(unittest.TestCase):
         self.save({'switch_lights': {}})
         self.assertEqual(complete(settings.load(self.hass))['satellite_media_players'], {BED: PLAYER})
 
+    def test_privacy_helpers_preserved_for_old_clients_and_can_be_cleared(self):
+        self.entities.update({'input_boolean.visitors', 'input_boolean.quiet'})
+        self.save({'visitors_present': 'input_boolean.visitors', 'quiet_hours': 'input_boolean.quiet'})
+        self.entities.clear()
+        self.save({})
+        self.assertEqual(complete(settings.load(self.hass))['visitors_present'], 'input_boolean.visitors')
+        self.save({'visitors_present': '', 'quiet_hours': ''})
+        self.assertNotIn('visitors_present', complete(settings.load(self.hass)))
+
+    def test_privacy_helpers_cannot_share_authority_entity(self):
+        self.entities.add('input_boolean.authority')
+        with self.assertRaises(ValueError):
+            self.save({'visitors_present': 'input_boolean.authority', 'guest_mode': 'input_boolean.authority'})
+
     def test_unchanged_missing_mapping_can_be_kept_or_removed(self):
         self.save({'satellite_media_players': {BED: PLAYER}})
         self.entities.clear()

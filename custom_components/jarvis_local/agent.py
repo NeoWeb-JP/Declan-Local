@@ -16,6 +16,7 @@ from .timers import parse as parse_timer
 from .followup import followup, followup_steps, additional_room
 from .clarification import request as clarification_request, resolve as clarification_resolve
 from .personality import confirmation
+from .audience import mode as audience_mode
 from .transcript import correct
 from .corrections import final_request
 from .verify import verify
@@ -125,7 +126,7 @@ class JarvisAgent(conversation.ConversationEntity):
             timer_request=None if stop_requested else parse_timer(command_text)
             pending=self._pending_clarifications.get(memory_key)
             resolution,entity_id=clarification_resolve(pending,command_text) if pending else (None,None)
-            social = social_reply(command_text, voice_profile, self.hass.data.setdefault('jarvis_local',{}).setdefault('social_history',{})) if not pending else None
+            social = social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data.setdefault('jarvis_local',{}).setdefault('social_history',{})) if not pending else None
             if media_request is not None:
                 self._pending_clarifications.pop(memory_key,None)
                 self._recent_lights.pop(memory_key,None)
@@ -214,7 +215,10 @@ class JarvisAgent(conversation.ConversationEntity):
                                 replies.append(await self.hass.data['jarvis_local']['timers'].handle(getattr(user_input,'satellite_id',None),step['data']))
                                 continue
                             if step['kind'] == 'text':
-                                replies.append(step['response'])
+                                if step.get('label') == 'answer greeting':
+                                    replies.append(social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data['jarvis_local']['social_history']))
+                                else:
+                                    replies.append(step['response'])
                                 continue
                             if step['kind'] in {'brightness', 'switch_light', 'light'}:
                                 calls = step['calls'] if step['kind'] == 'brightness' else [
@@ -287,7 +291,10 @@ class JarvisAgent(conversation.ConversationEntity):
                             if (reply or {}).get('response'):
                                 routine_reply=reply['response']
                                 if step['name']=='jarvis_local_good_morning':
-                                    routine_reply=morning_reply(voice_profile, cfg.get('profiles', {}), self.hass.data.setdefault('jarvis_local', {}).setdefault('morning_history', {}))
+                                    if audience_mode(self.hass) == 'Guest':
+                                        routine_reply=await confirmation(self.hass,user_input.context,'Good morning. The morning routine is underway.',action='morning')
+                                    else:
+                                        routine_reply=morning_reply(voice_profile, cfg.get('profiles', {}), self.hass.data.setdefault('jarvis_local', {}).setdefault('morning_history', {}))
                                 replies.append(routine_reply)
                     except (HomeAssistantError, ValueError) as err:
                         outcome='failed'
@@ -299,7 +306,7 @@ class JarvisAgent(conversation.ConversationEntity):
                     replies.insert(0,await confirmation(self.hass,user_input.context,'Turning '+action+' the lights.',action=action))
                 speech = ' '.join(r for r in replies if r)
                 if outcome == 'completed' and self_corrected and not preview and media_report is None:
-                    speech = ("Changed your mind? No problem. " if self.hass.states.get('input_boolean.guest_mode') and self.hass.states.get('input_boolean.guest_mode').state == 'on' else 'Make up your bloody mind, my bru. ') + speech
+                    speech = await confirmation(self.hass,user_input.context,'Changed your mind? No problem.',action='self_correction') + ' ' + speech
                 if outcome in {'completed', 'partial'}:
                     light_ids=[]
                     invalidated=False

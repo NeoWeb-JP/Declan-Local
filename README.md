@@ -1,5 +1,14 @@
 # Jarvis Local
 
+### Home and Guest speech
+
+Declan now uses two local response catalogues. Select the existing **Visitors
+present** and **Guest mode** helpers in Settings; only healthy, explicit off
+states allow private Home replies. Missing or unavailable signals use Guest
+speech. Visitors do not gain permissions. Quiet hours are independent, and
+private names/morning replies are suppressed for visitors. See
+[speech privacy and the remaining guest-authority work](docs/guest-persona.md).
+
 ### Reusable voice phrases
 
 The **Voice cache** section in the Jarvis sidebar lists saved speech and storage

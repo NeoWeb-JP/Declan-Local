@@ -60,8 +60,14 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         original=module.bridge_profile
         try:
             module.bridge_profile=lambda text,profiles:'Jaco'
+            self.hass.data={'jarvis_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'}}}
+            self.hass.states.values['input_boolean.visitors']=fixtures.State('input_boolean.visitors','Visitors','off')
+            self.hass.states.values['input_boolean.authority']=fixtures.State('input_boolean.authority','Authority','off')
             named=await self.agent.async_handle(UserInput('hello'))
             self.assertIn('Jaco',named.response.speech)
+            self.hass.states.values['input_boolean.visitors'].state='on'
+            guest=await self.agent.async_handle(UserInput('hello'))
+            self.assertNotIn('Jaco',guest.response.speech)
             self.assertEqual(self.hass.services.calls,[])
         finally:module.bridge_profile=original
     async def test_compound_followup_applies_to_all_targets(self):
@@ -73,6 +79,26 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(followup_calls),2)
         self.assertTrue(all(call[0][:2] == ('light','turn_off') for call in followup_calls))
         self.assertEqual({entity for call in followup_calls for entity in call[0][2]['entity_id']},{'light.office','light.bedroom'})
+
+    async def test_visitors_suppress_private_morning_without_changing_authority(self):
+        self.hass.data={'jarvis_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'},
+            'voice_id_config':{'profiles':{'jaco':{'name':'Jaco','morning_responses':['PRIVATE_INTIMATE_GREETING']}}}}}
+        self.hass.states.values['input_boolean.visitors']=fixtures.State('input_boolean.visitors','Visitors','off')
+        self.hass.states.values['input_boolean.authority']=fixtures.State('input_boolean.authority','Authority','off')
+        self.hass.states.values['script.jarvis_local_good_morning']=fixtures.State('script.jarvis_local_good_morning','Morning','off')
+        async def routine(*args, **kwargs):
+            self.hass.services.calls.append((args, kwargs))
+            return {'response':'PRIVATE_SCRIPT_GREETING'}
+        with patch.object(module, 'bridge_profile', lambda *args:'Jaco'), patch.object(self.hass.services, 'async_call', routine):
+            home=await self.agent.async_handle(UserInput('good morning'))
+            self.assertIn('PRIVATE_INTIMATE_GREETING',home.response.speech)
+            for state in ('on','unknown','unavailable'):
+                self.hass.states.values['input_boolean.visitors'].state=state
+                guest=await self.agent.async_handle(UserInput('good morning'))
+                self.assertNotIn('PRIVATE',guest.response.speech)
+                self.assertNotIn('Jaco',guest.response.speech)
+        self.assertTrue(all(call[0][:2] == ('script','jarvis_local_good_morning') for call in self.hass.services.calls))
+        self.assertEqual(self.hass.states.values['input_boolean.authority'].state,'off')
     async def test_switch_backed_compound_followup(self):
         self.hass.data={'jarvis_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
         self.hass.states.values['switch.queen']=fixtures.State('switch.queen','Queen Lamp')
@@ -114,7 +140,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
             UserInput('Dinner on, no I mean movie time'))
         self.assertEqual(len(self.hass.services.calls),1)
         self.assertEqual(self.hass.services.calls[0][0][:2],('script','jarvis_local_movie'))
-        self.assertIn('Make up your',result.response.speech)
+        self.assertIn('Changed your mind? No problem.',result.response.speech)
 
     async def test_incomplete_correction_runs_nothing(self):
         result=await self.agent.async_handle(UserInput('Lights on, scratch that'))

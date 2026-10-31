@@ -8,9 +8,8 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 CATALOG = {
-    "Sassy": {"on": ["Lights on, my bru.", "Bright as your future."],
-              "off": ["Lights off."], "general": ["Sorted."]},
-    "Savage": {"on": ["Lights on. Miraculous."], "off": ["Off they go."]},
+    "Home": {"on": ["Lights on, my bru.", "Bright as your future.", "Lights on. Miraculous."],
+              "off": ["Lights off.", "Off they go."], "general": ["Sorted."]},
     "Guest": {"on": ["Lights on, welcome.", "Consider it done."],
               "off": ["Lights off, thanks."]},
 }
