@@ -1,5 +1,13 @@
 # Jarvis Local
 
+### Conversational corrections and weather follow-ups
+
+Say “actually make them a bit dimmer” or “rather turn them off” after a lighting
+command. Corrections execute only the final validated request and retain any
+preview wrapper. After weather or temperature questions, try “and tomorrow?”,
+“what about later?” or “what about outside?”. Forecasts come from your configured
+HA weather provider. See [supported wording and cancellation limits](docs/conversational-followups.md).
+
 ### Home and Guest speech
 
 Declan now uses two local response catalogues. Select the existing **Visitors

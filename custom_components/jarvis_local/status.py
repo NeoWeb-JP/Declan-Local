@@ -1,5 +1,6 @@
 """Read-only answers from explicit household entities."""
 import re
+import math
 from .settings import get
 from .understanding import normalize_request
 
@@ -31,7 +32,7 @@ def answer(hass, text):
         unit = weather.attributes.get("temperature_unit", "degrees")
         condition = str(weather.state).replace("-", " ").replace("_", " ")
         return "The current weather is " + condition + (
-            ", " + str(temperature) + " " + str(unit) if isinstance(temperature, (int, float)) and not isinstance(temperature, bool) else "") + "."
+            ", " + str(temperature) + " " + str(unit) if isinstance(temperature, (int, float)) and not isinstance(temperature, bool) and math.isfinite(temperature) else "") + "."
     if text in {"are the lights on", "which lights are on", "what lights are on"}:
         from homeassistant.components.homeassistant.exposed_entities import async_should_expose
         lights=[s for s in hass.states.async_all('light') if async_should_expose(hass, 'conversation', s.entity_id)]
@@ -60,7 +61,7 @@ def answer(hass, text):
         thermostat=get(hass, "thermostat")
         s=state(thermostat) if thermostat else None
         current=s.attributes.get("current_temperature") if s else None
-        if not isinstance(current, (int, float)) or isinstance(current, bool):
+        if not isinstance(current, (int, float)) or isinstance(current, bool) or not math.isfinite(current):
             return "The indoor temperature reading is unavailable."
         unit=s.attributes.get("temperature_unit") or hass.config.units.temperature_unit
         return f"It's {current:g} {unit} inside."
@@ -68,7 +69,7 @@ def answer(hass, text):
         weather_id=get(hass, "weather")
         w=state(weather_id) if weather_id else None
         current=w.attributes.get("temperature") if w else None
-        if not isinstance(current, (int, float)) or isinstance(current, bool):
+        if not isinstance(current, (int, float)) or isinstance(current, bool) or not math.isfinite(current):
             return "The outdoor temperature reading is unavailable."
         unit=w.attributes.get("temperature_unit") or hass.config.units.temperature_unit
         return f"It's {current:g} {unit} outside."

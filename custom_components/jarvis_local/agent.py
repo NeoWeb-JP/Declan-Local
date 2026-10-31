@@ -27,6 +27,7 @@ from homeassistant.helpers import intent
 from homeassistant.exceptions import HomeAssistantError
 from .planner import plan
 from .status import answer
+from .information_dialogue import parse as parse_information, read as read_information
 from .speech import recover_off
 from .room_context import source_area, apply_room
 from datetime import datetime, timezone
@@ -44,6 +45,8 @@ class JarvisAgent(conversation.ConversationEntity):
         self._recent_lights = {}
         self._pending_clarifications = {}
         self._voice_markers = {}
+        self._information_topics = {}
+        self._information_runs = {}
 
     @property
     def supported_languages(self):
@@ -67,6 +70,8 @@ class JarvisAgent(conversation.ConversationEntity):
         now=monotonic()
         self._recent_lights={k:v for k,v in self._recent_lights.items() if now-v['at'] < 120}
         self._pending_clarifications={k:v for k,v in self._pending_clarifications.items() if now-v['at'] < 120}
+        self._information_topics={k:v for k,v in getattr(self,'_information_topics',{}).items() if now-v['at'] < 120}
+        self._information_runs=getattr(self,'_information_runs',{})
         continue_conversation=False
         followup_used=False
         corrections=[]
@@ -78,13 +83,34 @@ class JarvisAgent(conversation.ConversationEntity):
             cfg=self.hass.data.get('jarvis_local',{}).get('voice_id_config',{})
             command_text,voice_profile=unwrap(command_text,cfg.get('secret'),cfg.get('profiles',{}),self._voice_markers)
             if not command_text:command_text=''
+        if isinstance(voice_profile,str) and voice_profile:
+            memory_key=memory_key+(voice_profile,)
         original_text=str(command_text)
         command_text,language_changes=normalize_request(command_text)
         corrections.extend(language_changes)
+        correction_error=None
+        request_preview=command_text.lower().startswith(('preview ', 'dry run ', 'what would you do if i said '))
+        try:
+            command_text,self_corrected=final_request(command_text)
+        except ValueError as err:
+            correction_error=err
+            if not request_preview:
+                self._pending_clarifications.pop(memory_key,None)
+                self._information_runs.pop(memory_key,None)
+        if self_corrected:
+            corrections.append('superseded earlier command')
+            command_text,language_changes=normalize_request(command_text)
+            corrections.extend(language_changes)
+            request_preview=command_text.lower().startswith(('preview ', 'dry run ', 'what would you do if i said '))
+            if not request_preview:
+                self._pending_clarifications.pop(memory_key,None)
+                self._information_runs.pop(memory_key,None)
         # Bypass the action lock so running routines cannot delay a stop.
         if is_spoken_stop(command_text):
             self._pending_clarifications.pop(memory_key, None)
             self._recent_lights.pop(memory_key, None)
+            self._information_topics.pop(memory_key, None)
+            self._information_runs.pop(memory_key, None)
             stop_report = await stop_player(self.hass, user_input)
             # Match the existing opt-in, bounded diagnostics history. Never speak
             # routing failures or claim that playback or barge-in was verified.
@@ -112,24 +138,31 @@ class JarvisAgent(conversation.ConversationEntity):
                 response=result, conversation_id=conversation_id,
                 continue_conversation=False)
         try:
+            if correction_error:
+                raise correction_error
             area=area_override or source_area(self.hass,user_input)
-            command_text, self_corrected = final_request(command_text)
-            if self_corrected:
-                corrections.append('superseded earlier command')
-                command_text,language_changes=normalize_request(command_text)
-                corrections.extend(language_changes)
             media_request=parse_search(command_text)
+            previous_topic=self._information_topics.get(memory_key,{})
+            information_request=parse_information(command_text,previous_topic.get('topic'))
             if media_request is None and (getattr(user_input,'device_id',None) or getattr(user_input,'satellite_id',None)):
                 command_text,stt_corrections=correct(self.hass,command_text,area)
                 corrections.extend(stt_corrections)
             stop_requested=bool(re.fullmatch(r'(?:jarvis[ ,]+)?(?:no[ ,]+)?(?:stop|stop that|cancel|cancel that|never mind|nevermind|leave it)[.!? ]*',command_text.strip(),re.I))
             timer_request=None if stop_requested else parse_timer(command_text)
-            pending=self._pending_clarifications.get(memory_key)
+            pending=self._pending_clarifications.get(memory_key) if not request_preview else None
             resolution,entity_id=clarification_resolve(pending,command_text) if pending else (None,None)
             social = social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data.setdefault('jarvis_local',{}).setdefault('social_history',{})) if not pending else None
-            if media_request is not None:
-                self._pending_clarifications.pop(memory_key,None)
-                self._recent_lights.pop(memory_key,None)
+            if information_request is not None:
+                if not request_preview:
+                    self._pending_clarifications.pop(memory_key,None)
+                steps=[information_request]
+                preview=information_request['preview']
+                followup_used=information_request['followup']
+                resolved_text=command_text
+            elif media_request is not None:
+                if not request_preview:
+                    self._pending_clarifications.pop(memory_key,None)
+                    self._recent_lights.pop(memory_key,None)
                 steps=[media_request]
                 preview=media_request['preview']
                 resolved_text=command_text
@@ -185,7 +218,7 @@ class JarvisAgent(conversation.ConversationEntity):
                         if extra:
                             followup_used=True
         except ValueError as err:
-            recovered = recover_off(self.hass, command_text) if (getattr(user_input, 'device_id', None) or getattr(user_input, 'satellite_id', None)) else None
+            recovered = recover_off(self.hass, command_text) if correction_error is None and (getattr(user_input, 'device_id', None) or getattr(user_input, 'satellite_id', None)) else None
             if recovered is not None:
                 # Retry with the same context; never infer voice recovery from chat.
                 from dataclasses import replace
@@ -207,6 +240,29 @@ class JarvisAgent(conversation.ConversationEntity):
                 async with self._lock:
                     try:
                         for step in steps:
+                            if step['kind'] == 'information':
+                                self._recent_lights.pop(memory_key,None)
+                                token=object()
+                                self._information_runs[memory_key]=token
+                                try:
+                                    reply,available=await read_information(self.hass,step,user_input.context)
+                                    superseded=self._information_runs.get(memory_key) is not token
+                                finally:
+                                    if self._information_runs.get(memory_key) is token:
+                                        self._information_runs.pop(memory_key,None)
+                                if superseded:
+                                    outcome='cancelled'
+                                    replies.clear()
+                                    break
+                                step['available']=available
+                                replies.append(reply)
+                                if available:
+                                    self._information_topics[memory_key]={'at':monotonic(),'topic':step['topic']}
+                                    while len(self._information_topics)>64:
+                                        del self._information_topics[next(iter(self._information_topics))]
+                                else:
+                                    self._information_topics.pop(memory_key,None)
+                                continue
                             if step['kind'] == 'media_search':
                                 media_report=await search_media(self.hass,step)
                                 replies.append(media_report['response'])
@@ -294,7 +350,7 @@ class JarvisAgent(conversation.ConversationEntity):
                     action='off' if steps[0]['name']=='turn_off' else 'on'
                     replies.insert(0,await confirmation(self.hass,user_input.context,'Turning '+action+' the lights.',action=action))
                 speech = ' '.join(r for r in replies if r)
-                if outcome == 'completed' and self_corrected and not preview and media_report is None:
+                if outcome == 'completed' and self_corrected and not preview and media_report is None and all(s.get('kind') in {'light','switch_light','brightness','action','guest'} for s in steps):
                     speech = await confirmation(self.hass,user_input.context,'Changed your mind? No problem.',action='self_correction') + ' ' + speech
                 if outcome in {'completed', 'partial'}:
                     light_ids=[]
@@ -317,6 +373,9 @@ class JarvisAgent(conversation.ConversationEntity):
                         del self._recent_lights[next(iter(self._recent_lights))]
         if outcome in {'failed','rejected'}:
             self._recent_lights.pop(memory_key,None)
+            self._information_topics.pop(memory_key,None)
+        elif outcome in {'completed','partial'} and not any(s.get('kind')=='information' for s in steps):
+            self._information_topics.pop(memory_key,None)
         if getattr(user_input,'device_id',None) or getattr(user_input,'satellite_id',None):
             speech=speech.replace(' Try "help" for supported requests.', '')
         record = {
@@ -333,8 +392,8 @@ class JarvisAgent(conversation.ConversationEntity):
             history.append(record)
             del history[:-20]
         trackable = (outcome == 'completed' and not preview and not continue_conversation
-                     and bool(steps) and all(step.get('kind') in {'light', 'switch_light', 'brightness', 'media_control', 'music', 'action', 'status'}
-                                             and not step.get('unverified') for step in steps))
+                     and bool(steps) and all(step.get('kind') in {'light', 'switch_light', 'brightness', 'media_control', 'music', 'action', 'status', 'information'}
+                                             and not step.get('unverified') and (step.get('kind')!='information' or step.get('available')) for step in steps))
         metadata={'trackable':trackable}
         if media_report is not None:
             metadata['media_search']=media_report

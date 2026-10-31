@@ -13,9 +13,10 @@ def followup(text):
     if m:return 'turn '+m[1]+' __previous_lights__',preview
     m=re.fullmatch(r'(?:please )?(?:turn|switch) (on|off) (?:them|it)(?: please)?',text)
     if m:return 'turn '+m[1]+' __previous_lights__',preview
-    m=re.fullmatch(r'(?:please )?set (?:them|it) to (\d+(?:\.\d+)?) (?:percent|%)(?: please)?',text)
+    m=re.fullmatch(r'(?:please )?(?:set|adjust) (?:them|it) to (\d+(?:\.\d+)?) (?:percent|%)(?: please)?',text)
     if m:return 'set __previous_lights__ to '+m[1]+' percent',preview
-    m=re.fullmatch(r'(?:make (?:them|it) |(?:a bit |a little )?)(brighter|dimmer)',text)
+    text=re.sub(r'^no[ ,]+(?=make\b)', '', text)
+    m=re.fullmatch(r'(?:make (?:them|it) (?:(?:a bit|a little) )?|(?:a bit |a little )?)(brighter|dimmer)',text)
     if m:return ('brighten' if m[1]=='brighter' else 'dim')+' __previous_lights__',preview
     m=re.fullmatch(r'(dim|brighten) (?:them|it)',text)
     if m:return m[1]+' __previous_lights__',preview
