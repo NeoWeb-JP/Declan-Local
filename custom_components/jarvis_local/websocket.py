@@ -26,7 +26,7 @@ async def voice_cache(hass,connection,msg):
     cache=data.get('voice_cache')
     manager=data.get('voice_manager')
     if cache is None or manager is None:
-        connection.send_error(msg['id'],'not_loaded','Jarvis Voice Manager is not loaded');return
+        connection.send_error(msg['id'],'not_loaded','Declan Voice Manager is not loaded');return
     try:
         result=await cache.snapshot(query=msg.get('query',''),page=msg.get('page',1),page_size=10)
     except ValueError as err:
@@ -74,7 +74,7 @@ async def save_voice_sentence(hass,connection,msg):
 async def preview_voice_sentence(hass,connection,msg):
     manager=hass.data.get('jarvis_local',{}).get('voice_manager')
     if manager is None:
-        connection.send_error(msg['id'],'not_loaded','Jarvis Voice Manager is not loaded');return
+        connection.send_error(msg['id'],'not_loaded','Declan Voice Manager is not loaded');return
     try:
         result=await manager.preview_sentence(msg['parts'],msg['voice_token'],msg.get('gap_ms',20))
         if 'audio' in result:result['audio']=base64.b64encode(result['audio']).decode('ascii')
@@ -92,7 +92,7 @@ async def import_voice_clips(hass,connection,msg):
     data=hass.data.get('jarvis_local',{})
     manager=data.get('voice_manager')
     if manager is None:
-        connection.send_error(msg['id'],'not_loaded','Jarvis Voice Manager is not loaded');return
+        connection.send_error(msg['id'],'not_loaded','Declan Voice Manager is not loaded');return
     lock=data.setdefault('phrase_generation_lock',asyncio.Lock())
     if lock.locked():
         connection.send_error(msg['id'],'busy','Another phrase operation is running');return
@@ -129,7 +129,7 @@ async def prepare_voice_phrase(hass,connection,msg):
     data=hass.data.get('jarvis_local',{})
     manager=data.get('voice_manager')
     if manager is None:
-        connection.send_error(msg['id'],'not_loaded','Jarvis Voice Manager is not loaded');return
+        connection.send_error(msg['id'],'not_loaded','Declan Voice Manager is not loaded');return
     # Serialize explicit admin generation and reject clicks queued by another client.
     lock=data.setdefault('phrase_generation_lock',asyncio.Lock())
     if lock.locked():
@@ -206,7 +206,7 @@ def clear(hass,connection,msg):
 async def process(hass,connection,msg):
     agent=hass.data.get('jarvis_local',{}).get('agent')
     if agent is None:
-        connection.send_error(msg['id'],'not_loaded','Jarvis Local is not loaded');return
+        connection.send_error(msg['id'],'not_loaded','Home Voice Assistant is not loaded');return
     area=ar.async_get(hass).async_get_area(msg['area_id']) if msg.get('area_id') else None
     if msg.get('area_id') and area is None:
         connection.send_error(msg['id'],'invalid_area','Selected area no longer exists');return

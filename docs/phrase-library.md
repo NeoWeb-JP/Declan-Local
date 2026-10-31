@@ -92,8 +92,8 @@ builder. Other automatically assembled music responses retain their default paus
 ## Import your own recordings (0.29.0)
 
 Open **Voice cache → Import recordings**. Choose your room MP3s (multiple files
-at once) or a private Jarvis JSON phrase pack. Review the editable phrase labels,
-confirm the recordings use your current Jarvis voice and settings, then select
+at once) or a private Declan JSON phrase pack. Review the editable phrase labels,
+confirm the recordings use your current Declan voice and settings, then select
 **Import recordings**. Choosing files only prepares the preview; the import
 button sends them to your own Home Assistant. No speech provider is called.
 
@@ -121,9 +121,9 @@ preview saved audio and manage imported recordings.
 An administrator account is required. Opening the screen, choosing a suggestion,
 refreshing and playing a saved recording never call ElevenLabs. **Save sentence**
 requests missing audio through your existing primary TTS entity;
-this can consume provider credits. No additional API key is stored by Jarvis.
+this can consume provider credits. No additional API key is stored by Home Voice Assistant.
 
-The Assist pipeline must use **Jarvis Voice Manager** as its text-to-speech
+The Assist pipeline must use **Declan Voice Manager** as its text-to-speech
 engine. Choosing ElevenLabs directly bypasses this library. The screen shows
 the manager's entity ID and whether persistent caching and phrase assembly are
 enabled. Integration options include `phrase_library_enabled`; turn it off to
@@ -163,10 +163,10 @@ the normal HA playback path. Compressed MP3 bytes are never directly joined.
 Speech melody can still sound less natural than a whole sentence. Prepare a
 whole sentence with its exact wording when you prefer a natural recording;
 it takes precedence over an assembled recording. Changing voice/provider settings
-requires a new `cache_revision` in Jarvis integration options when those settings
+requires a new `cache_revision` in Home Voice Assistant integration options when those settings
 are not passed explicitly in the synthesis request.
 
-If decoding/joining fails, Jarvis requests the original whole sentence. If the
+If decoding/joining fails, Declan requests the original whole sentence. If the
 primary speech provider fails, the existing fallback policy handles the whole
 original response. It never fills one missing fragment with another voice.
 
@@ -209,16 +209,3 @@ Main has been updated without a PR, following the owner's preference. No live
 HA deployment, restart, pipeline change, paid pre-generation or Proxmox storage
 change is part of this implementation. After deployment, test one phrase in the
 screen, listen to its preview, then test the manager in your Assist pipeline.
-
-
-
-
-
-
-
-
-
-
-
-
-

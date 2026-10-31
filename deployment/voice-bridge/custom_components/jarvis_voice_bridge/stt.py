@@ -34,7 +34,7 @@ async def receive(client):
     return stt.SpeechResult(None,stt.SpeechResultState.ERROR)
 
 class VoiceBridge(stt.SpeechToTextEntity):
-    _attr_name='Jarvis Voice Bridge'
+    _attr_name='Home Voice Assistant Speech'
     def __init__(self,entry):
         self.host=entry.data['host'];self.port=entry.data['port'];self._attr_unique_id=entry.entry_id+'-stt'
     @property

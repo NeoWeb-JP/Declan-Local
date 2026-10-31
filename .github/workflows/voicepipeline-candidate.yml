@@ -28,6 +28,8 @@ jobs:
         run: python -m unittest discover -s deployment/voice-bridge/experiments/per-speaker-threshold -v
       - name: Test History controls
         run: node deployment/voice-bridge/experiments/history-correction/test_ui.js
+      - name: Test bridge compatibility and branded installer
+        run: python -m unittest discover -s deployment/voice-bridge/tests -v
       - name: Check application syntax
         run: |
           python -m py_compile deployment/voice-bridge/experiments/history-correction/api.py
@@ -36,3 +38,4 @@ jobs:
           sh -n deployment/voice-bridge/experiments/history-correction/prepare-production.sh
           sh -n deployment/voice-bridge/experiments/history-correction/deploy-production.sh
           sh -n deployment/voice-bridge/experiments/history-correction/rollback-production.sh
+          sh -n deployment/voice-bridge/install-ha-bridge.sh

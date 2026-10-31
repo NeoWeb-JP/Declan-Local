@@ -28,7 +28,7 @@ async def load(hass):
     if data is None:
         data=await hass.async_add_executor_job(_read_legacy, hass.config.path('jarvis_local_settings.json'))
     if not isinstance(data, dict):
-        raise ValueError('Jarvis settings must be an object')
+        raise ValueError('Home Voice Assistant settings must be an object')
     return data
 
 async def save(hass, data):

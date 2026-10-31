@@ -12,6 +12,8 @@ account password, speaker model or duplicate TTS integration is required.
 3. Review every sentence, the primary provider, selected voice/cache revision,
    saved/missing count and maximum characters. Review is read-only: no paid
    generation, playback or household action is requested.
+   Where written and spoken text differ, the review shows both. Newly generated
+   Edd is pronounced Ed; cache labels and existing recordings stay unchanged.
 4. Tick approval and click **Prepare missing recordings** only if you want to
    request the missing audio. Provider credits may be used. The catalogue
    contains approved static acknowledgements only, not live readings or

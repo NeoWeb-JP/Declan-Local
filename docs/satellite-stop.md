@@ -1,7 +1,7 @@
 # Silent satellite stop
 
 “Stop”, “Stop that”, “Be quiet” and “Shut up” (optionally prefixed with
-“Jarvis”) stop only the player explicitly configured for the originating
+“Declan”) stop only the player explicitly configured for the originating
 Assist satellite. No acknowledgement is spoken, including when the service
 fails. Missing satellite IDs and unmapped satellites run no media action.
 Device IDs and room names are never used to guess a player.
@@ -10,11 +10,11 @@ The user's successful manual media_stop test confirmed:
 `assist_satellite.bedroom_voice_assistant_assist_satellite` →
 `media_player.bedroom_voice_assistant`.
 Hardware barge-in remains unverified: this code can act only after the
-satellite delivers the recognized request to Jarvis.
+satellite delivers the recognized request to Declan.
 
 ## Configuration
 
-Open **Jarvis settings → Satellite audio stops**, choose **Add satellite mapping**,
+Open **Declan settings → Satellite audio stops**, choose **Add satellite mapping**,
 select the Assist satellite and its confirmed media player, then **Save settings**.
 Choose each player explicitly; adding a satellite never fills in a player.
 Changes are active immediately, without a restart. Removing a row takes effect
@@ -24,7 +24,7 @@ Saved mappings remain visible as “Missing” if an entity disappears; unchange
 mappings can still be saved, or removed explicitly. New or changed mappings
 must select existing entities. The editor does not play audio or test interruption.
 
-The persisted Jarvis settings object supports an optional
+The persisted Declan settings object supports an optional
 `satellite_media_players` dictionary. Example:
 
 ```json
@@ -35,7 +35,7 @@ The persisted Jarvis settings object supports an optional
 }
 ```
 
-For an installation without saved Jarvis settings, merge this field into
+For an installation without saved Declan settings, merge this field into
 `/config/jarvis_local_settings.json` and restart Home Assistant.
 That legacy file is loaded only when there are no persisted settings.
 For existing installations, include this field in the existing administrator
@@ -47,7 +47,7 @@ Add kitchen and other satellites only after confirming their exact satellite
 and player entity IDs. Each value must be one media_player entity ID.
 
 Stop also clears the originating conversation's pending clarification and
-lighting follow-up. It bypasses Jarvis's action lock, without cancelling its
+lighting follow-up. It bypasses Declan's action lock, without cancelling its
 running task or unrelated Home Assistant scripts, timers or automations.
 Other cancellation phrases retain their existing dialogue behavior.
 
@@ -61,7 +61,7 @@ service failures and timeouts are reported without speaking an acknowledgement.
 
 “Stop request sent” means Home Assistant accepted the service call. It does not
 confirm that audio stopped or that the hardware heard a wake word during
-playback. Requests intercepted before reaching Jarvis cannot appear here.
+playback. Requests intercepted before reaching Declan cannot appear here.
 
 Like other diagnostics, stop records are disabled by default, kept only in
 memory, limited to the latest 20 requests and cleared when troubleshooting is

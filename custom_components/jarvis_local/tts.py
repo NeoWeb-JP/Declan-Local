@@ -1,4 +1,4 @@
-"""Jarvis TTS: cached ElevenLabs with independent local XTTS fallback."""
+"""Declan TTS: cached ElevenLabs with independent local XTTS fallback."""
 from __future__ import annotations
 
 import logging
@@ -14,6 +14,7 @@ from .voice_provider import generate_from_existing_tts
 from .voice_usage import VoiceUsage
 from .voice_budget import VoiceBudget
 from .voice_catalogue import CataloguePreparation
+from .voice_text import spoken_text
 from .audience import mode as audience_mode
 from .phrase_library import PhraseLibrary, normalise_audio, phrase_parts
 from .phrase_import import decode_clips
@@ -41,7 +42,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class JarvisVoiceManager(TextToSpeechEntity):
-    _attr_name = "Jarvis Voice Manager"
+    _attr_name = "Declan Voice Manager"
     _attr_has_entity_name = True
     _attr_supported_languages = ["en"]
     _attr_default_language = "en"
@@ -60,6 +61,7 @@ class JarvisVoiceManager(TextToSpeechEntity):
             self._entry.options.get('primary_credit_estimate_per_character',0))
 
     async def _generate_audio(self, *, provider_entity_id, text, language=None, options=None, primary=True):
+        text = spoken_text(text)
         role = 'primary' if primary else 'fallback'
         await self._budget.reserve(text, role,
             self._entry.options.get('primary_daily_character_limit',0) if primary else 0)
@@ -150,11 +152,11 @@ class JarvisVoiceManager(TextToSpeechEntity):
         # or model changes, otherwise old speech may be reused.
         revision = config.get("cache_revision", "v1")
         if not isinstance(revision, str) or not revision:
-            raise HomeAssistantError("Invalid Jarvis voice-cache revision")
+            raise HomeAssistantError("Invalid Declan voice-cache revision")
         if not isinstance(primary, str) or not primary.startswith("tts."):
             raise HomeAssistantError("Invalid primary TTS entity")
-        if primary == self.entity_id or primary.startswith("tts.jarvis_voice_manager"):
-            raise HomeAssistantError("Recursive Jarvis TTS provider")
+        if primary == self.entity_id or primary.startswith(("tts.jarvis_voice_manager", "tts.declan_voice_manager")):
+            raise HomeAssistantError("Recursive Declan TTS provider")
         selected_voice = config.get("elevenlabs_voice", "")
         primary_options = dict(options or {})
         if selected_voice:
@@ -167,7 +169,7 @@ class JarvisVoiceManager(TextToSpeechEntity):
 
         errors = []
         for index, entity_id in enumerate(candidates):
-            if entity_id == self.entity_id or entity_id.startswith("tts.jarvis_voice_manager"):
+            if entity_id == self.entity_id or entity_id.startswith(("tts.jarvis_voice_manager", "tts.declan_voice_manager")):
                 continue
             try:
                 provider_options = primary_options if index == 0 else dict(options or {})
@@ -208,11 +210,11 @@ class JarvisVoiceManager(TextToSpeechEntity):
                     extension, audio = await request_audio()
                     hit = False
                 self._usage.record(("elevenlabs_" if index == 0 else "xtts_") + ("cached" if hit else "generated"))
-                _LOGGER.debug("Jarvis TTS cache %s for %s", "hit" if hit else "miss", entity_id)
+                _LOGGER.debug("Declan TTS cache %s for %s", "hit" if hit else "miss", entity_id)
                 return extension, audio
             except (HomeAssistantError, ValueError, OSError, TimeoutError) as err:
                 # Provider exception messages may include speech, credentials or URLs.
-                _LOGGER.warning("Jarvis TTS provider %s failed: %s", entity_id, type(err).__name__)
+                _LOGGER.warning("Declan TTS provider %s failed: %s", entity_id, type(err).__name__)
                 errors.append(f"{entity_id}: {type(err).__name__}")
                 if index == 0 and config.get("cache_enabled", True) and config.get("category_fallback", True):
                     # Only AFTER primary ElevenLabs generation fails: try an
@@ -225,7 +227,7 @@ class JarvisVoiceManager(TextToSpeechEntity):
                         self._usage.record("elevenlabs_category_cached")
                         return alternate
 
-        raise HomeAssistantError("Jarvis TTS primary and fallback failed: " + "; ".join(errors))
+        raise HomeAssistantError("Declan TTS primary and fallback failed: " + "; ".join(errors))
 
     async def _cached_primary_alternative(
         self, message, provider, revision, language, options,
@@ -235,7 +237,7 @@ class JarvisVoiceManager(TextToSpeechEntity):
                 load_catalogue, Path(__file__).with_name("responses.json"),
             )
         except (OSError, ValueError):
-            _LOGGER.warning("Jarvis response catalogue unavailable; using normal fallback")
+            _LOGGER.warning("Declan response catalogue unavailable; using normal fallback")
             return None
 
         guest = audience_mode(self.hass) == 'Guest'
@@ -248,7 +250,7 @@ class JarvisVoiceManager(TextToSpeechEntity):
             )
             if cached is not None:
                 _LOGGER.info(
-                    "Jarvis using approved cached %s alternative before local XTTS",
+                    "Declan using approved cached %s alternative before local XTTS",
                     "Guest" if guest else "Home",
                 )
                 return cached

@@ -1,4 +1,12 @@
-# Jarvis Local
+# Home Voice Assistant
+
+The software is **Home Voice Assistant**; its assistant character is **Declan**,
+your dry, overworked and decidedly unimpressed male butler. Home replies allow
+strong private banter; Guest replies keep it impersonal. Existing integration
+domains, entity IDs, routes and settings remain unchanged. Old registry labels
+may still say Jarvis; rename display labels only, retaining the selected IDs.
+Both Declan and the legacy Jarvis text aliases are accepted. A text alias does
+not install a wake-word model on a satellite. See [branding and voice migration](docs/branding-declan.md).
 
 ### Reviewed voice recordings and usage controls
 
@@ -36,15 +44,15 @@ edit or cancel automations. See [guest handover setup](docs/guest-persona.md).
 
 ### Reusable voice phrases
 
-The **Voice cache** section in the Jarvis sidebar lists saved speech and storage
+The **Voice cache** section in the Home Voice Assistant sidebar lists saved speech and storage
 usage, lets you build and preview sentences, generates missing clips on save, and
-keeps the complete sentence for reuse. With **Jarvis Voice Manager** selected for TTS, music confirmations
+keeps the complete sentence for reuse. With **Declan Voice Manager** selected for TTS, music confirmations
 reuse those clips and fetch only missing words. Cache storage is capped at
 256 MiB with a 512 MiB free-space reserve. See [the phrase-library guide](docs/phrase-library.md)
 for setup, supported wording and how to verify reuse. Preparing new audio can
 use ElevenLabs credits; opening or previewing the library does not.
 
-You can also **import your own room MP3s** or a private Jarvis phrase pack in
+You can also **import your own room MP3s** or a private Declan phrase pack in
 **Voice cache → Import recordings**, without generating the clips again.
 
 **Build a sentence** lets you click clips into order, move or remove them, adjust
@@ -65,9 +73,9 @@ Say **“start movie time and play Desperate house wives”** or **“where can 
 
 This is an early prototype. Some features require existing helper entities and scripts. The voice and sidebar interface must be verified on your own Home Assistant installation.
 
-Open **Jarvis settings** in the sidebar to select optional household entities. Settings are stored by Home Assistant and kept across HACS updates. Lights and areas are discovered automatically. A single thermostat can be discovered automatically; select one if there are several. Car sensors and custom scripts must be chosen because their roles cannot be inferred reliably from entity names alone. Switches used as lights require an explicit spoken name and must be exposed to Assist. Existing scripts, helpers and automations are not created or replaced by this integration.
+Open **Declan settings** in the sidebar to select optional household entities. Settings are stored by Home Assistant and kept across HACS updates. Lights and areas are discovered automatically. A single thermostat can be discovered automatically; select one if there are several. Car sensors and custom scripts must be chosen because their roles cannot be inferred reliably from entity names alone. Switches used as lights require an explicit spoken name and must be exposed to Assist. Existing scripts, helpers and automations are not created or replaced by this integration.
 
-Use **Jarvis settings → Satellite audio stops** to pair an Assist satellite with its confirmed media player. Spoken “Stop”, “Be quiet” and “Shut up” stop only that player, silently. Add, change or remove a mapping and save to apply it immediately. Players are never guessed. See [satellite stop setup](docs/satellite-stop.md); hardware barge-in still needs a live device test.
+Use **Declan settings → Satellite audio stops** to pair an Assist satellite with its confirmed media player. Spoken “Stop”, “Be quiet” and “Shut up” stop only that player, silently. Add, change or remove a mapping and save to apply it immediately. Players are never guessed. See [satellite stop setup](docs/satellite-stop.md); hardware barge-in still needs a live device test.
 
 If `/config/jarvis_local_settings.json` exists from version 0.9.2, its values are loaded until settings are saved in the interface. You can remove the old file after confirming your selections have been saved and survive a restart. Do not put household settings in the repository.
 
@@ -75,11 +83,11 @@ If `/config/jarvis_local_settings.json` exists from version 0.9.2, its values ar
 
 1. Back up Home Assistant, including configuration and your existing custom integration.
 2. In HACS, choose the three-dot menu, **Custom repositories**. Add `https://github.com/NeoWeb-JP/jarvis-local` as an **Integration**. This URL assumes that repository has been created and published.
-3. Find Jarvis Local in HACS and download a released version. It installs files under `/config/custom_components/jarvis_local/`, replacing the manually installed integration files. Preserve any local edits first.
-4. Restart Home Assistant. Keep the existing Jarvis config entry, Assist pipeline, scripts, helpers and automations. Do not create a duplicate config entry.
-5. Test the sidebar on mobile and a few commands in chat and through the satellite. Select your existing Jarvis conversation entity in the Assist pipeline if needed.
+3. Find Home Voice Assistant in HACS and download a released version. It installs files under `/config/custom_components/jarvis_local/`, replacing the manually installed integration files. Preserve any local edits first.
+4. Restart Home Assistant. Keep the existing Home Voice Assistant config entry, Assist pipeline, scripts, helpers and automations. Do not create a duplicate config entry.
+5. Test the sidebar on mobile and a few commands in chat and through the satellite. Select your existing existing conversation entity (Declan) in the Assist pipeline if needed.
 
-For a fresh installation, add Jarvis Local under **Settings > Devices & services > Add integration** after restarting, then configure your Assist pipeline. Home-specific commands additionally require the corresponding existing scripts, entities and helpers.
+For a fresh installation, add Home Voice Assistant under **Settings > Devices & services > Add integration** after restarting, then configure your Assist pipeline. Home-specific commands additionally require the corresponding existing scripts, entities and helpers.
 
 ## Updates and rollback
 
@@ -95,28 +103,28 @@ For a release, verify changes, run the checks, increment the version in `manifes
 
 ## Speaking and optional speaker identification
 
-The microphone button records directly in the Jarvis sidebar and runs the selected Home Assistant Assist pipeline. In **Voice settings**, choose an assistant with Jarvis Local as its conversation agent and a speech-to-text engine. Tap the microphone again to finish speaking. The transcript and response appear in the chat, and the assistant's configured text-to-speech can play the reply. Microphone access requires browser permission and a secure connection. On some mobile browsers, audio playback can require user interaction. Voice requests use the voice assistant's context rather than the chat-room selector.
+The microphone button records directly in the Home Voice Assistant sidebar and runs the selected Home Assistant Assist pipeline. In **Voice settings**, choose an assistant with Home Voice Assistant as its conversation agent and a speech-to-text engine. Tap the microphone again to finish speaking. The transcript and response appear in the chat, and the assistant's configured text-to-speech can play the reply. Microphone access requires browser permission and a secure connection. On some mobile browsers, audio playback can require user interaction. Voice requests use the voice assistant's context rather than the chat-room selector.
 
 Voice and typed commands share the current conversation ID, but voice uses the selected Assist pipeline's configuration. If the pipeline uses the voice bridge, speaker identification remains available.
 
-The experimental Jarvis Voice Bridge can pass a speaker match to Jarvis for a personalised good-morning response. Configure the bridge as the speech-to-text engine and Jarvis Local as the conversation agent in the same pipeline. Keep the bridge and its VoicePipeline server patch installed. In `/config/jarvis_voice_id.json`, define `profiles` using the exact enrolled speaker names in lower case, with a display `name` and `min_confidence` between 0 and 1. Restart Home Assistant after editing. This file stays local and must not be committed. If no profile matches or the score is too low, Jarvis replies without a name. Speaker matches are approximate and must never be used to grant access or authorise sensitive actions.
+The experimental Home Voice Assistant Bridge can pass a speaker match to Declan for a personalised good-morning response. Configure the bridge as the speech-to-text engine and Home Voice Assistant as the conversation agent in the same pipeline. Keep the bridge and its VoicePipeline server patch installed. In `/config/jarvis_voice_id.json`, define `profiles` using the exact enrolled speaker names in lower case, with a display `name` and `min_confidence` between 0 and 1. Restart Home Assistant after editing. This file stays local and must not be committed. If no profile matches or the score is too low, Declan replies without a name. Speaker matches are approximate and must never be used to grant access or authorise sensitive actions.
 
 ### Personal morning responses
 
-The morning routine still runs its configured actions. Jarvis selects its spoken greeting separately so an unknown speaker does not receive a greeting written for someone else. Add an optional `morning_responses` list to a profile in `/config/jarvis_voice_id.json`; each string may use `{name}`. Profiles without a list use a general named greeting, and an unknown speaker gets a neutral response. Keep this personal configuration out of the repository. Restart Home Assistant after changing the file. Existing sentence-trigger automations can intercept phrases before this agent; disable any competing trigger if Jarvis does not receive the request.
+The morning routine still runs its configured actions. Declan selects its spoken greeting separately so an unknown speaker does not receive a greeting written for someone else. Add an optional `morning_responses` list to a profile in `/config/jarvis_voice_id.json`; each string may use `{name}`. Profiles without a list use a general named greeting, and an unknown speaker gets a neutral response. Keep this personal configuration out of the repository. Restart Home Assistant after changing the file. Existing sentence-trigger automations can intercept phrases before this agent; disable any competing trigger if Declan does not receive the request.
 
 ### Overview and diagnostics
 
-The sidebar shows the chosen voice assistant and speech-to-text engine as configured, not as a connectivity or health check. Voice requests marked as locally processed may have been handled by a Home Assistant sentence trigger; use the Assist debug trace to investigate. Requests intercepted before Jarvis are not present in Jarvis's own diagnostics. Troubleshooting is off by default. When enabled, diagnostics show recent text, actions and responses in memory for administrators; disabling it clears the in-memory history. It does not include audio. Speaker status indicates whether a personalised profile was used, not whether the underlying speech service found a candidate.
+The sidebar shows the chosen voice assistant and speech-to-text engine as configured, not as a connectivity or health check. Voice requests marked as locally processed may have been handled by a Home Assistant sentence trigger; use the Assist debug trace to investigate. Requests intercepted before Declan are not present in Declan's own diagnostics. Troubleshooting is off by default. When enabled, diagnostics show recent text, actions and responses in memory for administrators; disabling it clears the in-memory history. It does not include audio. Speaker status indicates whether a personalised profile was used, not whether the underlying speech service found a candidate.
 
 Favourites run immediately when tapped; frequently used entries fill the text box for review. Preview remains available for checking commands before execution. Favourites are stored on the current browser/device.
 
 ### Managing voice profiles
 
-Use **Jarvis settings → Voice profiles** to edit profiles and preview morning greetings without running a routine. The speaker key should match the enrolled name in VoicePipeline; this screen does not enroll voices or change VoicePipeline's own match threshold. Saving preserves other fields in `jarvis_voice_id.json` and makes changes active immediately. The screen is administrator-only and does not display the bridge secret. Voice identification is for personalisation, never authorisation.
+Use **Declan settings → Voice profiles** to edit profiles and preview morning greetings without running a routine. The speaker key should match the enrolled name in VoicePipeline; this screen does not enroll voices or change VoicePipeline's own match threshold. Saving preserves other fields in `jarvis_voice_id.json` and makes changes active immediately. The screen is administrator-only and does not display the bridge secret. Voice identification is for personalisation, never authorisation.
 
 ### Briefings and named timers
 
-Choose an optional weather entity in Jarvis settings. Say “morning briefing” or “evening checks” for the available configured weather, thermostat, car cable and battery readings. These are read-only summaries; unconfigured entities are omitted and unavailable configured readings are reported. They do not include calendar events or light checks. “Good morning” still runs the separate existing routine.
+Choose an optional weather entity in Declan settings. Say “morning briefing” or “evening checks” for the available configured weather, thermostat, car cable and battery readings. These are read-only summaries; unconfigured entities are omitted and unavailable configured readings are reported. They do not include calendar events or light checks. “Good morning” still runs the separate existing routine.
 
 From a supported announcement-capable Assist satellite, say “set a pasta timer for ten minutes”, “how long is left on the pasta timer”, or “cancel the pasta timer”. Each satellite can have up to 20 timers, each with a unique name (and at most one unnamed timer). Ask to add or remove time by name; cancel my timers only affects the current satellite. Existing timers are retained on upgrade. Timers do not start from the sidebar chat.

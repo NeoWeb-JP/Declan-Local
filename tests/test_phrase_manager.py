@@ -367,4 +367,14 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):await self.manager.catalogue.prepare(plan['token'],line['id'])
         self.assertEqual(len(self.calls),1)
 
+    async def test_declan_display_keeps_registration_and_pronunciation_keeps_written_cache_identity(self):
+        self.assertEqual(self.manager._attr_name,'Declan Voice Manager')
+        self.assertEqual(self.manager._attr_unique_id,'test_voice_manager')
+        written='Good morning, Edd.'
+        await self.manager.prepare_phrase(written,'sentence')
+        self.assertEqual(self.calls,[('tts.elevenlabs','Good morning, Ed.')])
+        await self.manager.async_get_tts_audio(written,'en',{})
+        self.assertEqual(len(self.calls),1)
+        self.assertEqual(self.manager.budget_snapshot()['primary_characters'],len('Good morning, Ed.'))
+
 if __name__=='__main__':unittest.main()

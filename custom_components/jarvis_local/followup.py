@@ -4,7 +4,7 @@ from .text import percentages
 
 def followup(text):
     text=percentages(text).lower().replace('’',"'").strip().rstrip('.?!')
-    text=re.sub(r'^(?:hey[\s,]+)?jarvis[\s,:.!?]+','',text)
+    text=re.sub(r'^(?:hey[\s,]+)?(?:declan|jarvis)[\s,:.!?]+','',text)
     preview=False
     text=re.sub(r'^(?:(?:no[ ,]+)?actually[ ,]+|no[ ,]+i meant[ ,]+)', '', text)
     for prefix in ['preview ','dry run ','what would you do if i said ']:
@@ -26,7 +26,7 @@ def followup(text):
 def additional_room(text, previous_action):
     """Handle 'and the dining room lights' only after an established on/off action."""
     text=text.lower().replace('’', "'").strip().rstrip('.?!')
-    text=re.sub(r'^(?:hey[\s,]+)?jarvis[\s,:.!?]+', '', text)
+    text=re.sub(r'^(?:hey[\s,]+)?(?:declan|jarvis)[\s,:.!?]+', '', text)
     match=re.fullmatch(r'and (?:the )?(.+)',text)
     if not match or previous_action not in {'turn_on','turn_off'}:
         return None

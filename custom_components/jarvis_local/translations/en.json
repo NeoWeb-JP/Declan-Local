@@ -1,20 +1,20 @@
 {
-  "title": "Jarvis Local",
+  "title": "Home Voice Assistant",
   "config": {
     "step": {
       "user": {
-        "title": "Set up Jarvis Local",
-        "description": "Add the local command agent and an administrator sidebar for chat, command previews and light discovery. Existing shared routine scripts remain required for Morning, Night and Movie Time."
+        "title": "Set up Home Voice Assistant",
+        "description": "Add the local command agent and an administrator sidebar for chat, command previews and light discovery. Existing shared routine scripts remain required for Morning, Bedtime and Movie Time."
       }
     },
     "abort": {
-      "already_configured": "Jarvis Local is already configured."
+      "already_configured": "Home Voice Assistant is already configured."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Jarvis voice settings",
+        "title": "Declan voice settings",
         "description": "Use existing TTS providers. Change the cache revision after changing the provider voice or model.",
         "data": {
           "primary_tts": "Primary text-to-speech entity",

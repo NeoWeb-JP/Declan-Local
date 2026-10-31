@@ -7,6 +7,7 @@ import secrets
 from time import monotonic
 
 from .voice_catalog_fallback import load_catalogue
+from .voice_text import spoken_text
 STATIC_CATEGORIES = frozenset({'general','on','off','brightness','morning','self_correction',
                                'bedtime','movie','changed_mind','clarification','repeat'})
 
@@ -36,7 +37,8 @@ class CataloguePreparation:
                         raise ValueError('Catalogue must contain short static sentences only')
                     key = sha256(json.dumps([mode,category,sentence],ensure_ascii=False).encode()).hexdigest()
                     if not any(line['id']==key for line in lines):
-                        lines.append({'id':key,'mode':mode,'category':category,'text':sentence,'characters':len(sentence)})
+                        lines.append({'id':key,'mode':mode,'category':category,'text':sentence,
+                                      'spoken_text':spoken_text(sentence),'characters':len(spoken_text(sentence))})
         if not lines or len(lines)>250 or sum(line['characters'] for line in lines)>50000:
             raise ValueError('Catalogue size is outside preparation limits')
         digest = sha256(json.dumps(lines,sort_keys=True,ensure_ascii=False).encode()).hexdigest()

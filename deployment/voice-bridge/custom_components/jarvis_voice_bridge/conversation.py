@@ -7,7 +7,7 @@ async def async_setup_entry(hass,entry,async_add_entities):
     async_add_entities([BridgeTestAgent(entry)])
 
 class BridgeTestAgent(conversation.ConversationEntity):
-    _attr_name='Jarvis Voice Bridge Test'
+    _attr_name='Home Voice Assistant Bridge Check'
     def __init__(self,entry):self._attr_unique_id=entry.entry_id+'-test-conversation'
     @property
     def supported_languages(self):return ['en']

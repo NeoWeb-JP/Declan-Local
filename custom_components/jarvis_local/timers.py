@@ -87,7 +87,7 @@ class Timers:
                 await self.hass.services.async_call('assist_satellite','announce',{'entity_id':satellite,'message':('Your '+name+' timer has finished.' if name else 'Your timer has finished.')},blocking=True)
             except Exception:
                 _LOGGER.exception('Timer announcement failed for %s',satellite)
-                await self.hass.services.async_call('persistent_notification','create',{'title':'Jarvis timer finished','message':'A timer finished, but its satellite announcement failed.'},blocking=True)
+                await self.hass.services.async_call('persistent_notification','create',{'title':'Declan timer finished','message':'A timer finished, but its satellite announcement failed.'},blocking=True)
         except asyncio.CancelledError:return
     async def handle(self,satellite,request):
         if not isinstance(satellite,str) or not satellite.startswith('assist_satellite.'):

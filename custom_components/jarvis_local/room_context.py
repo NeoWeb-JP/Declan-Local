@@ -67,7 +67,7 @@ def apply_room(text, area, hass=None):
     # Guest names need their original spelling; the guest parser is case-insensitive.
     if re.search(r'\b(?:in charge|looking after the house|guests have left)\b',text,re.I):return text
     text=text.lower()
-    text=re.sub(r'^(?:hey[\s,]+)?jarvis[\s,:.!?]+','',text)
+    text=re.sub(r'^(?:hey[\s,]+)?(?:declan|jarvis)[\s,:.!?]+','',text)
     prefix=''
     for candidate in ['preview ','dry run ','what would you do if i said ']:
         if text.startswith(candidate):prefix=candidate;text=text[len(candidate):];break

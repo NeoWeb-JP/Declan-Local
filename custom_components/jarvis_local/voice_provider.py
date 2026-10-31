@@ -1,8 +1,8 @@
 """Generate audio through an existing Home Assistant TTS entity.
 
 Reuses the provider's configured credentials. No ElevenLabs API key is stored
-by Jarvis Local. The caller chooses a concrete provider entity such as
-`tts.elevenlabs`; it must not be the Jarvis wrapper itself.
+by Home Voice Assistant. The caller chooses a concrete provider entity such as
+`tts.elevenlabs`; it must not be the Declan wrapper itself.
 """
 from __future__ import annotations
 
@@ -22,9 +22,9 @@ async def generate_from_existing_tts(
     if not provider_entity_id.startswith("tts."):
         raise ValueError("Provider must be a TTS entity")
     manager = getattr(hass, "data", {}).get("jarvis_local", {}).get("voice_manager")
-    if (provider_entity_id.startswith("tts.jarvis_voice_manager")
+    if (provider_entity_id.startswith(("tts.jarvis_voice_manager", "tts.declan_voice_manager"))
             or provider_entity_id == getattr(manager, "entity_id", None)):
-        raise ValueError("Jarvis Voice Manager cannot call itself")
+        raise ValueError("Declan Voice Manager cannot call itself")
     if not text or not text.strip():
         raise ValueError("Speech text must not be empty")
     media_source_id = tts.generate_media_source_id(

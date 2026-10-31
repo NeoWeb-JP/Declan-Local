@@ -8,7 +8,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def is_spoken_stop(text):
     return bool(re.fullmatch(
-        r'(?:jarvis[ ,]+)?(?:no[ ,]+)?(?:stop|stop that|be quiet|shut up)[.!? ]*',
+        r'(?:(?:declan|jarvis)[ ,]+)?(?:no[ ,]+)?(?:stop|stop that|be quiet|shut up)[.!? ]*',
         text.strip(), re.I))
 
 

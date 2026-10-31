@@ -2,14 +2,14 @@
 import random
 
 NEUTRAL = (
-    'Good morning. The house is waking up, and the morning routine is underway.',
-    'Good morning. The morning routine is underway. I hope the coffee is ready.',
-    'Morning. I have started the routine. The pets are probably already supervising.',
+    'Good morning. The routine is underway. Naturally, I did the organising.',
+    'Good morning. The morning routine is underway. My imaginary pay rise remains overdue.',
+    'Morning. I have started the routine. Another triumph for your overqualified butler.',
 )
 NAMED = (
-    'Good morning, {name}. The morning routine is underway. I hope the coffee is ready.',
-    'Morning, {name}. The house is waking up, and the pets are probably already supervising.',
-    'Good morning, {name}. The morning routine is underway. Another day for us to manage, my bru.',
+    'Good morning, {name}. The routine is underway. Your butler remains scandalously underpaid.',
+    'Morning, {name}. The routine is underway. I trust you can manage the waking-up part.',
+    'Good morning, {name}. The routine is underway. Another day of impeccable service, my bru.',
 )
 
 def morning_reply(name, profiles, history=None):

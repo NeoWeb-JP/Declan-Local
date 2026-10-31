@@ -37,5 +37,5 @@ def load_catalogue(path: str | Path) -> dict:
     with open(path, encoding="utf-8") as stream:
         value = json.load(stream)
     if not isinstance(value, dict):
-        raise ValueError("Invalid Jarvis response catalogue")
+        raise ValueError("Invalid Declan response catalogue")
     return value

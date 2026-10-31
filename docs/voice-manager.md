@@ -1,8 +1,8 @@
-# Jarvis Voice Manager: persistent cache and fallback
+# Declan Voice Manager: persistent cache and fallback
 
 ## Configuration
 
-The integration provides a Jarvis Voice Manager TTS entity. It uses the
+The integration provides a Declan Voice Manager TTS entity. It uses the
 existing Home Assistant TTS integrations, not an additional ElevenLabs API key.
 
 Default providers:
@@ -30,7 +30,7 @@ Cached recordings can be used even if ElevenLabs is temporarily offline.
 
 **Important:** The provider voice/model currently configured in Home
 Assistant is not directly discoverable from this cache's metadata.
-Change `cache_revision` in the Jarvis integration options to a new value
+Change `cache_revision` in the Home Voice Assistant integration options to a new value
 if you change voices or ElevenLabs synthesis settings, or remove the
 cache directory, to avoid returning recordings in the previous voice.
 The options flow provides this setting.
@@ -91,16 +91,16 @@ not establish live speaker playback, GPU health or account billing.
 
 ## Deploy/test
 
-1. Update Jarvis Local from GitHub main using your chosen deployment method.
-2. Restart Home Assistant and confirm Jarvis Voice Manager exists.
+1. Update Home Voice Assistant from GitHub main using your chosen deployment method.
+2. Restart Home Assistant and confirm Declan Voice Manager exists.
 3. Use a manual TTS test with a short phrase; verify ElevenLabs playback.
 4. Repeat the exact phrase and confirm a hit via debug logs and no new
    ElevenLabs usage. Check files under `/config/jarvis_voice_cache`.
 5. Test fallback by temporarily making ElevenLabs unavailable without
    clearing its cache and using a **new uncached phrase**.
-6. Once verified, select Jarvis Voice Manager in the Assist pipeline.
+6. Once verified, select Declan Voice Manager in the Assist pipeline.
 7. Rollback: reselect the previous ElevenLabs entity in Assist, then
-   restore the previous Jarvis Local release if needed.
+   restore the previous Home Voice Assistant release if needed.
 
 All changes currently sit on `main`, per owner preference. The owner
 controls releases. No production Home Assistant deployment was performed.
@@ -108,7 +108,7 @@ controls releases. No production Home Assistant deployment was performed.
 
 ## Preferred voice consistency (category fallback)
 
-When ElevenLabs is unavailable, Jarvis now attempts this order:
+When ElevenLabs is unavailable, Declan now attempts this order:
 
 1. Exact cached ElevenLabs audio (including when ElevenLabs is offline).
 2. If exact generation fails: a **previously cached ElevenLabs line in the same approved personality response category** (same action, same Guest/Home privacy pool).

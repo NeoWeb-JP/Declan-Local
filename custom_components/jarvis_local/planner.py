@@ -23,9 +23,9 @@ def plan(hass, text, area=None):
     if search_request is not None:
         return [search_request], search_request['preview']
     raw_text = text.replace('’', "'").strip()
-    raw_text = re.sub(r'^(?:hey[\s,]+)?jarvis[\s,:.!?]+', '', raw_text, flags=re.I)
+    raw_text = re.sub(r'^(?:hey[\s,]+)?(?:declan|jarvis)[\s,:.!?]+', '', raw_text, flags=re.I)
     text = text.lower().replace('’', "'").strip()
-    text = re.sub(r'^(?:hey[\s,]+)?jarvis[\s,:.!?]+', '', text)
+    text = re.sub(r'^(?:hey[\s,]+)?(?:declan|jarvis)[\s,:.!?]+', '', text)
     preview = False
     for prefix in ('what would you do if i said ', 'preview ', 'dry run '):
         if text.startswith(prefix):

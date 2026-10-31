@@ -7,8 +7,8 @@ from .understanding import normalize_request
 def answer(hass, text):
     text, _ = normalize_request(text)
     text = re.sub(r"[?.!,]", "", text.lower()).strip()
-    text = re.sub(r"^(?:hey )?jarvis\s+", "", text)
-    text = re.sub(r"\s+jarvis$", "", text)
+    text = re.sub(r"^(?:hey )?(?:declan|jarvis)\s+", "", text)
+    text = re.sub(r"\s+(?:declan|jarvis)$", "", text)
     text = re.sub(r"\s+", " ", text)
     def state(entity):
         value = hass.states.get(entity)
@@ -52,7 +52,7 @@ def answer(hass, text):
                 parts.append('The weather is '+str(weather.state)+((', '+str(temperature)+' '+str(unit)) if temperature is not None else '')+'.')
         for key, question in [('thermostat',"what is the heating set to"),('car_cable_sensor','is the car plugged in'),('car_battery_sensor','what is the car battery level')]:
             if get(hass,key):parts.append(answer(hass,question))
-        if len(parts)==1:parts.append('No briefing entities are configured. Choose them in Jarvis settings.')
+        if len(parts)==1:parts.append('No briefing entities are configured. Choose them in Declan settings.')
         return ' '.join(parts)
     if text in {"what time is it", "what's the time", "tell me the time", "what is the time", "time please"}:
         from homeassistant.util import dt as dt_util

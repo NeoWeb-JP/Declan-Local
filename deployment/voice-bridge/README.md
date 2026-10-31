@@ -1,10 +1,18 @@
-# Jarvis Voice Bridge deployment candidate
+# Home Voice Assistant Bridge deployment candidate
+
+The 0.3.0 candidate updates software/display labels and fixes its schema import.
+It retains the jarvis_voice_bridge domain, registration unique IDs, host/port
+keys and speaker metadata protocol. The checksum installer accepts only the
+exact original legacy bridge or the exact 0.2.0 candidate, and is idempotent for
+0.3.0. Independently packaged HACS bridge releases retain their own update path;
+the installer does not guess compatibility with their different package bytes.
+Existing display labels may remain unchanged; keep entity IDs and Assist choices.
 
 This is a versioned candidate, not a replacement applied to a live installation. Keep your current Assist pipeline and container while testing. Speaker profiles, recordings, database and models remain in VoicePipeline's persistent `/data` and `/models` mounts. Back these up before any migration; never publish them, authentication tokens or Home Assistant config.
 
 ## Read-only preflight
 
-On the VoicePipeline host, run `sh check.sh voicepipeline`. Record the image identifier, mount paths and checksums. A TCP check in Jarvis Local only establishes that a port accepts connections, not that transcription or speaker matching is working.
+On the VoicePipeline host, run `sh check.sh voicepipeline`. Record the image identifier, mount paths and checksums. A TCP check in Home Voice Assistant only establishes that a port accepts connections, not that transcription or speaker matching is working.
 
 The supplied Wyoming patch is based on the upstream `wyoming_server.py` SHA-256 `973fa024b093aa3623fe97c6ec48eb2b7feba8f65f01f6fc7ffa0e372b94ba2d`. The supplied speaker patch is the experimental cache implementation; it has not been validated across different image versions. These files are version-locked source overlays, not a universal upgrade mechanism. Do not install either on a different image without comparing the underlying source, including existing local changes. The installed threshold correction (`row[0]`) must be retained; check before deployment.
 
@@ -16,7 +24,7 @@ The generated override is for review only: Compose volume merging and an image u
 
 ## Home Assistant bridge
 
-The included integration retains the existing `jarvis_voice_bridge` domain and unique IDs. Its STT entity's friendly name has been changed, but existing registry names and IDs may remain unchanged. It is not installed by Jarvis Local's HACS update. To trial it, first back up `/config/custom_components/jarvis_voice_bridge` and Home Assistant configuration, then copy the candidate directory into an isolated Home Assistant test instance. Restart and test STT with the diagnostic conversation entity, followed by Jarvis Local. Do not configure two live bridges against copied production enrollment data without understanding that both process audio.
+The included integration retains the existing `jarvis_voice_bridge` domain and unique IDs. Its STT entity's friendly name has been changed, but existing registry names and IDs may remain unchanged. It is not installed by Home Voice Assistant's HACS update. To trial it, first back up `/config/custom_components/jarvis_voice_bridge` and Home Assistant configuration, then copy the candidate directory into an isolated Home Assistant test instance. Restart and test STT with the diagnostic conversation entity, followed by Home Voice Assistant. Do not configure two live bridges against copied production enrollment data without understanding that both process audio.
 
 ## Verify and rollback
 

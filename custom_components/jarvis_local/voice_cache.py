@@ -1,4 +1,4 @@
-"""Provider-independent, persistent cache for synthesized Jarvis speech.
+"""Provider-independent, persistent cache for synthesized Declan speech.
 
 No Home Assistant or ElevenLabs dependency. The TTS platform will call
 get_or_generate with bytes returned by its configured speech provider.
@@ -275,11 +275,3 @@ class VoiceCache:
                 await asyncio.to_thread(remove_older_formats)
             self.misses += 1
             return saved
-
-
-
-
-
-
-
-

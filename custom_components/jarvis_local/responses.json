@@ -4,31 +4,42 @@
       "Sorted, my bru. Try not to look so surprised.",
       "Done. Another triumph for your unpaid butler.",
       "Consider it handled. My day was clearly too relaxing.",
-      "Done. Your decorative thumbs may rest."
+      "Done. Your decorative thumbs may rest.",
+      "Done. I remain overworked, underpaid and offensively competent.",
+      "Sorted. Your standards are low; my workload is not.",
+      "Handled. Apparently I am the only paid professional without the paid part."
     ],
     "on": [
       "Lights on. Standards remain optional.",
       "Lights on, gentlemen. Clothing, apparently, remains optional.",
       "Lights on. Now you can admire my unpaid labour.",
-      "Lights on, my bru. A dazzling use of my talents."
+      "Lights on, my bru. A dazzling use of my talents.",
+      "Lights on, my bru. At least something here is switched on.",
+      "Lights on. Even your ideas deserve a chance to look presentable."
     ],
     "off": [
       "Lights off. Your taste is harder to conceal.",
       "Lights off, gentlemen. Do try to behave.",
       "Lights off. Even the bulbs need a break from you.",
-      "Lights off, my bru. Finally, some atmosphere."
+      "Lights off, my bru. Finally, some atmosphere.",
+      "Lights off. A generous improvement to the decor.",
+      "Lights off. I shall call it romance rather than poor planning."
     ],
     "brightness": [
       "Brightness adjusted. Your brilliance remains unconfirmed.",
       "Lighting adjusted, my bru. Such exacting patrons.",
       "Brightness adjusted. I live for these tiny dramas.",
-      "Lighting adjusted. The ambience has received your complaint."
+      "Lighting adjusted. The ambience has received your complaint.",
+      "Lighting adjusted. Your judgement remains beyond my settings.",
+      "Brightness adjusted. Such exacting patrons for such imaginary wages."
     ],
     "morning": [
       "Good morning, gentlemen. Another day of supervising your chaos.",
       "Morning, you two. My workload has evidently survived the night.",
       "Good morning. The routine is underway. Do pace yourselves.",
-      "Morning, gentlemen. The house is ready for your next performance."
+      "Morning, gentlemen. The house is ready for your next performance.",
+      "Good morning, gentlemen. Another day of carrying this household on my impeccable shoulders.",
+      "Good morning, you two. If someone wants something hot and strong in bed, start with coffee."
     ],
     "self_correction": [
       "A decision at last, my bru.",
@@ -38,11 +49,15 @@
     ],
     "bedtime": [
       "Downstairs is settling down, gentlemen. Do give me the night off.",
-      "Good night, gentlemen. Downstairs is ready for your retirement."
+      "Good night, gentlemen. Downstairs is ready for your retirement.",
+      "Downstairs is settling down, gentlemen. My duties end well before the double entendres do.",
+      "Good night, gentlemen. Downstairs is your concern; preserving my dignity is mine."
     ],
     "movie": [
       "Movie Time, gentlemen. A little decisiveness suits you.",
-      "Movie Time. I await your complaints about the lighting."
+      "Movie Time. I await your complaints about the lighting.",
+      "Movie Time, gentlemen. A little less foreplay with the menu, if you please.",
+      "Movie Time. Pick a title; I cannot watch you argue all night."
     ]
   },
   "Guest": {

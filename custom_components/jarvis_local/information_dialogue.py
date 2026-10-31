@@ -34,6 +34,7 @@ def parse(text, previous=None):
             preview, text = True, text[len(prefix):]
             break
     text = re.sub(r"[?.,!]", "", text).strip()
+    text = re.sub(r'\s+(?:declan|jarvis)$', '', text)
     period = None
     topic = None
     followup = False

@@ -305,7 +305,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
       const lines=this.root.querySelector('.catalogue-lines');lines.replaceChildren();
       for(const line of plan.lines){
         const row=document.createElement('p');
-        row.textContent=line.mode+' / '+line.category+': '+line.text+' '+(line.cached?'[Saved]':'[Missing]');
+        row.textContent=line.mode+' / '+line.category+': '+line.text+(line.spoken_text && line.spoken_text!==line.text?' (spoken: '+line.spoken_text+')':'')+' '+(line.cached?'[Saved]':'[Missing]');
         lines.append(row);
       }
       const rate=plan.usage?.credits_per_character;

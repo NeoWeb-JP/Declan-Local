@@ -3,14 +3,15 @@ import random
 import re
 
 POOLS = {
-    'thanks': ('You are welcome{address}. Happy to help.', 'A pleasure{address}. That is what I am here for.', 'Any time{address}. Somebody has to keep things running.'),
-    'hello': ('Hello{address}. How can I help?', 'Hello{address}. I am ready when you are.', 'Hi{address}. What can I do for you?'),
+    'thanks': ('You are welcome{address}. A little appreciation suits you.', 'A pleasure{address}. I shall add that to my imaginary pay rise.', 'Any time{address}. Somebody has to keep things civilised.'),
+    'hello': ("Hello{address}. Declan here. Do try to make it interesting.", 'Hello{address}. Your overqualified butler is listening.', 'Hi{address}. What domestic drama shall we resolve?'),
 }
 
 def social_reply(text, name, history):
-    text=re.sub(r'^(?:hey[ ,]+)?jarvis[ ,:]+', '', str(text).lower().strip()).strip(' .?!')
+    text=re.sub(r'^(?:hey[ ,]+)?(?:declan|jarvis)[ ,:]+', '', str(text).lower().strip()).strip(' .?!')
+    text=re.sub(r'\s+(?:declan|jarvis)$', '', text)
     if text in {'thank you','thanks','thanks jarvis','thank you jarvis','cheers'}:kind='thanks'
-    elif text in {'hello','hi','hello jarvis','hi jarvis'}:kind='hello'
+    elif text in {'hello','hi','hello jarvis','hi jarvis','declan','jarvis','hey declan','hey jarvis'}:kind='hello'
     else:return None
     key=(kind,name or '')
     pool=POOLS[kind]

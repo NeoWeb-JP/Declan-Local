@@ -36,7 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class JarvisAgent(conversation.ConversationEntity):
     _attr_supported_features = conversation.ConversationEntityFeature.CONTROL
-    _attr_name = 'Jarvis Local'
+    _attr_name = 'Declan'
     _attr_unique_id = 'jarvis_local_test'
 
     def __init__(self, hass):
@@ -344,7 +344,7 @@ class JarvisAgent(conversation.ConversationEntity):
                     except (HomeAssistantError, ValueError) as err:
                         outcome='failed'
                         failure=str(err)
-                        _LOGGER.exception('Jarvis routine failed')
+                        _LOGGER.exception('Declan routine failed')
                         replies.append('I stopped because an action failed. Earlier actions may already have run. Please check the Home Assistant log before retrying.')
                 if grouped_lighting and lighting_succeeded and outcome=='completed':
                     action='off' if steps[0]['name']=='turn_off' else 'on'
@@ -398,5 +398,5 @@ class JarvisAgent(conversation.ConversationEntity):
         if media_report is not None:
             metadata['media_search']=media_report
         result.async_set_speech(speech, extra_data={'jarvis_local': metadata})
-        _LOGGER.debug('Jarvis local processing: %.0f ms', (perf_counter()-start)*1000)
+        _LOGGER.debug('Declan local processing: %.0f ms', (perf_counter()-start)*1000)
         return conversation.ConversationResult(response=result, conversation_id=conversation_id, continue_conversation=continue_conversation)
