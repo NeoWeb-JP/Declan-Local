@@ -6,6 +6,12 @@ class VoiceUsage:
         self.counts = Counter()
         self.last_source = None
         self.generated_clips = 0
+        self.failures = Counter()
+
+    def record_failure(self, provider):
+        if provider not in {"primary", "fallback"}:
+            raise ValueError("Unknown provider role")
+        self.failures[provider] += 1
 
     def record_clips(self, count):
         self.generated_clips += count
@@ -22,8 +28,9 @@ class VoiceUsage:
         counts = dict(self.counts)
         total = sum(counts.values())
         preferred = sum(v for k, v in counts.items() if k.startswith("elevenlabs_"))
+        cached = sum(v for k, v in counts.items() if k.endswith("_cached"))
         return {"counts": counts, "total": total, 'last_source':self.last_source,
                 'generated_clips':self.generated_clips,
+                "provider_failures": dict(self.failures),
+                "cache_hit_pct": round(100 * cached / total, 1) if total else None,
                 "preferred_voice_pct": round(100 * preferred / total, 1) if total else None}
-
-

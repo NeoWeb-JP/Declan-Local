@@ -185,7 +185,9 @@ class JarvisVoiceManager(TextToSpeechEntity):
                 _LOGGER.debug("Jarvis TTS cache %s for %s", "hit" if hit else "miss", entity_id)
                 return extension, audio
             except (HomeAssistantError, ValueError, OSError, TimeoutError) as err:
-                _LOGGER.warning("Jarvis TTS provider %s failed: %s", entity_id, err)
+                self._usage.record_failure("primary" if index == 0 else "fallback")
+                # Provider exception messages may include speech, credentials or URLs.
+                _LOGGER.warning("Jarvis TTS provider %s failed: %s", entity_id, type(err).__name__)
                 errors.append(f"{entity_id}: {type(err).__name__}")
                 if index == 0 and config.get("cache_enabled", True) and config.get("category_fallback", True):
                     # Only AFTER primary ElevenLabs generation fails: try an
@@ -229,11 +231,3 @@ class JarvisVoiceManager(TextToSpeechEntity):
                 )
                 return cached
         return None
-
-
-
-
-
-
-
-

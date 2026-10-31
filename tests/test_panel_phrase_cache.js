@@ -28,7 +28,7 @@ let previewResponse={missing:[],extension:'wav',audio:Buffer.from('joined-audio'
 const data={count:1,bytes:2048,limit_bytes:268435456,free_bytes:50000000000,
   storage_available:true,hits:4,misses:1,skipped_writes:0,enabled:true,phrases_enabled:true,
   directory:'/config/jarvis_voice_cache',entity_id:'tts.jarvis_voice_manager',import_voice_token:'active-voice',
-  rooms:['Kitchen','Bedroom'],usage:{last_source:'elevenlabs_phrase_cached',generated_clips:1},
+  rooms:['Kitchen','Bedroom'],usage:{last_source:'elevenlabs_phrase_cached',generated_clips:1,cache_hit_pct:75,provider_failures:{primary:2,fallback:1}},
   entries:[{text:'<img src=x onerror=alert(1)>',kind:'clip',bytes:2048,provider:'tts.elevenlabs',voice_id:'declan',key:'a'.repeat(64),extension:'wav'}]};
 panel._hass={callWS:async request=>{
   requests.push(request);
@@ -41,6 +41,9 @@ panel._hass={callWS:async request=>{
 }};
 (async()=>{
   await panel.loadVoiceCache();
+  assert.match(elements['.voice-cache-source'].textContent,/75% of successful requests reused saved audio/);
+  assert.match(elements['.voice-cache-source'].textContent,/2 primary provider failures; 1 fallback provider failures/);
+  assert.match(elements['.voice-cache-source'].textContent,/not billed credits/);
   assert.match(elements['.voice-cache-summary'].textContent,/1 recordings/);
   assert.equal(elements['.voice-cache-entries'].children[0].children[0].textContent,data.entries[0].text);
   const groups=elements['.phrase-suggestions'].children;
@@ -162,16 +165,3 @@ panel._hass={callWS:async request=>{
   await panel.loadVoiceCache();assert.match(elements['.voice-cache-summary'].textContent,/Could not load/);
   console.log('Phrase cache interactions passed.');
 })().catch(err=>{console.error(err);process.exitCode=1;});
-
-
-
-
-
-
-
-
-
-
-
-
-

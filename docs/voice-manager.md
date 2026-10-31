@@ -48,6 +48,31 @@ The options flow provides this setting.
 - Avoid assuming saved audio is encrypted: treat the cache as private
   household data and exclude it from public repositories.
 
+## Provider reliability (0.35.1)
+
+The default local fallback `tts.jarvis_xtts` is allowed. Earlier versions
+mistakenly rejected every entity beginning `tts.jarvis_`, preventing this
+fallback from generating new audio. The guard now rejects the registered
+Voice Manager itself (including a renamed entity) and legacy Voice Manager
+names, while allowing the independent XTTS integration.
+
+Each provider audio request has a 30-second deadline. A stalled primary
+provider therefore allows the fallback to run; cancellation from the caller
+still propagates immediately. Both providers failing produces a direct
+error. Provider exception details are excluded from logs because they may
+contain private speech or credentials.
+
+The Voice cache screen reports per-process primary/fallback failure counts
+and the percentage of successful requests that used cached audio. Failed
+attempts are counted separately from successful speech. These are local
+diagnostics, not ElevenLabs billing or credit measurements. Home Assistant's
+own cache may satisfy a request that this integration counts as generated.
+
+Tests exercise the real provider boundary with simulated Home Assistant
+audio responses, including the default XTTS entity, a hung primary, separate
+fallback cache reuse, renamed-wrapper recursion and cancellation. They do
+not establish live speaker playback, GPU health or account billing.
+
 ## Deploy/test
 
 1. Update Jarvis Local from GitHub main using your chosen deployment method.
@@ -98,5 +123,3 @@ phrase previews, explicit clip/whole-sentence preparation, storage usage and
 per-process source counters. Music responses can reuse genre and room clips,
 decoded once and joined into a single WAV. Exact whole-sentence audio takes
 precedence. See [Reusable voice phrases](phrase-library.md) for limits and tests.
-
-
