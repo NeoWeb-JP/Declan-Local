@@ -10,15 +10,29 @@ ROOMS = {
     "everywhere": "media_player.everywhere_2",
 }
 
-def plan_music(hass, text):
-    match = re.fullmatch(r"play (.+?) (?:(?:in|on) (?:the )?)?(kitchen|bedroom|living room|lounge|downstairs|everywhere)", text.strip().rstrip(".!?"), re.I)
-    if not match:
+def plan_music(hass, text, area=None):
+    """Plan explicit Music Assistant playback, resolving only known rooms."""
+    request = text.strip().rstrip(".!?")
+    request = re.sub(r"^(?:please\\s+)?play\\s+", "", request, flags=re.I)
+    if request == text.strip().rstrip(".!?"):
         return None
-    query, room = match.groups()
+    request = re.sub(r"^(?:some|me some)\\s+", "", request, flags=re.I)
+    room_names = sorted(ROOMS, key=len, reverse=True)
+    room_pattern = "|".join(re.escape(name) for name in room_names)
+    match = re.fullmatch(r"(.+?)\\s+(?:in|on|through)\\s+(?:the\\s+)?(" + room_pattern + r")", request, re.I)
+    if match:
+        query, room = match.groups()
+        room = room.lower()
+    else:
+        query = request
+        area_name = getattr(area, "name", "").lower().strip() if area is not None else ""
+        room = {"master bedroom": "bedroom"}.get(area_name, area_name)
+        if room not in ROOMS:
+            raise ValueError("Which room should I play that in? Please name a room. Nothing was run.")
     query = query.strip()
     if not query or len(query) > 150:
         raise ValueError("Please name music to play. Nothing was run.")
-    entity_id = ROOMS[room.lower()]
+    entity_id = ROOMS[room]
     player = hass.states.get(entity_id)
     if player is None or player.state in {"unavailable", "unknown"}:
         raise ValueError("The music player for " + room + " is unavailable. Nothing was run.")
@@ -34,7 +48,7 @@ def plan_music(hass, text):
         kind = "track"
         query = query[9:].strip()
     elif " by " in query.lower():
-        parts = re.split(r"\s+by\s+", query, maxsplit=1, flags=re.I)
+        parts = re.split(r"\\s+by\\s+", query, maxsplit=1, flags=re.I)
         query, artist = parts[0].strip(), parts[1].strip()
         kind = "track"
     if not query or (artist is not None and not artist):
