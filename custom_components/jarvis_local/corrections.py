@@ -32,6 +32,6 @@ def final_request(text):
     command = body[marker.end():].strip(' ,;.!?—–-')
     if not command:
         raise ValueError('What should I do instead? Nothing was run.')
-    if prefix and not _PREVIEW.match(command):
+    # A fragment after a correction is not a complete actionable request.\n    # Do not execute an earlier command or guess a target/action.\n    if not re.match(r'^(?:turn|switch|set|adjust|dim|brighten|make|start|end|stop|cancel|be quiet|shut up|good morning|good night|movie time|cinema time|dinner on|preview|dry run)\\b', command, re.I):\n        raise ValueError('Please state the full corrected command. Nothing was run.')\n    if prefix and not _PREVIEW.match(command):
         command = prefix + command
     return command, True
