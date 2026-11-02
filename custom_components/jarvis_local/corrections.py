@@ -41,7 +41,7 @@ def final_request(text):
         target = re.sub(r'^(?:just |only |the )+', '', command, flags=re.I).strip()
         if action and re.fullmatch(r'[a-z][a-z0-9 -]{2,70}', target, re.I) and not re.search(r'\b(?:and|then|after|before|instead|because|maybe|probably|please|i|me|we)\b', target, re.I):
             previous_target = action[2].lower()
-            if 'light' in previous_target and not re.search(r'\blights?\b', target, re.I):
+            if 'light' in previous_target and not re.search(r'\b(?:lights?|spotlights?)\b', target, re.I):
                 target += ' lights'
             command = 'turn ' + action[1].lower() + ' ' + target
     # A fragment after a correction is not a complete actionable request.
