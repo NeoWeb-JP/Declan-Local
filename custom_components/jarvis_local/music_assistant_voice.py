@@ -50,8 +50,8 @@ def plan_music(hass, text):
 def plan_stop_music(hass, text, area=None):
     """Stop a named Music Assistant player, or the current room's player."""
     match = re.fullmatch(
-        r"(?:please )?(?:stop|pause|turn off)(?: the)? music"
-        r"(?: (?:in|on) (?:the )?(kitchen|bedroom|living room|lounge|downstairs|everywhere))?"
+        r"(?:please )?(?:(?:stop|pause|turn off)(?: the)? music|music off)"
+        r"(?: (?:(?:in|on) (?:the )?)?(kitchen|bedroom|living room|lounge|downstairs|everywhere))?"
         r"(?: please)?[.!?]?", text.strip(), re.I
     )
     if not match:
