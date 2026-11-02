@@ -9,6 +9,8 @@ def followup(text):
     text=re.sub(r'^(?:(?:no[ ,]+)?actually[ ,]+|no[ ,]+i meant[ ,]+)', '', text)
     for prefix in ['preview ','dry run ','what would you do if i said ']:
         if text.startswith(prefix):preview=True;text=text[len(prefix):];break
+    # Explicit pronouns only: never infer a new device or room from a follow-up.
+    text=re.sub(r'\b(?:those|these|that|the same lights)\b', lambda m: 'them' if m[0] != 'that' else 'it', text)
     m=re.fullmatch(r'(?:please )?(?:turn|switch) (?:them|it) (?:back )?(on|off)(?: again)?(?: please)?',text)
     if m:return 'turn '+m[1]+' __previous_lights__',preview
     m=re.fullmatch(r'(?:please )?(?:turn|switch) (on|off) (?:them|it)(?: please)?',text)
