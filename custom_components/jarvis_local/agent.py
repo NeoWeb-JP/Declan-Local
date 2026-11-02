@@ -14,6 +14,7 @@ from .morning import morning_reply
 from .social import social_reply
 from .timers import parse as parse_timer
 from .followup import followup, followup_steps, additional_room
+from .conversation_memory import context_key
 from .clarification import request as clarification_request, resolve as clarification_resolve
 from .personality import confirmation
 from .audience import mode as audience_mode
@@ -66,7 +67,7 @@ class JarvisAgent(conversation.ConversationEntity):
         failure=None
         media_report=None
         conversation_id=user_input.conversation_id or uuid4().hex
-        memory_key=(getattr(user_input.context,'user_id',None),conversation_id,getattr(user_input,'satellite_id',None) or getattr(user_input,'device_id',None),getattr(area_override,'id',None))
+        memory_key=context_key(user_input,conversation_id,area_override=area_override)
         now=monotonic()
         self._recent_lights={k:v for k,v in self._recent_lights.items() if now-v['at'] < 120}
         self._pending_clarifications={k:v for k,v in self._pending_clarifications.items() if now-v['at'] < 120}
@@ -83,16 +84,7 @@ class JarvisAgent(conversation.ConversationEntity):
             cfg=self.hass.data.get('jarvis_local',{}).get('voice_id_config',{})
             command_text,voice_profile=unwrap(command_text,cfg.get('secret'),cfg.get('profiles',{}),self._voice_markers)
             if not command_text:command_text=''
-        # A verified speaker or authenticated user can retain bounded context
-        # across new HA conversation IDs. Anonymous shared satellites cannot:
-        # their context remains tied to the conversation to avoid cross-user actions.
-        satellite = getattr(user_input, 'satellite_id', None) or getattr(user_input, 'device_id', None)
-        user_id = getattr(user_input.context, 'user_id', None)
-        if isinstance(voice_profile, str) and voice_profile:
-            memory_key = ('speaker', voice_profile, satellite, getattr(area_override, 'id', None))
-        elif user_id:
-            memory_key = ('user', user_id, satellite, getattr(area_override, 'id', None))
-
+        memory_key=context_key(user_input,conversation_id,voice_profile,area_override)
         original_text=str(command_text)
         command_text,language_changes=normalize_request(command_text)
         corrections.extend(language_changes)
