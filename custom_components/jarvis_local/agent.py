@@ -323,6 +323,10 @@ class JarvisAgent(conversation.ConversationEntity):
                                 await self.hass.services.async_call('media_player',step['name'],step['data'],blocking=True,context=user_input.context)
                                 replies.append('Request sent to '+step['target_label']+'.')
                                 continue
+                            if step['kind'] == 'music_assistant_play':
+                                await self.hass.services.async_call('music_assistant', 'play_media', step['data'], target={'entity_id': step['entity_id']}, blocking=True, context=user_input.context)
+                                replies.append('Requested ' + step['data']['media_id'] + ' in ' + step['target_label'] + '.')
+                                continue
                             if step['kind'] == 'music':
                                 await self.hass.services.async_call('script',step['name'],step['data'],blocking=True,context=user_input.context)
                                 replies.append('I requested '+step['data']['music']+' in '+step['data']['location']+'.')
@@ -392,7 +396,7 @@ class JarvisAgent(conversation.ConversationEntity):
             history.append(record)
             del history[:-20]
         trackable = (outcome == 'completed' and not preview and not continue_conversation
-                     and bool(steps) and all(step.get('kind') in {'light', 'switch_light', 'brightness', 'media_control', 'music', 'action', 'status', 'information'}
+                     and bool(steps) and all(step.get('kind') in {'light', 'switch_light', 'brightness', 'media_control', 'music', 'music_assistant_play', 'action', 'status', 'information'}
                                              and not step.get('unverified') and (step.get('kind')!='information' or step.get('available')) for step in steps))
         metadata={'trackable':trackable}
         if media_report is not None:
