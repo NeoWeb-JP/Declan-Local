@@ -182,7 +182,7 @@ def _watch_link(link):
     return None
 
 
-async def search_streaming(hass, query, year):
+async def search_streaming(hass, query, year, selection=None):
     config = current(hass)
     token = config.get("tmdb_token")
     if not token:
@@ -215,18 +215,23 @@ async def search_streaming(hass, query, year):
                 continue
             if year and date[:4] != str(year):
                 continue
-            match = title_match(query, title)
+            if selection and (item["id"] != selection["id"] or item["media_type"] != selection["kind"]):
+                continue
+            match = "exact" if selection else title_match(query, title)
             if match:
                 entry = {**item, "_title": title, "_year": date[:4]}
                 (exact if match == "exact" else possible).append(entry)
         # Never silently choose a remake or a fuzzy title for provider claims.
         distinct = {(item["media_type"], item["id"]): item for item in exact}
         if len(distinct) != 1:
-            options = list(distinct.values()) or possible
+            options = list(distinct.values()) + possible
             if options:
                 return {"status": "ambiguous", "matches": [],
+                        "choices": [{"id": entry["id"], "kind": entry["media_type"],
+                                     "title": entry["_title"], "year": entry["_year"]}
+                                    for entry in options[:20]],
                         "candidates": [item["_title"] + " (" + (item["_year"] or "year unknown") +
-                                       ", " + item["media_type"] + ")" for item in options[:4]]}
+                                       ", " + item["media_type"] + ")" for item in options[:20]]}
             return {"status": "complete", "matches": [], "attribution": "JustWatch via TMDB"}
         item = next(iter(distinct.values()))
         payload = await _tmdb_json(hass, token, item["media_type"] + "/" + str(item["id"]) + "/watch/providers")
@@ -267,14 +272,14 @@ async def search(hass, request):
     """Search in priority order. Never call a household or media-player service."""
     query, year = request["query"], request.get("year")
     report = {"query": query, "region": "GB", "sources": [], "streaming": {"status": "skipped", "matches": []}}
-    for adapter in (search_local, search_jellyfin):
+    for adapter in (() if request.get("selection") else (search_local, search_jellyfin)):
         source = await adapter(hass, query, year)
         report["sources"].append(source)
         if any(item.get("match") == "exact" and (item.get("kind") != "folder" or item.get("contains_video"))
                for item in source.get("matches", [])):
             report["response"] = summarize(report)
             return report
-    report["streaming"] = await search_streaming(hass, query, year)
+    report["streaming"] = await search_streaming(hass, query, year, request.get("selection"))
     report["recommendation_url"] = recommendations_link(query)
     report["response"] = summarize(report)
     return report
