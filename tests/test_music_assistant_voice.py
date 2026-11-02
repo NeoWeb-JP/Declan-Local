@@ -23,3 +23,9 @@ def test_missing_player_fails_without_action():
     hass = SimpleNamespace(states=SimpleNamespace(get=lambda _: None))
     with pytest.raises(ValueError, match="unavailable"):
         plan_music(hass, "play Queen everywhere")
+
+def test_bedroom_and_groups():
+    hass = SimpleNamespace(states=States())
+    assert plan_music(hass, "play Queen in the bedroom")["entity_id"] == "media_player.bedroom_declan_voice_assistant"
+    assert plan_music(hass, "play Queen downstairs")["entity_id"] == "media_player.downstairs_2"
+    assert plan_music(hass, "play Queen everywhere")["entity_id"] == "media_player.everywhere_2"
