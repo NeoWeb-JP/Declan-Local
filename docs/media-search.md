@@ -118,3 +118,21 @@ The search credits section displays the TMDB notice and its official logo.
 No television/projector playback implementation or live microphone accuracy
 claim is included in this release. Those require separate device configuration
 and end-to-end testing.
+
+## Open streaming apps on a VIDAA projector
+
+After updating to 0.40.1, search in Find films and TV. Subscription matches for
+Netflix, Prime Video, Disney+ and Paramount+ include Open app buttons. Choose the
+projector remote from the selector, then click a button. This sends
+remote.send_command with app:netflix, app:prime video, app:Disney+ or app:Paramount+.
+A compatible remote such as hisense_vidaa is required; other remote integrations
+may not understand these commands. Search and voice search remain read-only until
+you explicitly click an Open app button. Existing voice and preview behavior is
+unchanged. The command opens the service app, not the searched title, and does not
+power on the projector. A successful service call confirms dispatch, not playback.
+
+Install the latest main version of Jarvis-Local through HACS, restart Home
+Assistant, and refresh the sidebar. No hisense_vidaa update is required for this
+panel change. Local/Jellyfin matches still take priority and do not get streaming
+launch buttons. TMDB token and selected subscriptions must be configured to obtain
+streaming results.
