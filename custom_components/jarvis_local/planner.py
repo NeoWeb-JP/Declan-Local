@@ -1,7 +1,7 @@
 """Validate complete requests before any household action."""
 import re
 from .settings import get
-from .music_assistant_voice import plan_music
+from .music_assistant_voice import plan_music, plan_stop_music
 from .media import media_plan
 from .parser import parse
 from .status import answer
@@ -40,6 +40,9 @@ def plan(hass, text, area=None):
     guest = guest_recognize(guest_text)
     if guest is not None:
         return [guest_build(hass,guest)],preview
+    stop_step = plan_stop_music(hass, text, area)
+    if stop_step is not None:
+        return [stop_step], preview
     music_assistant_step = plan_music(hass, text)
     if music_assistant_step is not None:
         return [music_assistant_step], preview
