@@ -5,8 +5,8 @@ def parse(text):
     text = text.lower().replace("’", "'").strip()
     text = re.sub(r"[.!?,]+", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
-    text = re.sub(r"^(?:hey )?jarvis\s+", "", text)
-    text = re.sub(r"\s+jarvis$", "", text)
+    text = re.sub(r"^(?:hey )?(?:declan|jarvis)\s+", "", text)
+    text = re.sub(r"\s+(?:declan|jarvis)$", "", text)
     text = re.sub(r"^please\s+|\s+please$", "", text).strip()
     if text in {"good morning", "morning", "start the morning routine"}:
         return "jarvis_local_good_morning", {}
