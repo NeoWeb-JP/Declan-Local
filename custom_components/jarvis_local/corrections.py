@@ -32,6 +32,18 @@ def final_request(text):
     command = body[marker.end():].strip(' ,;.!?—–-')
     if not command:
         raise ValueError('What should I do instead? Nothing was run.')
+    # A target-only correction inherits only a clearly stated on/off action.
+    # This happens before planning, so the superseded action never runs.
+    fragment = re.fullmatch(r'(?:just |only |the )?(.+)', command, re.I)
+    if fragment and not re.match(r'^(?:turn|switch|set|adjust|dim|brighten|make|start|end|stop|cancel|be quiet|shut up|good morning|good night|movie time|cinema time|dinner on|preview|dry run)\\b', command, re.I):
+        earlier = body[:marker.start()].strip(' ,;.!?')
+        action = re.fullmatch(r'(?:please )?(?:turn|switch) (on|off) (?:the )?(.+)', earlier, re.I)
+        target = re.sub(r'^(?:just |only |the )+', '', command, flags=re.I).strip()
+        if action and re.fullmatch(r'[a-z][a-z0-9 -]{2,70}', target, re.I) and not re.search(r'\\b(?:and|then|after|before|instead|because|maybe|probably|please|i|me|we)\\b', target, re.I):
+            previous_target = action[2].lower()
+            if 'light' in previous_target and not re.search(r'\\blights?\\b', target, re.I):
+                target += ' lights'
+            command = 'turn ' + action[1].lower() + ' ' + target
     # A fragment after a correction is not a complete actionable request.
     # Do not execute an earlier command or guess a target/action.
     if not re.match(r'^(?:turn|switch|set|adjust|dim|brighten|make|start|end|stop|cancel|be quiet|shut up|good morning|good night|movie time|cinema time|dinner on|preview|dry run)\b', command, re.I):
