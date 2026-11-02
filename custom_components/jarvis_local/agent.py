@@ -235,6 +235,10 @@ class JarvisAgent(conversation.ConversationEntity):
                     "I'm a voice assistant, not a psychic. Give me something to work with.",
                     "Even Alexa would've struggled with that one. And that's saying something.",
                     "Could you repeat that, preferably using actual words?",
+                    "Alexa says she understood you. She's lying, obviously.",
+                    "That sounded like something you'd ask Alexa. Let's try proper words instead.",
+                    "If you wanted a random answer, Alexa's still available. Try again.",
+                    "Alexa would have confidently done the wrong thing. I prefer to ask you to repeat it.",
                 ))
             failure=str(err)
         else:
@@ -333,11 +337,22 @@ class JarvisAgent(conversation.ConversationEntity):
                                 continue
                             if step['kind'] == 'media_control':
                                 await self.hass.services.async_call('media_player',step['name'],step['data'],blocking=True,context=user_input.context)
-                                replies.append('Request sent to '+step['target_label']+'.')
+                                import random
+                                replies.append(random.choice((
+                                    'Request sent to ' + step['target_label'] + '.',
+                                    'Sorted. Alexa would still be thinking about it.',
+                                    'Done. Another task Alexa can cross off her imaginary to-do list.',
+                                )))
                                 continue
                             if step['kind'] == 'music_assistant_play':
                                 await self.hass.services.async_call('music_assistant', 'play_media', step['data'], target={'entity_id': step['entity_id']}, blocking=True, context=user_input.context)
-                                replies.append('Requested ' + step['data']['media_id'] + ' in ' + step['target_label'] + '.')
+                                import random
+                                replies.append(random.choice((
+                                    'Requested ' + step['data']['media_id'] + ' in ' + step['target_label'] + '.',
+                                    'Music requested for ' + step['target_label'] + '. Alexa can sit this one out.',
+                                    'On it. No need to ask Alexa three times.',
+                                    'Music requested. Alexa, take notes.',
+                                )))
                                 continue
                             if step['kind'] == 'music':
                                 await self.hass.services.async_call('script',step['name'],step['data'],blocking=True,context=user_input.context)
