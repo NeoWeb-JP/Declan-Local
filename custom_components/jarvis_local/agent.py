@@ -348,8 +348,20 @@ class JarvisAgent(conversation.ConversationEntity):
                     except (HomeAssistantError, ValueError) as err:
                         outcome='failed'
                         failure=str(err)
-                        _LOGGER.exception('Declan routine failed')
-                        replies.append('I stopped because an action failed. Earlier actions may already have run. Please check the Home Assistant log before retrying.')
+                        if isinstance(err, HomeAssistantError) and 'tuya' in str(err).lower() and 'reject' in str(err).lower():
+                            _LOGGER.warning(
+                                'Declan routine %s stopped after Tuya rejected a command: %s. '
+                                'Earlier script actions may have run; not retrying automatically.',
+                                step.get('name', 'unknown'), err,
+                            )
+                            replies.append(
+                                "Tuya's having a moment and rejected a command. "
+                                "I stopped the routine, but some earlier actions may have worked. "
+                                "Check the devices before trying again."
+                            )
+                        else:
+                            _LOGGER.exception('Declan routine %s failed', step.get('name', 'unknown'))
+                            replies.append('I stopped because an action failed. Earlier actions may already have run. Please check the Home Assistant log before retrying.')
                 if grouped_lighting and lighting_succeeded and outcome=='completed':
                     action='off' if steps[0]['name']=='turn_off' else 'on'
                     replies.insert(0,await confirmation(self.hass,user_input.context,'Turning '+action+' the lights.',action=action))
