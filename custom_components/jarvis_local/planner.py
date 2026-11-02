@@ -70,15 +70,13 @@ def plan(hass, text, area=None):
                 raise ValueError('I could not identify '+target+'. Nothing was run.')
             parsed.append(step)
         return parsed,preview
-    # Bounded playback requests use the user's existing Alexa music script.
-    match=re.fullmatch(r'play (.+?)(?: (?:in|on) (?:the )?(kitchen|office|bedroom|upstairs|everywhere))?',sentence)
-    if match:
-        music,location=match.groups()
-        script_id=get(hass, 'music_script')
-        entity=hass.states.get(script_id) if isinstance(script_id, str) and script_id.startswith('script.') else None
-        if entity is None or entity.state in {'unknown','unavailable'}:
-            raise ValueError('The music control script is unavailable. Nothing was run.')
-        return [{'kind':'music','name':script_id.split('.', 1)[1],'data':{'music':music,'location':location or 'everywhere'},'label':'request '+music+' in '+(location or 'everywhere')}],preview
+    # Never fall back to the retired Alexa music script. Music Assistant
+    # planning above is the only supported route for playback requests.
+    if re.match(r'^(?:please )?play\\b', sentence):
+        raise ValueError(
+            'I could not match that music request to a Music Assistant player. '
+            'Try naming the music and a configured room. Nothing was run.'
+        )
     parts = re.split(r'\s+(?:and then|then|and)\s+|\s*;\s*', text)
     if not 1 <= len(parts) <= 4 or any(not p.strip() for p in parts):
         raise ValueError('Please use between one and four supported requests. Nothing was run.')
