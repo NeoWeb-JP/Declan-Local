@@ -224,6 +224,18 @@ class JarvisAgent(conversation.ConversationEntity):
                 from dataclasses import replace
                 return await self.async_handle(replace(user_input, text=recovered),area_override)
             speech = str(err)
+            if speech.startswith('I did not understand "') and speech.endswith('Try "help" for supported requests.'):
+                import random
+                speech = random.choice((
+                    "What? Put your teeth back in and try that again.",
+                    "I speak several languages. Whatever that was isn't one of them.",
+                    "Was that a command, or did you just sneeze?",
+                    "I'm going to pretend I didn't hear that. Try again, my bru.",
+                    "That sounded important. Shame none of it made sense.",
+                    "I'm a voice assistant, not a psychic. Give me something to work with.",
+                    "Even Alexa would've struggled with that one. And that's saying something.",
+                    "Could you repeat that, preferably using actual words?",
+                ))
             failure=str(err)
         else:
             if preview:
