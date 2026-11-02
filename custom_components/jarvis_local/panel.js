@@ -39,7 +39,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
 <ha-card class="chat-card"><div class="chat-head"><div><h2>Chat with Declan</h2><small class="connection">Connecting to Home Assistant…</small></div><button type="button" class="clear">Clear chat</button></div>
 <div class="overview" aria-label="Declan overview"><small class="overview-agent">Agent: checking…</small><small class="overview-pipeline">Voice assistant: not selected</small><small class="overview-stt">Speech-to-text: not selected</small><button type="button" class="check-bridge">Check bridge connection</button><small class="bridge-status" role="status"></small></div><div class="history" role="log" aria-live="polite"></div>
 <form><input aria-label="Message to Declan" placeholder="Ask Declan anything" required><button class="speak" type="button" aria-label="Start voice input" title="Speak to Declan">🎙</button><button class="send">Send</button><button class="preview" type="button">Preview</button></form><small class="voice-status" role="status"></small><button type="button" class="replay-voice" hidden>Play Declan reply</button>
-<details class="media-search-section"><summary>Find films and TV</summary><small>Search only: HA media folders, Jellyfin, then UK streaming availability. This will not start movie time or control a screen.</small><label>Title <input type="search" class="media-query" aria-label="Film or TV title" maxlength="200" placeholder="e.g. Desperate Housewives"></label><button type="button" class="search-media">Search libraries and services</button><small class="media-search-status" role="status"></small><div class="media-search-results"></div><section class="media-search-credits" aria-label="Media search credits"><h3>Media search credits</h3><a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer"><img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB" width="90" style="height:auto" referrerpolicy="no-referrer"></a><small>This product uses the TMDB API but is not endorsed or certified by TMDB.</small><small>Streaming availability data supplied by <a href="https://www.justwatch.com" target="_blank" rel="noopener noreferrer">JustWatch</a> via TMDB.</small></section></details><details class="voice-options"><summary>Voice settings</summary><label>Voice assistant <select class="voice-pipeline" aria-label="Voice assistant"><option value="">Loading assistants…</option></select></label><small>Select an assistant that uses this conversation agent. Tap the microphone again to finish speaking. Voice input uses the assistant's speech-to-text and text-to-speech settings.</small></details>
+<details class="media-search-section"><summary>Find films and TV</summary><small>Search HA media folders, Jellyfin, then UK streaming availability. Search does not control a screen. Use an Open app button to send a launch command.</small><label>Title <input type="search" class="media-query" aria-label="Film or TV title" maxlength="200" placeholder="e.g. Desperate Housewives"></label><button type="button" class="search-media">Search libraries and services</button><small class="media-search-status" role="status"></small><div class="media-search-results"></div><section class="media-search-credits" aria-label="Media search credits"><h3>Media search credits</h3><a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer"><img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB" width="90" style="height:auto" referrerpolicy="no-referrer"></a><small>This product uses the TMDB API but is not endorsed or certified by TMDB.</small><small>Streaming availability data supplied by <a href="https://www.justwatch.com" target="_blank" rel="noopener noreferrer">JustWatch</a> via TMDB.</small></section></details><details class="voice-options"><summary>Voice settings</summary><label>Voice assistant <select class="voice-pipeline" aria-label="Voice assistant"><option value="">Loading assistants…</option></select></label><small>Select an assistant that uses this conversation agent. Tap the microphone again to finish speaking. Voice input uses the assistant's speech-to-text and text-to-speech settings.</small></details>
 <details class="voice-cache-section"><summary>Voice cache</summary>
 <small>Build and save reusable speech in Home Assistant. Saving requests only missing clips from your configured provider and may use credits.</small>
 <div class="tools"><button type="button" class="refresh-voice-cache">Refresh voice cache</button></div>
@@ -727,6 +727,45 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
         ...(item.other_offers || []),
         'Listings do not verify your account or include every subscription tier. Availability data: JustWatch via TMDB.',
       ]);if(item.url)link(box,item.url,'Check provider details');
+      const apps={
+        'netflix':'netflix','netflix standard with ads':'netflix',
+        'amazon prime video':'prime video','amazon prime video with ads':'prime video',
+        'disney plus':'Disney+','disney+':'Disney+',
+        'paramount plus':'Paramount+','paramount+':'Paramount+',
+        'paramount plus premium':'Paramount+','paramount plus basic with ads':'Paramount+',
+      };
+      const available=[...new Set((item.selected_subscriptions || [])
+        .map(name=>apps[String(name).toLowerCase()]).filter(Boolean))];
+      if(available.length){
+        const label=document.createElement('label');label.textContent='Open app on ';
+        const select=document.createElement('select');select.setAttribute('aria-label','Projector remote');
+        const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Choose a remote';select.append(placeholder);
+        for(const state of Object.values(this._hass.states || {})){
+          if(!state.entity_id.startsWith('remote.') || ['unknown','unavailable'].includes(state.state))continue;
+          const option=document.createElement('option');option.value=state.entity_id;
+          option.textContent=state.attributes?.friendly_name || state.entity_id;select.append(option);
+        }
+        label.append(select);box.append(label);
+        const note=document.createElement('p');note.setAttribute('role','status');
+        note.textContent='Opens the app only. Choose the title inside the app.';box.append(note);
+        const buttons=[];
+        for(const app of available){
+          const button=document.createElement('button');button.type='button';button.textContent='Open '+app;button.disabled=true;
+          buttons.push(button);box.append(button);
+          button.addEventListener('click',async()=>{
+            const entity=select.value;if(!entity)return;
+            buttons.forEach(b=>b.disabled=true);select.disabled=true;
+            try{
+              await this._hass.callService('remote','send_command',
+                {command:'app:'+app},{entity_id:entity});
+              note.textContent='App launch command sent. Choose '+item.title+' inside the app.';
+            }catch(_){note.textContent='Could not send the app launch command. Check the remote connection.';}
+            finally{select.disabled=false;buttons.forEach(b=>b.disabled=!select.value);}
+          });
+        }
+        select.addEventListener('change',()=>buttons.forEach(b=>b.disabled=!select.value));
+      }
+
     }
     if(report.recommendation_url){const box=card('Other viewing options',['Check current UK listings before subscribing or buying.']);link(box,report.recommendation_url,'Search legal viewing options');}
   }
