@@ -84,7 +84,7 @@ function fixture(){
  panel._hass.callService=async(...args)=>launches.push(args);
  report.streaming.matches[0].selected_subscriptions=['Netflix','Amazon Prime Video','Disney Plus','Paramount Plus'];
  panel.renderMediaSearch(report);
- const appBox=els['.media-search-results'].children[2];
+ const appBox=els['.media-search-results'].children[3];
  const controlsBox=appBox.children.find(e=>e.children.some(child=>child.children.length===2));
  const remoteSelect=controlsBox.children[0];
  const appButtons=appBox.children.filter(e=>e.listeners?.click && e.textContent.startsWith('Open '));
@@ -99,6 +99,17 @@ function fixture(){
  assert(appBox.children.some(e=>e.textContent.includes('Could not send')));
  assert(appButtons.every(e=>!e.disabled));
 
+ // Projector power and navigation also work without streaming matches.
+ panel._hass.callService=async(...args)=>launches.push(args);
+ panel.renderMediaSearch({sources:[],streaming:{status:'ambiguous',matches:[],candidates:['The Simpsons']}});
+ const powerBox=els['.media-search-results'].children[0];
+ const powerButtons=powerBox.children.filter(e=>e.listeners?.click);
+ assert.equal(powerButtons.length,9);
+ const before=launches.length;
+ for(const button of powerButtons)await button.listeners.click();
+ assert.deepEqual(launches.slice(before).map(c=>c[1]),['turn_on','turn_off',...Array(7).fill('send_command')]);
+ assert(launches.slice(before).every(c=>c[3].entity_id==='remote.projector'));
+ assert.deepEqual(launches.slice(before+2).map(c=>c[2].command),['KEY_HOME','KEY_BACK','KEY_UP','KEY_LEFT','KEY_OK','KEY_RIGHT','KEY_DOWN']);
  // Voice responses expose the same structured results but never track a playback command.
  const received=[];panel.renderMediaSearch=report=>received.push(report);
  panel.line=()=>{};panel.trackCommand=()=>{throw Error('Search must not be tracked as an action');};
