@@ -11,7 +11,7 @@ ROOMS = {
 }
 
 def plan_music(hass, text):
-    match = re.fullmatch(r"play (.+?) (?:in|on) (?:the )?(kitchen|bedroom|living room|lounge|downstairs|everywhere)", text, re.I)
+    match = re.fullmatch(r"play (.+?) (?:(?:in|on) (?:the )?)?(kitchen|bedroom|living room|lounge|downstairs|everywhere)", text.strip().rstrip(".!?"), re.I)
     if not match:
         return None
     query, room = match.groups()
@@ -24,7 +24,7 @@ def plan_music(hass, text):
         raise ValueError("The music player for " + room + " is unavailable. Nothing was run.")
     kind = "artist"
     artist = None
-    if query.lower().startswith("the playlist "):
+    if query.lower().endswith(" music") and query.lower()[:-6].strip() in {"country", "rock", "pop", "jazz", "classical", "blues", "dance", "folk", "reggae", "soul", "ambient", "electronic", "hip hop"}:\n        kind = "playlist"\n        query = query[:-6].strip()\n    elif query.lower().startswith("the playlist "):
         kind = "playlist"
         query = query[13:].strip()
     elif query.lower().startswith("the song "):
