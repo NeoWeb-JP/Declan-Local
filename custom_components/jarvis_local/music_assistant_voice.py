@@ -45,3 +45,30 @@ def plan_music(hass, text):
     return {"kind": "music_assistant_play", "name": "play_media",
             "data": data, "entity_id": entity_id,
             "target_label": room.title(), "label": "play " + query + " in " + room}
+
+
+def plan_stop_music(hass, text, area=None):
+    """Stop a named Music Assistant player, or the current room's player."""
+    match = re.fullmatch(
+        r"(?:please )?(?:stop|pause|turn off)(?: the)? music"
+        r"(?: (?:in|on) (?:the )?(kitchen|bedroom|living room|lounge|downstairs|everywhere))?"
+        r"(?: please)?[.!?]?", text.strip(), re.I
+    )
+    if not match:
+        return None
+    room = match.group(1)
+    if not room:
+        area_name = getattr(area, "name", "").lower().strip() if area is not None else ""
+        aliases = {"master bedroom": "bedroom", "living room": "lounge"}
+        room = aliases.get(area_name, area_name)
+    if room not in ROOMS:
+        raise ValueError("Which room should I stop the music in? Please name the room. Nothing was run.")
+    entity_id = ROOMS[room]
+    player = hass.states.get(entity_id)
+    if player is None or player.state in {"unavailable", "unknown"}:
+        raise ValueError("The music player for " + room + " is unavailable. Nothing was run.")
+    return {
+        "kind": "media_control", "name": "media_stop",
+        "data": {"entity_id": entity_id}, "target_label": room.title(),
+        "label": "stop music in " + room,
+    }
