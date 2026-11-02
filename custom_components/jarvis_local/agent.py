@@ -83,8 +83,16 @@ class JarvisAgent(conversation.ConversationEntity):
             cfg=self.hass.data.get('jarvis_local',{}).get('voice_id_config',{})
             command_text,voice_profile=unwrap(command_text,cfg.get('secret'),cfg.get('profiles',{}),self._voice_markers)
             if not command_text:command_text=''
-        if isinstance(voice_profile,str) and voice_profile:
-            memory_key=memory_key+(voice_profile,)
+        # A verified speaker or authenticated user can retain bounded context
+        # across new HA conversation IDs. Anonymous shared satellites cannot:
+        # their context remains tied to the conversation to avoid cross-user actions.
+        satellite = getattr(user_input, 'satellite_id', None) or getattr(user_input, 'device_id', None)
+        user_id = getattr(user_input.context, 'user_id', None)
+        if isinstance(voice_profile, str) and voice_profile:
+            memory_key = ('speaker', voice_profile, satellite, getattr(area_override, 'id', None))
+        elif user_id:
+            memory_key = ('user', user_id, satellite, getattr(area_override, 'id', None))
+
         original_text=str(command_text)
         command_text,language_changes=normalize_request(command_text)
         corrections.extend(language_changes)
