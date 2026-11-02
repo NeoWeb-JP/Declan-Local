@@ -711,6 +711,43 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
       catch(_){return;}
       const a=document.createElement('a');a.href=url;a.textContent=label;a.target='_blank';a.rel='noopener noreferrer';box.append(a);
     };
+    const remoteBox=card('Projector controls',[]);
+    const remoteLabel=document.createElement('label');remoteLabel.textContent='Projector remote ';
+    const remoteSelect=document.createElement('select');remoteSelect.setAttribute('aria-label','Projector controls remote');
+    const empty=document.createElement('option');empty.value='';empty.textContent='Choose a remote';remoteSelect.append(empty);
+    for(const state of Object.values(this._hass.states || {})){
+      if(!state.entity_id.startsWith('remote.') || ['unknown','unavailable'].includes(state.state))continue;
+      const option=document.createElement('option');option.value=state.entity_id;
+      option.textContent=state.attributes?.friendly_name || state.entity_id;remoteSelect.append(option);
+    }
+    remoteSelect.value=this.projectorRemote || '';
+    remoteLabel.append(remoteSelect);remoteBox.append(remoteLabel);
+    const remoteStatus=document.createElement('p');remoteStatus.setAttribute('role','status');
+    remoteStatus.textContent='Power on first, wait for the projector home screen, then open an app.';remoteBox.append(remoteStatus);
+    const remoteButtons=[];
+    for(const [label,service,command] of [
+      ['Power on','turn_on'],['Power off','turn_off'],
+      ['Home','send_command','KEY_HOME'],['Back','send_command','KEY_BACK'],
+      ['Up','send_command','KEY_UP'],['Left','send_command','KEY_LEFT'],
+      ['OK','send_command','KEY_OK'],['Right','send_command','KEY_RIGHT'],
+      ['Down','send_command','KEY_DOWN'],
+    ]){
+      const button=document.createElement('button');button.type='button';button.textContent=label;
+      button.disabled=!remoteSelect.value;remoteButtons.push(button);remoteBox.append(button);
+      button.addEventListener('click',async()=>{
+        const entity=remoteSelect.value;if(!entity)return;
+        remoteButtons.forEach(b=>b.disabled=true);remoteSelect.disabled=true;
+        try{
+          await this._hass.callService('remote',service,command?{command}:{},{entity_id:entity});
+          remoteStatus.textContent=label+' command sent.'+(service==='turn_on'?' Wait for the home screen before opening an app.':'');
+        }catch(_){remoteStatus.textContent='Could not send '+label.toLowerCase()+'. Check the remote connection.';}
+        finally{remoteSelect.disabled=false;remoteButtons.forEach(b=>b.disabled=!remoteSelect.value);}
+      });
+    }
+    remoteSelect.addEventListener('change',()=>{
+      this.projectorRemote=remoteSelect.value;
+      remoteButtons.forEach(b=>b.disabled=!remoteSelect.value);
+    });
     for(const source of report.sources || []){
       const statuses={complete:'Checked',partial:'Incomplete',unavailable:'Unavailable',not_configured:'Not configured'};
       card(source.name+' · '+(statuses[source.status] || source.status),[
@@ -745,12 +782,13 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
           const option=document.createElement('option');option.value=state.entity_id;
           option.textContent=state.attributes?.friendly_name || state.entity_id;select.append(option);
         }
+        select.value=this.projectorRemote || '';
         label.append(select);box.append(label);
         const note=document.createElement('p');note.setAttribute('role','status');
         note.textContent='Opens the app only. Choose the title inside the app.';box.append(note);
         const buttons=[];
         for(const app of available){
-          const button=document.createElement('button');button.type='button';button.textContent='Open '+app;button.disabled=true;
+          const button=document.createElement('button');button.type='button';button.textContent='Open '+app;button.disabled=!select.value;
           buttons.push(button);box.append(button);
           button.addEventListener('click',async()=>{
             const entity=select.value;if(!entity)return;
@@ -763,7 +801,11 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
             finally{select.disabled=false;buttons.forEach(b=>b.disabled=!select.value);}
           });
         }
-        select.addEventListener('change',()=>buttons.forEach(b=>b.disabled=!select.value));
+        select.addEventListener('change',()=>{
+          this.projectorRemote=select.value;remoteSelect.value=select.value;
+          remoteButtons.forEach(b=>b.disabled=!select.value);
+          buttons.forEach(b=>b.disabled=!select.value);
+        });
       }
 
     }
