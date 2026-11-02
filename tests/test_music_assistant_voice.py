@@ -10,7 +10,7 @@ class States:
 def test_artist_and_room():
     step = plan_music(SimpleNamespace(states=States()), "play Norah Jones in the kitchen")
     assert step["data"] == {"media_id": "Norah Jones", "media_type": "artist"}
-    assert step["entity_id"] == "media_player.kitchen_declan_voice_assistant_speaker"
+    assert step["entity_id"] == "media_player.kitchen_declan_voice_assistant"
 
 def test_track_artist_filter():
     step = plan_music(SimpleNamespace(states=States()), "play Bohemian Rhapsody by Queen in the bedroom")
