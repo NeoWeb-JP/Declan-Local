@@ -164,7 +164,9 @@ async def save_media_search(hass,connection,msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/search_media',vol.Required('query'):str})
+@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/search_media',vol.Required('query'):str,
+    vol.Optional('title_id'):vol.All(int,vol.Range(min=1)),
+    vol.Optional('kind'):vol.In(['movie','tv'])})
 @websocket_api.async_response
 async def search_media(hass,connection,msg):
     data=hass.data.setdefault('jarvis_local',{})
@@ -177,6 +179,12 @@ async def search_media(hass,connection,msg):
         request=parse_search('find '+query)
         if request is None:
             raise ValueError('Enter a film or TV title.')
+        if 'title_id' in msg or 'kind' in msg:
+            if 'title_id' not in msg or 'kind' not in msg:
+                raise ValueError('Choose a film or TV title from the results.')
+            request['selection']={'id':msg['title_id'],'kind':msg['kind']}
+            request['query']=query
+            request['year']=None
         data['media_search_busy']=True
         result=await run_media_search(hass,request)
     except ValueError as err:
