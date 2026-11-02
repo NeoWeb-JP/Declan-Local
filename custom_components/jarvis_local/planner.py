@@ -43,7 +43,7 @@ def plan(hass, text, area=None):
     stop_step = plan_stop_music(hass, text, area)
     if stop_step is not None:
         return [stop_step], preview
-    music_assistant_step = plan_music(hass, text)
+    music_assistant_step = plan_music(hass, text, area)
     if music_assistant_step is not None:
         return [music_assistant_step], preview
     media=media_plan(hass, text, area)
