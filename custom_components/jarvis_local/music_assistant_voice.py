@@ -2,7 +2,7 @@
 import re
 
 ROOMS = {
-    "kitchen": "media_player.kitchen_declan_voice_assistant_speaker",
+    "kitchen": "media_player.kitchen_declan_voice_assistant",
     "bedroom": "media_player.master_bedroom_echo_show_4",
     "living room": "media_player.living_room_declan",
     "lounge": "media_player.living_room_declan",
