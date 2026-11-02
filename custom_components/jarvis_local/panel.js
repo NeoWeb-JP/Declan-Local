@@ -757,7 +757,26 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
       ]);
     }
     const streaming=report.streaming || {};
-    if(streaming.status==='ambiguous')card('Which title?',streaming.candidates || []);
+    if(streaming.status==='ambiguous'){
+      const choices=card('Choose a title',streaming.choices?.length?[]:(streaming.candidates || []));
+      for(const item of streaming.choices || []){
+        const button=document.createElement('button');button.type='button';
+        button.textContent=item.title+' ('+(item.year || 'year unknown')+', '+(item.kind==='tv'?'TV series':'film')+')';
+        choices.append(button);
+        button.addEventListener('click',async()=>{
+          if(this.selectingMediaTitle)return;
+          this.selectingMediaTitle=true;button.disabled=true;
+          const status=this.root.querySelector('.media-search-status');
+          status.textContent='Checking streaming services for '+item.title+'…';
+          try{
+            const result=await this._hass.callWS({type:'jarvis_local/search_media',
+              query:item.title,title_id:item.id,kind:item.kind});
+            this.renderMediaSearch(result);
+          }catch(_){status.textContent='Could not check this title. Please try again.';}
+          finally{this.selectingMediaTitle=false;button.disabled=false;}
+        });
+      }
+    }
     for(const item of streaming.matches || []){
       const box=card(item.title+(item.year?' ('+item.year+')':''),[
         item.selected_subscriptions?.length?'Selected subscriptions: '+item.selected_subscriptions.join(', '):'No listing on selected subscriptions was returned.',
