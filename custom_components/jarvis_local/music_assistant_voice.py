@@ -3,14 +3,15 @@ import re
 
 ROOMS = {
     "kitchen": "media_player.kitchen_declan_voice_assistant",
-    "bedroom": "media_player.master_bedroom_echo_show_4",
+    "bedroom": "media_player.bedroom_declan_voice_assistant",
     "living room": "media_player.living_room_declan",
     "lounge": "media_player.living_room_declan",
+    "downstairs": "media_player.downstairs_2",
     "everywhere": "media_player.everywhere_2",
 }
 
 def plan_music(hass, text):
-    match = re.fullmatch(r"play (.+?) (?:in|on) (?:the )?(kitchen|bedroom|living room|lounge|everywhere)", text, re.I)
+    match = re.fullmatch(r"play (.+?) (?:in|on) (?:the )?(kitchen|bedroom|living room|lounge|downstairs|everywhere)", text, re.I)
     if not match:
         return None
     query, room = match.groups()
