@@ -1,6 +1,8 @@
 const assert=require('assert'),fs=require('fs'),vm=require('vm');let Panel;
 class Element{
  constructor(){this.children=[];this.textContent='';this.value='';this.checked=false;this.disabled=false;}
+ setAttribute(){}
+ addEventListener(name,handler){(this.listeners ||= {})[name]=handler;}
  append(...items){this.children.push(...items);}
  replaceChildren(){this.children=[];this.textContent='';}
 }
@@ -72,6 +74,31 @@ function fixture(){
  report.recommendation_url='https://untrusted.example/';
  panel.renderMediaSearch(report);
  assert.equal(els['.media-search-results'].children.flatMap(box=>box.children).filter(item=>item.href).length,0);
+
+ // Explicit app launches use the selected remote as the service target.
+ const launches=[];
+ panel._hass.states={
+  'remote.projector':{entity_id:'remote.projector',state:'on',attributes:{friendly_name:'Projector'}},
+  'remote.offline':{entity_id:'remote.offline',state:'unavailable',attributes:{}}
+ };
+ panel._hass.callService=async(...args)=>launches.push(args);
+ report.streaming.matches[0].selected_subscriptions=['Netflix','Amazon Prime Video','Disney Plus','Paramount Plus'];
+ panel.renderMediaSearch(report);
+ const appBox=els['.media-search-results'].children[2];
+ const controlsBox=appBox.children.find(e=>e.children.some(child=>child.children.length===2));
+ const remoteSelect=controlsBox.children[0];
+ const appButtons=appBox.children.filter(e=>e.listeners?.click && e.textContent.startsWith('Open '));
+ assert.equal(appButtons.length,4);
+ assert(appButtons.every(e=>e.disabled));assert.equal(launches.length,0);
+ remoteSelect.value='remote.projector';remoteSelect.listeners.change();
+ for(const button of appButtons)await button.listeners.click();
+ assert.deepEqual(launches.map(c=>c[2].command),['app:netflix','app:prime video','app:Disney+','app:Paramount+']);
+ assert(launches.every(c=>c[0]==='remote' && c[1]==='send_command' && c[3].entity_id==='remote.projector'));
+ panel._hass.callService=async()=>{throw Error('failed');};
+ await appButtons[0].listeners.click();
+ assert(appBox.children.some(e=>e.textContent.includes('Could not send')));
+ assert(appButtons.every(e=>!e.disabled));
+
  // Voice responses expose the same structured results but never track a playback command.
  const received=[];panel.renderMediaSearch=report=>received.push(report);
  panel.line=()=>{};panel.trackCommand=()=>{throw Error('Search must not be tracked as an action');};
