@@ -321,7 +321,7 @@ def register(hass):
                     save_media_search,search_media,
                     voice_cache,voice_cache_audio,prepare_voice_phrase,import_voice_clips,
                     preview_voice_sentence,save_voice_sentence,review_voice_catalogue,
-                    prepare_voice_catalogue,learning_review_list,learning_review]:websocket_api.async_register_command(hass,handler)
+                    prepare_voice_catalogue,learning_review_list,learning_review,learning_test]:websocket_api.async_register_command(hass,handler)
 
 
 @websocket_api.require_admin
@@ -332,6 +332,8 @@ def learning_review_list(hass, connection, msg):
     data = hass.data.get('jarvis_local', {})
     connection.send_result(msg['id'], {
         'summary': summary(hass),
+        'history': data.get('learning_history', []),
+        'examples': data.get('learning_evidence', []),
         'pending': suggestions(hass),
         'approved': data.get('approved_aliases', {}),
         'usage': data.get('learning_usage', {}),
@@ -359,3 +361,20 @@ async def learning_review(hass, connection, msg):
         connection.send_error(msg['id'], 'save_failed', 'Could not save learning review')
         return
     connection.send_result(msg['id'], result)
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({
+    vol.Required('type'): 'jarvis_local/learning_test',
+    vol.Required('heard'): str,
+    vol.Optional('suggested'): str,
+})
+@callback
+def learning_test(hass, connection, msg):
+    from .learning import test_correction
+    try:
+        result=test_correction(hass,msg['heard'],msg.get('suggested'))
+    except ValueError as err:
+        connection.send_error(msg['id'],'invalid_preview',str(err))
+        return
+    connection.send_result(msg['id'],result)

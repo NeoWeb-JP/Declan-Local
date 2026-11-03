@@ -43,6 +43,16 @@ vm.runInNewContext(fs.readFileSync('custom_components/jarvis_local/panel.js','ut
  assert.deepEqual(review,['lanp off','edit','turn off fairy lights']);
  card.children.find(item=>item.textContent==='Undo teaching').onclick();
  assert.deepEqual(review,['lanp off','remove']);
- console.log('Learning choices, feedback, editing, undo and rejection passed.');
+ let previewRequest;
+ panel._hass.callWS=async request=>{previewRequest=request;return {summary:'Preview only. No actions were run.'};};
+ await panel.testLearning('lanp off','turn off fairy lights');
+ assert.equal(previewRequest.type,'jarvis_local/learning_test');
+ assert.equal(els['.learning-status'].textContent,'Preview only. No actions were run.');
+ els['.learning-search']=new Element('input');
+ const searchable={textContent:'lanp off',querySelectorAll:()=>[{value:'turn off fairy lights'}]};
+ els['.learning-approved'].querySelectorAll=()=>[searchable];
+ els['.learning-search'].value='FAIRY';panel.filterLearning();assert.equal(searchable.hidden,false);
+ els['.learning-search'].value='dining';panel.filterLearning();assert.equal(searchable.hidden,true);
+ console.log('Learning choices, feedback, search, safe preview and history controls passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 

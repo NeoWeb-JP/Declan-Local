@@ -6,6 +6,7 @@ misrecognition silently become a device command. Learning examples are saved sep
 from collections import Counter
 import re
 import logging
+from datetime import datetime, timezone
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,9 +54,37 @@ def _validated_usage(value):
     return result
 
 
+
+def _validated_history(value):
+    result=[]
+    if not isinstance(value,list):return result
+    for item in value[-100:]:
+        if not isinstance(item,dict):continue
+        if item.get('decision') not in ('approve','approve_manual','edit','reject','remove'):continue
+        result.append({key: str(item.get(key) or '')[:200] for key in ('time','decision','heard','before','after')})
+    return result
+
+
+def test_correction(hass, heard, target=None):
+    """Plan only: no agent, services, approval, history or conversation mutation."""
+    key=normalize_alias(heard)
+    data=hass.data.get('jarvis_local',{})
+    observed=any(' '.join(str(item.get('heard') or '').casefold().split())==key
+                 for item in data.get('learning_evidence',[]))
+    if key not in data.get('approved_aliases',{}) and not observed:
+        raise ValueError('Choose an observed or approved phrase to test')
+    resolved=normalize_alias(target) if target else resolve_alias(hass,heard)
+    from .planner import plan
+    steps, preview=plan(hass,'preview '+resolved)
+    if not preview:raise ValueError('This correction cannot be safely previewed')
+    return {'heard':key,'resolved':resolved,'preview':True,
+            'summary':'Preview only: '+'; then '.join(step['label'] for step in steps)+'. No actions were run.'}
+
+
 def _snapshot(data):
     return {'examples': _validated_evidence(data.get('learning_evidence', [])),
-            'usage': _validated_usage(data.get('learning_usage', {}))}
+            'usage': _validated_usage(data.get('learning_usage', {})),
+            'history': _validated_history(data.get('learning_history', []))}
 
 
 def track_usage(hass, record):
@@ -98,6 +127,7 @@ async def load_evidence(hass):
     except (OSError, ValueError):
         _LOGGER.warning('Could not load saved learning examples')
         saved = None
+    data['learning_history'] = _validated_history(saved.get('history') if isinstance(saved,dict) else None)
     data['learning_usage'] = _validated_usage(saved.get('usage') if isinstance(saved, dict) else None)
     data['learning_evidence'] = _validated_evidence(
         saved.get('examples') if isinstance(saved, dict) else None)
@@ -319,6 +349,7 @@ async def review(hass, heard, decision, suggested=None):
         raise ValueError('Unknown review decision')
     data = hass.data.setdefault('jarvis_local', {})
     aliases = dict(data.get('approved_aliases', {}))
+    previous_target=aliases.get(key,'')
     rejected = set(data.get('rejected_aliases', []))
     if decision == 'approve':
         target = normalize_alias(suggested)
@@ -358,4 +389,9 @@ async def review(hass, heard, decision, suggested=None):
         _save_evidence(data)
     data['approved_aliases'] = aliases
     data['rejected_aliases'] = sorted(rejected)[:80]
+    history=data.setdefault('learning_history',[])
+    history.append({'time':datetime.now(timezone.utc).isoformat(),'decision':decision,
+                    'heard':key,'before':previous_target,'after':aliases.get(key,'')})
+    del history[:-100]
+    _save_evidence(data)
     return {'approved': aliases, 'rejected': sorted(rejected)[:80]}
