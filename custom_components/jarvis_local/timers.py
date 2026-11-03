@@ -23,6 +23,13 @@ def parse(text):
     preview=False
     for prefix in ('preview ','dry run ','what would you do if i said '):
         if text.startswith(prefix):preview=True;text=text[len(prefix):];break
+    # STT often hears 'timer' as 'time off'. Accept only the complete,
+    # duration-bearing request, not arbitrary 'time off' phrases.
+    misheard=re.fullmatch(
+        r'set me a time off for ([a-z\\d -]+?) (seconds?|minutes?|hours?)', text)
+    if misheard:
+        return {'operation':'set', 'seconds':duration(misheard[1].replace('-',' '),misheard[2]),
+                'preview':preview}
     if re.fullmatch(r'(?:cancel|stop) (?:all |my |all my |the )?timers',text):return {'operation':'cancel_all','preview':preview}
     m=re.fullmatch(r'(add|remove|subtract) ([a-z\d -]+?) (seconds?|minutes?|hours?) (?:to|from) (?:the |my )?(?:([a-z][a-z -]{0,39}) )?timer',text)
     if m:
