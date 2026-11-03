@@ -1,6 +1,7 @@
 """Private settings, persisted in Home Assistant storage."""
 import json
 import logging
+from urllib.parse import urlsplit
 from homeassistant.helpers.storage import Store
 
 _LOGGER = logging.getLogger(__name__)
@@ -11,6 +12,19 @@ PRIVACY_FIELDS.update({'guests_staying':'input_boolean', 'guest_auto_enable':'in
     'guest_owner_one':'person', 'guest_owner_two':'person', 'guest_away_suspend':'input_boolean',
     'guest_staying_names':'input_text'})
 FIELDS.update(PRIVACY_FIELDS)
+
+def validate_frigate_url(value):
+    if not isinstance(value, str):
+        raise ValueError('Invalid Frigate URL')
+    if not value:
+        return ''
+    parsed = urlsplit(value)
+    if (parsed.scheme not in ('http', 'https') or not parsed.hostname
+            or parsed.username or parsed.password or parsed.query or parsed.fragment
+            or parsed.path not in ('', '/')):
+        raise ValueError('Frigate URL must be a base HTTP(S) URL without credentials or a path')
+    return value.rstrip('/')
+
 
 def _read_legacy(path):
     try:
@@ -32,7 +46,7 @@ async def load(hass):
     return data
 
 async def save(hass, data):
-    if not isinstance(data, dict) or set(data)-set(FIELDS)-{'switch_lights', 'satellite_media_players'}:
+    if not isinstance(data, dict) or set(data)-set(FIELDS)-{'switch_lights', 'satellite_media_players', 'frigate_url'}:
         raise ValueError('Invalid settings fields')
     cleaned={}
     for key, domain in FIELDS.items():
@@ -45,6 +59,8 @@ async def save(hass, data):
             if not value.startswith(domain+'.') or (hass.states.get(value) is None and not unchanged):
                 raise ValueError('Choose an existing '+domain+' entity for '+key)
             cleaned[key]=value
+    cleaned['frigate_url'] = validate_frigate_url(data.get('frigate_url',
+        hass.data.get('jarvis_local', {}).get('settings', {}).get('frigate_url', '')))
     mappings=data.get('switch_lights', {})
     if not isinstance(mappings, dict) or len(mappings)>50:
         raise ValueError('Invalid switch mappings')
