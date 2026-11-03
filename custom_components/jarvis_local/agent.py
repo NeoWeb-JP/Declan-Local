@@ -10,6 +10,7 @@ from .media_search import parse_search
 from .media_search_adapters import search as search_media
 from .settings import get
 from .speaker_identity import unwrap, bridge_profile
+from .visual_observation import inspect_speaker_camera
 from .morning import morning_reply
 from .social import social_reply
 from .timers import parse as parse_timer
@@ -88,6 +89,9 @@ class JarvisAgent(conversation.ConversationEntity):
             cfg=self.hass.data.get('jarvis_local',{}).get('voice_id_config',{})
             command_text,voice_profile=unwrap(command_text,cfg.get('secret'),cfg.get('profiles',{}),self._voice_markers)
             if not command_text:command_text=''
+        frigate_url=get(self.hass, 'frigate_url', '')
+        if frigate_url and getattr(user_input, 'satellite_id', None):
+            await inspect_speaker_camera(self.hass, user_input.satellite_id, frigate_url)
         memory_key=context_key(user_input,conversation_id,voice_profile,area_override)
         recent_key=memory_key
         memory_key=(conversation_id, memory_key)
