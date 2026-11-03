@@ -1,5 +1,6 @@
 """Learning observations are opt-in and never change command behaviour."""
 from types import SimpleNamespace
+import pytest
 from custom_components.jarvis_local.learning import observe, summary, suggestions, resolve_alias, normalize_alias
 
 
@@ -69,3 +70,37 @@ def test_alias_validation_rejects_non_plain_text():
     import pytest
     with pytest.raises(ValueError):
         normalize_alias('turn on <script>')
+
+
+@pytest.mark.asyncio
+async def test_review_approval_persistence_and_removal(monkeypatch):
+    import sys
+    from custom_components.jarvis_local.learning import review
+    saved = []
+    class FakeStore:
+        def __init__(self, *args): pass
+        async def async_save(self, value): saved.append(value)
+    from homeassistant.helpers import storage
+    monkeypatch.setattr(storage, 'Store', FakeStore)
+    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    sample = {'outcome': 'completed',
+              'received_text': 'turn on kitchen, actually turn on lounge',
+              'resolved_text': 'turn on lounge',
+              'transcript_corrections': ['superseded earlier command']}
+    observe(hass, sample)
+    observe(hass, sample)
+    await review(hass, sample['received_text'], 'approve', 'turn on lounge')
+    assert resolve_alias(hass, sample['received_text']) == 'turn on lounge'
+    assert suggestions(hass) == []
+    assert saved[-1]['approved']
+    await review(hass, sample['received_text'], 'remove')
+    assert resolve_alias(hass, sample['received_text']) == sample['received_text']
+    assert saved[-1]['approved'] == {}
+
+
+@pytest.mark.asyncio
+async def test_rejected_candidate_cannot_be_approved_without_evidence(monkeypatch):
+    from custom_components.jarvis_local.learning import review
+    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    with pytest.raises(ValueError):
+        await review(hass, 'unlock door', 'approve', 'turn on lounge lights')
