@@ -6,7 +6,7 @@ from homeassistant.helpers import entity_registry as er
 
 def correct(hass, text, area=None):
     cleaned=norm(text)
-    cleaned=re.sub(r'^(?:hey[\s,]+)?jarvis[\s,:.!?]+','',cleaned)
+    cleaned=re.sub(r'^(?:hey[\s,]+)?(?:jarvis|declan)[\s,:.!?]+','',cleaned)
     prefix=''
     for p in ['preview ','dry run ','what would you do if i said ']:
         if cleaned.startswith(p):prefix=p;cleaned=cleaned[len(p):];break
