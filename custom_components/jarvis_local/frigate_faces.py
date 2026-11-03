@@ -9,7 +9,7 @@ import math
 from urllib.parse import urlsplit
 
 ALLOWED = {"jaco": "Jaco", "edd": "Edd"}
-MIN_SCORE = 0.90
+MIN_SCORE = 0.80
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 
@@ -25,9 +25,16 @@ def parse_result(payload, minimum=MIN_SCORE):
         return FaceResult(None, None)
     name = payload.get("face_name")
     score = payload.get("score")
-    if (not isinstance(name, str) or isinstance(score, bool)
-            or not isinstance(score, (float, int)) or not math.isfinite(score)
-            or not 0 <= score <= 1):
+    if (isinstance(minimum, bool) or not isinstance(minimum, (int, float))
+            or not math.isfinite(minimum) or not 0 <= minimum <= 1):
+        return FaceResult(None, None)
+    if not isinstance(name, str) or isinstance(score, bool) or not isinstance(score, (str, int, float)):
+        return FaceResult(None, None)
+    try:
+        score = float(score)
+    except (ValueError, OverflowError):
+        return FaceResult(None, None)
+    if not math.isfinite(score) or not 0 <= score <= 1:
         return FaceResult(None, None)
     recognised = ALLOWED.get(name.strip().casefold())
     if recognised is None or score < minimum:
