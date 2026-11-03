@@ -70,14 +70,21 @@ def suggestions(hass, minimum_occurrences=2):
 
 
 def validate_manual_light_command(text):
-    """Only allow explicit lighting commands for manually taught STT aliases."""
+    """Normalize one explicitly named light action without broadening its scope."""
     import re
-    value = normalize_alias(text)
-    if not re.fullmatch(r'(?:turn|switch) (?:on|off) (?:the )?[a-z0-9][a-z0-9 -]*', value):
-        raise ValueError('Enter a complete lighting command, e.g. turn off fairy lights')
+    value = normalize_alias(text).strip(' .!?')
     if any(word in value.split() for word in ('and', 'then', 'or', 'all', 'every', 'everything')):
         raise ValueError('Only one specific lighting target can be taught at a time')
-    return value
+    match = re.fullmatch(r'(?:turn|switch) (on|off) (?:the )?([a-z0-9][a-z0-9 -]*lights?)', value)
+    if match:
+        action, target = match.groups()
+    else:
+        match = re.fullmatch(r'(?:the )?([a-z0-9][a-z0-9 -]*lights?) (on|off)', value)
+        if not match:
+            raise ValueError('Enter a named light and action, e.g. fairy lights off')
+        target, action = match.groups()
+    return f'turn {action} {target}'
+
 
 
 def normalize_alias(text):
