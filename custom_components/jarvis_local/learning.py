@@ -69,6 +69,17 @@ def suggestions(hass, minimum_occurrences=2):
                   key=lambda group: (-group['count'], group['heard']))[:20]
 
 
+def validate_manual_light_command(text):
+    """Only allow explicit lighting commands for manually taught STT aliases."""
+    import re
+    value = normalize_alias(text)
+    if not re.fullmatch(r'(?:turn|switch) (?:on|off) (?:the )?[a-z0-9][a-z0-9 -]*', value):
+        raise ValueError('Enter a complete lighting command, e.g. turn off fairy lights')
+    if any(word in value.split() for word in ('and', 'then', 'or', 'all', 'every', 'everything')):
+        raise ValueError('Only one specific lighting target can be taught at a time')
+    return value
+
+
 def normalize_alias(text):
     import re
     if not isinstance(text, str):
@@ -92,7 +103,7 @@ async def review(hass, heard, decision, suggested=None):
     """Administrator API handler. Persist decisions, never execute anything."""
     from homeassistant.helpers.storage import Store
     key = normalize_alias(heard)
-    if decision not in {'approve', 'reject', 'remove'}:
+    if decision not in {'approve', 'approve_manual', 'reject', 'remove'}:
         raise ValueError('Unknown review decision')
     data = hass.data.setdefault('jarvis_local', {})
     aliases = dict(data.get('approved_aliases', {}))
@@ -105,6 +116,17 @@ async def review(hass, heard, decision, suggested=None):
             raise ValueError('Only repeated, successful correction candidates can be approved')
         if key == target or key in aliases and aliases[key] != target:
             raise ValueError('Conflicting or identical alias')
+        if len(aliases) >= 40 and key not in aliases:
+            raise ValueError('Maximum approved aliases reached')
+        aliases[key] = target
+        rejected.discard(key)
+    elif decision == 'approve_manual':
+        target = validate_manual_light_command(suggested)
+        if key == target or key in aliases and aliases[key] != target:
+            raise ValueError('Conflicting or identical alias')
+        if not any(c['type'] == 'repeated_failure' and c['heard'] == key
+                   for c in suggestions(hass)):
+            raise ValueError('Only observed repeated failures can be taught manually')
         if len(aliases) >= 40 and key not in aliases:
             raise ValueError('Maximum approved aliases reached')
         aliases[key] = target
