@@ -956,7 +956,16 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
         card.append(title);
         const heard=document.createElement('p');heard.textContent='Heard: '+item.heard;card.append(heard);
         if(item.suggested){const target=document.createElement('p');target.textContent='Suggested: '+item.suggested;card.append(target);}
-        else {const reason=document.createElement('p');reason.textContent='Reason: '+(item.reason || 'Not available');card.append(reason);}
+        else {
+          const reason=document.createElement('p');reason.textContent='Reason: '+(item.reason || 'Not available');card.append(reason);
+          const field=document.createElement('input');field.type='text';field.maxLength=150;
+          field.placeholder='e.g. turn off fairy lights';field.setAttribute('aria-label','Correct lighting command for '+item.heard);
+          field.style.cssText='display:block;width:100%;box-sizing:border-box;margin:10px 0;padding:10px';
+          card.append(field);
+          const teach=document.createElement('button');teach.type='button';teach.textContent='Teach this phrase';
+          teach.onclick=()=>{const value=field.value.trim();if(!value){field.focus();return;}this.reviewLearning(item.heard,'approve_manual',value);};
+          card.append(teach);
+        }
         const controls=document.createElement('div');controls.className='tools';
         if(item.type==='correction_candidate'){
           const approve=document.createElement('button');approve.type='button';approve.textContent='Approve';
