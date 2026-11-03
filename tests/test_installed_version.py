@@ -55,6 +55,8 @@ class InstalledVersion(unittest.TestCase):
             media_config.load = AsyncMock(return_value={'region':'GB','subscriptions':[],'tmdb_token':''})
             guest_controller = types.ModuleType('version_test_pkg.guest_authority')
             guest_controller.create = AsyncMock(return_value=types.SimpleNamespace(stop=AsyncMock()))
+            learning_module = types.ModuleType('version_test_pkg.learning')
+            learning_module.load_evidence = AsyncMock()
             storage_module = types.ModuleType('homeassistant.helpers.storage')
             class Store:
                 def __init__(self, *args): pass
@@ -66,6 +68,7 @@ class InstalledVersion(unittest.TestCase):
                        'version_test_pkg.media_search_config': media_config,
                        'version_test_pkg.timers': timers_module,
                        'version_test_pkg.settings': settings_module,
+                       'version_test_pkg.learning': learning_module,
                        'version_test_pkg.guest_authority': guest_controller,
                        'homeassistant.helpers.storage': storage_module}
             data = {'ws_registered': True, 'static_registered': True,

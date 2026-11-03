@@ -29,6 +29,8 @@ async def async_setup_entry(hass, entry):
     learning_state = learning_state if isinstance(learning_state, dict) else {}
     data["approved_aliases"] = {k:v for k,v in learning_state.get("approved", {}).items() if isinstance(k,str) and isinstance(v,str)} if isinstance(learning_state.get("approved", {}),dict) else {}
     data["rejected_aliases"] = learning_state.get("rejected", []) if isinstance(learning_state.get("rejected", []),list) else []
+    from .learning import load_evidence
+    await load_evidence(hass)
     import json
     def load_voice_config():
         path=Path(hass.config.path('jarvis_voice_id.json'))
@@ -72,6 +74,8 @@ async def async_setup_entry(hass, entry):
     return True
 
 async def async_unload_entry(hass, entry):
+    from .learning import flush_evidence
+    await flush_evidence(hass)
     if await hass.config_entries.async_unload_platforms(entry, ["conversation", "tts"]):
         await hass.data[DOMAIN]['guest_authority'].stop()
         hass.data[DOMAIN].pop('guest_authority', None)

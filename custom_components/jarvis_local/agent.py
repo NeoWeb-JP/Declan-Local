@@ -15,10 +15,10 @@ from .morning import morning_reply
 from .social import social_reply
 from .timers import parse as parse_timer
 from .followup import followup, followup_steps, additional_room
-from .conversation_memory import context_key, context_followup
+from .conversation_memory import context_key, context_followup, verified_lighting_context
 from .learning import observe as observe_learning, resolve_alias
 from .clarification import request as clarification_request, resolve as clarification_resolve
-from .personality import confirmation
+from .personality import confirmation, contextual_reply, plain_responses
 from .audience import mode as audience_mode
 from .transcript import correct, recognition_diagnostic
 from .corrections import final_request
@@ -34,6 +34,8 @@ from .status import answer
 from .information_dialogue import parse as parse_information, read as read_information
 from .speech import recover_off
 from .room_context import source_area, apply_room
+from .room_brightness import undo_room_brightness
+from .lighting_preferences import prepare_preference, save_preference
 from datetime import datetime, timezone
 
 _LOGGER = logging.getLogger(__name__)
@@ -73,6 +75,7 @@ class JarvisAgent(conversation.ConversationEntity):
         conversation_id=user_input.conversation_id or uuid4().hex
         memory_key=context_key(user_input,conversation_id,area_override=area_override)
         now=monotonic()
+        self._brightness_undo={k:v for k,v in getattr(self,'_brightness_undo',{}).items() if now-v['at'] < 120}
         self._recent_lights={k:v for k,v in self._recent_lights.items() if now-v['at'] < 120}
         self._previous_failed={k:v for k,v in self._previous_failed.items() if now-v['at'] < 90}
         self._pending_clarifications={k:v for k,v in self._pending_clarifications.items() if now-v['at'] < 120}
@@ -93,6 +96,18 @@ class JarvisAgent(conversation.ConversationEntity):
         recent_key=memory_key
         memory_key=(conversation_id, memory_key)
         original_text=str(command_text)
+
+        self._last_requests = {k:v for k,v in getattr(self, '_last_requests', {}).items() if now-v['at'] < 120}
+        if original_text.casefold().strip(' .?!') in {'what did you hear', 'what did you hear me say', 'what did you understand'}:
+            previous = self._last_requests.get(memory_key)
+            if previous:
+                speech = 'I heard: ' + previous['heard'] + '. I understood: ' + (previous['resolved'] or 'no supported command') + '. Result: ' + previous['outcome'] + '.'
+            else:
+                speech = 'I do not have a recent request in this conversation to repeat.'
+            result.async_set_speech(speech, extra_data={'jarvis_local': {'trackable': False}})
+            return conversation.ConversationResult(response=result, conversation_id=conversation_id, continue_conversation=False)
+        self._repair_turns={k:v for k,v in getattr(self,'_repair_turns',{}).items() if now-v['at']<90}
+        repair_used=self._repair_turns.pop(memory_key,None)
         previous_failure=self._previous_failed.pop(memory_key,None)
         cross_corrected=False
         try:
@@ -157,6 +172,8 @@ class JarvisAgent(conversation.ConversationEntity):
                 history = self.hass.data['jarvis_local'].setdefault('diagnostics', [])
                 history.append(record)
                 del history[:-20]
+            self._last_requests[memory_key] = {'at': monotonic(), 'heard': original_text[:200],
+                'resolved': 'stop satellite audio', 'outcome': stop_report['outcome']}
             result.async_set_speech('', extra_data={'jarvis_local': {'trackable': False}})
             return conversation.ConversationResult(
                 response=result, conversation_id=conversation_id,
@@ -241,7 +258,20 @@ class JarvisAgent(conversation.ConversationEntity):
                         previous=self._recent_lights.get(recent_key)
                         extra=context_followup(command_text, previous) or additional_room(command_text, previous.get('action') if previous else None)
                         resolved_text=apply_room(extra or command_text,area,self.hass)
-                        steps, preview = plan(self.hass, resolved_text,area)
+                        undo_text=resolved_text.lower().strip(' .?!')
+                        undo_preview=False
+                        for prefix in ('preview ', 'dry run ', 'what would you do if i said '):
+                            if undo_text.startswith(prefix):
+                                undo_preview=True
+                                undo_text=undo_text[len(prefix):]
+                                break
+                        if undo_text in {'undo that', 'undo the brightness change', 'undo last light change'}:
+                            preview=undo_preview
+                            steps=[undo_room_brightness(self.hass,self._brightness_undo.get(memory_key))]
+                        else:
+                            steps, preview = plan(self.hass, resolved_text,area)
+                            if len(steps)==1 and steps[0]['kind']=='lighting_preference':
+                                steps=[await prepare_preference(self.hass,steps[0])]
                         if extra:
                             followup_used=True
         except ValueError as err:
@@ -251,22 +281,6 @@ class JarvisAgent(conversation.ConversationEntity):
                 from dataclasses import replace
                 return await self.async_handle(replace(user_input, text=recovered),area_override)
             speech = str(err)
-            if speech.startswith('I did not understand "') and speech.endswith('Try "help" for supported requests.'):
-                import random
-                speech = random.choice((
-                    "What? Put your teeth back in and try that again.",
-                    "I speak several languages. Whatever that was isn't one of them.",
-                    "Was that a command, or did you just sneeze?",
-                    "I'm going to pretend I didn't hear that. Try again, my bru.",
-                    "That sounded important. Shame none of it made sense.",
-                    "I'm a voice assistant, not a psychic. Give me something to work with.",
-                    "Even Alexa would've struggled with that one. And that's saying something.",
-                    "Could you repeat that, preferably using actual words?",
-                    "Alexa says she understood you. She's lying, obviously.",
-                    "That sounded like something you'd ask Alexa. Let's try proper words instead.",
-                    "If you wanted a random answer, Alexa's still available. Try again.",
-                    "Alexa would have confidently done the wrong thing. I prefer to ask you to repeat it.",
-                ))
             failure=str(err)
         else:
             if preview:
@@ -283,6 +297,9 @@ class JarvisAgent(conversation.ConversationEntity):
                 async with self._lock:
                     try:
                         for step in steps:
+                            if step['kind']=='lighting_preference':
+                                replies.append(await save_preference(self.hass,step))
+                                continue
                             if step['kind'] == 'information':
                                 self._recent_lights.pop(recent_key,None)
                                 token=object()
@@ -333,6 +350,23 @@ class JarvisAgent(conversation.ConversationEntity):
                                     successes.extend(ok)
                                     failures.extend(failed_ids)
                                     unknown.extend(unchecked)
+                                if step.get('room_brightness'):
+                                    self._brightness_undo.pop(memory_key,None)
+                                if step.get('room_brightness') and successes:
+                                    self._brightness_undo[memory_key]={'at':monotonic(), 'room':step['target_label'],
+                                        'before':{i:step['undo_before'][i] for i in successes},
+                                        'after':{i:step['undo_after'][i] for i in successes}}
+                                    while len(self._brightness_undo)>64:
+                                        del self._brightness_undo[next(iter(self._brightness_undo))]
+                                elif step.get('is_brightness_undo'):
+                                    saved=self._brightness_undo.get(memory_key)
+                                    if saved:
+                                        for entity in successes:
+                                            saved['before'].pop(entity,None)
+                                            saved['after'].pop(entity,None)
+                                        if not saved['before']:self._brightness_undo.pop(memory_key,None)
+                                elif successes:
+                                    self._brightness_undo.pop(memory_key,None)
                                 step['succeeded'] = successes
                                 step['failed'] = failures
                                 step['unverified'] = unknown
@@ -364,22 +398,13 @@ class JarvisAgent(conversation.ConversationEntity):
                                 continue
                             if step['kind'] == 'media_control':
                                 await self.hass.services.async_call('media_player',step['name'],step['data'],blocking=True,context=user_input.context)
-                                import random
-                                replies.append(random.choice((
-                                    'Request sent to ' + step['target_label'] + '.',
-                                    'Sorted. Alexa would still be thinking about it.',
-                                    'Done. Another task Alexa can cross off her imaginary to-do list.',
-                                )))
+                                replies.append(contextual_reply(self.hass,
+                                    'Request sent to ' + step['target_label'] + '.', 'music'))
                                 continue
                             if step['kind'] == 'music_assistant_play':
                                 await self.hass.services.async_call('music_assistant', 'play_media', step['data'], target={'entity_id': step['entity_id']}, blocking=True, context=user_input.context)
-                                import random
-                                replies.append(random.choice((
-                                    'Requested ' + step['data']['media_id'] + ' in ' + step['target_label'] + '.',
-                                    'Music requested for ' + step['target_label'] + '. Alexa can sit this one out.',
-                                    'On it. No need to ask Alexa three times.',
-                                    'Music requested. Alexa, take notes.',
-                                )))
+                                replies.append(contextual_reply(self.hass,
+                                    'Requested ' + step['data']['media_id'] + ' in ' + step['target_label'] + '.', 'music'))
                                 continue
                             if step['kind'] == 'music':
                                 await self.hass.services.async_call('script',step['name'],step['data'],blocking=True,context=user_input.context)
@@ -391,10 +416,13 @@ class JarvisAgent(conversation.ConversationEntity):
                             reply = await self.hass.services.async_call(
                                 'script', step['name'], step['data'], blocking=True,
                                 return_response=True, context=user_input.context)
-                            if (reply or {}).get('response'):
-                                routine_reply=reply['response']
+                            if step.get('kind')=='action' or (reply or {}).get('response'):
+                                routine_reply=(reply or {}).get('response') or 'Routine request sent.'
+                                if step['name']!='jarvis_local_good_morning':
+                                    action='bedtime' if step['name']=='jarvis_local_good_night' else 'movie' if step['data'].get('requested_action')=='start' else 'general'
+                                    routine_reply=await confirmation(self.hass,user_input.context,'Routine request sent.',action=action)
                                 if step['name']=='jarvis_local_good_morning':
-                                    if audience_mode(self.hass) == 'Guest':
+                                    if audience_mode(self.hass) == 'Guest' or plain_responses(self.hass):
                                         routine_reply=await confirmation(self.hass,user_input.context,'Good morning. The morning routine is underway.',action='morning')
                                     else:
                                         routine_reply=morning_reply(voice_profile, cfg.get('profiles', {}), self.hass.data.setdefault('jarvis_local', {}).setdefault('morning_history', {}))
@@ -420,27 +448,17 @@ class JarvisAgent(conversation.ConversationEntity):
                     action='off' if steps[0]['name']=='turn_off' else 'on'
                     replies.insert(0,await confirmation(self.hass,user_input.context,'Turning '+action+' the lights.',action=action))
                 speech = ' '.join(r for r in replies if r)
-                if outcome == 'completed' and self_corrected and not preview and media_report is None and all(s.get('kind') in {'light','switch_light','brightness','action','guest'} for s in steps):
-                    speech = await confirmation(self.hass,user_input.context,'Changed your mind? No problem.',action='self_correction') + ' ' + speech
-                if outcome in {'completed', 'partial'}:
-                    light_ids=[]
-                    invalidated=False
-                    for step in steps:
-                        if step['kind'] in {'light','switch_light'}:
-                            light_ids.extend(step.get('succeeded', []))
-                        elif step['kind']=='brightness':
-                            light_ids.extend(step.get('succeeded', []))
-                        elif step['kind'] in {'action','guest'} or step.get('unverified') or step.get('failed'):
-                            invalidated=True
-                    if invalidated and not light_ids:
+                if outcome == 'completed' and (self_corrected or cross_corrected) and not preview and media_report is None and all(s.get('kind') in {'light','switch_light','brightness','action','guest','media_control','music_assistant_play','music'} for s in steps):
+                    speech = contextual_reply(self.hass,speech,'self_correction')
+                if outcome in {'completed', 'partial'} and any(
+                        step.get('kind') in {'light','switch_light','brightness','action','guest'} or step.get('unverified') for step in steps):
+                    remembered=verified_lighting_context(steps,monotonic())
+                    if remembered:
+                        self._recent_lights[recent_key]=remembered
+                        while len(self._recent_lights)>64:
+                            del self._recent_lights[next(iter(self._recent_lights))]
+                    else:
                         self._recent_lights.pop(recent_key,None)
-                    elif light_ids:
-                        self._recent_lights[recent_key]={'at':monotonic(),'ids':list(dict.fromkeys(light_ids)),
-                            'action':next((st['name'] for st in reversed(steps)
-                                           if st.get('kind') in {'light','switch_light'} and st.get('succeeded')
-                                           and st.get('name') in {'turn_on','turn_off'}),None)}
-                    while len(self._recent_lights)>64:
-                        del self._recent_lights[next(iter(self._recent_lights))]
         if outcome in {'failed','rejected'}:
             self._recent_lights.pop(recent_key,None)
             self._information_topics.pop(memory_key,None)
@@ -449,9 +467,22 @@ class JarvisAgent(conversation.ConversationEntity):
         if getattr(user_input,'device_id',None) or getattr(user_input,'satellite_id',None):
             speech=speech.replace(' Try "help" for supported requests.', '')
         if not preview and outcome in {'failed','rejected'} and not cross_corrected:
-            self._previous_failed[memory_key]={'at':monotonic(),'outcome':outcome}
+            self._previous_failed[memory_key]={'at':monotonic(),'outcome':outcome,'heard':original_text[:200]}
             while len(self._previous_failed)>64:
                 del self._previous_failed[next(iter(self._previous_failed))]
+        if repair_used and outcome=='rejected':
+            self._repair_turns[memory_key]=repair_used
+        if outcome=='rejected' and not preview and not request_preview and getattr(user_input,'satellite_id',None) and not repair_used and not any(
+                word in str(failure or '').casefold() for word in ('unavailable','service','security','alarm','emergency','failed','timeout')):
+            continue_conversation=True
+            self._repair_turns[memory_key]={'at':monotonic()}
+            while len(self._repair_turns)>64:del self._repair_turns[next(iter(self._repair_turns))]
+            speech += ' Please tell me what you meant.'
+        if not preview:
+            if continue_conversation:
+                speech=contextual_reply(self.hass,speech,'clarification')
+            elif outcome in {'rejected','failed','partial'}:
+                speech=contextual_reply(self.hass,speech,'failed')
         record = {
             'time':datetime.now(timezone.utc).isoformat(),
             'received_text':original_text,'resolved_text':resolved_text,'speaker_personalized':bool(voice_profile),'transcript_corrections':corrections,
@@ -467,7 +498,16 @@ class JarvisAgent(conversation.ConversationEntity):
             history=self.hass.data['jarvis_local'].setdefault('diagnostics',[])
             history.append(record)
             del history[:-20]
+        self._last_requests[memory_key] = {'at': monotonic(), 'heard': original_text[:200],
+            'resolved': resolved_text[:200], 'outcome': 'preview only' if preview else outcome}
+        while len(self._last_requests) > 64:
+            del self._last_requests[next(iter(self._last_requests))]
         observe_learning(self.hass, record)
+        if cross_corrected and previous_failure and previous_failure.get('heard') and outcome == 'completed' and not preview:
+            observe_learning(self.hass, {**record, 'received_text': previous_failure['heard'],
+                'resolved_text': command_text, 'transcript_corrections': ['voice correction']})
+            if self.hass.data['jarvis_local'].get('debug_enabled', False):
+                speech += ' I have saved that correction for review in Declan learning.'
         trackable = (outcome == 'completed' and not preview and not continue_conversation
                      and bool(steps) and all(step.get('kind') in {'light', 'switch_light', 'brightness', 'media_control', 'music', 'music_assistant_play', 'action', 'status', 'information'}
                                              and not step.get('unverified') and (step.get('kind')!='information' or step.get('available')) for step in steps))

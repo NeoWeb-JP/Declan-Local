@@ -13,6 +13,9 @@ def corrected_followup(text, previous):
     if not match:
         return None
     replacement = match[1].strip()
+    natural_light = re.fullmatch(r'(?:the )?([a-z][a-z0-9 -]*lights?) (on|off)[.!?]?', replacement, re.I)
+    if natural_light:
+        replacement = 'turn ' + natural_light[2].lower() + ' ' + natural_light[1].lower()
     if not _ACTION.match(replacement):
         raise ValueError('Please state the full corrected command. Nothing was run.')
     return replacement
