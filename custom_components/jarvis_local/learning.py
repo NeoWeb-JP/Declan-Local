@@ -64,3 +64,53 @@ def suggestions(hass, minimum_occurrences=2):
     threshold = max(2, int(minimum_occurrences))
     return sorted((group for group in groups.values() if group['count'] >= threshold),
                   key=lambda group: (-group['count'], group['heard']))[:20]
+
+
+def normalize_alias(text):
+    import re
+    if not isinstance(text, str):
+        raise ValueError('Alias must be text')
+    value = ' '.join(text.casefold().split())
+    if not 3 <= len(value) <= 150 or not re.fullmatch(r"[a-z0-9 ,.!?' -]+", value):
+        raise ValueError('Alias must be 3-150 plain-text characters')
+    return value
+
+
+def resolve_alias(hass, text):
+    """Only explicit admin-approved exact phrases; never infer an action."""
+    key = normalize_alias(text) if isinstance(text, str) and 3 <= len(text) <= 150 else None
+    return hass.data.get('jarvis_local', {}).get('approved_aliases', {}).get(key, text)
+
+
+async def review(hass, heard, decision, suggested=None):
+    """Administrator API handler. Persist decisions, never execute anything."""
+    from homeassistant.helpers.storage import Store
+    key = normalize_alias(heard)
+    if decision not in {'approve', 'reject', 'remove'}:
+        raise ValueError('Unknown review decision')
+    data = hass.data.setdefault('jarvis_local', {})
+    aliases = dict(data.get('approved_aliases', {}))
+    rejected = set(data.get('rejected_aliases', []))
+    if decision == 'approve':
+        target = normalize_alias(suggested)
+        candidates = suggestions(hass)
+        if not any(c['type'] == 'correction_candidate' and c['heard'] == key
+                   and c['suggested'] == target for c in candidates):
+            raise ValueError('Only repeated, successful correction candidates can be approved')
+        if key == target or key in aliases and aliases[key] != target:
+            raise ValueError('Conflicting or identical alias')
+        if len(aliases) >= 40 and key not in aliases:
+            raise ValueError('Maximum approved aliases reached')
+        aliases[key] = target
+        rejected.discard(key)
+    elif decision == 'reject':
+        aliases.pop(key, None)
+        rejected.add(key)
+    else:
+        aliases.pop(key, None)
+        rejected.discard(key)
+    await Store(hass, 1, 'jarvis_local.learning_aliases').async_save(
+        {'approved': aliases, 'rejected': sorted(rejected)[:80]})
+    data['approved_aliases'] = aliases
+    data['rejected_aliases'] = sorted(rejected)[:80]
+    return {'approved': aliases, 'rejected': sorted(rejected)[:80]}
