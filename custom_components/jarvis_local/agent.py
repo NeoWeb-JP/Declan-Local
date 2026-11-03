@@ -21,6 +21,7 @@ from .personality import confirmation
 from .audience import mode as audience_mode
 from .transcript import correct
 from .corrections import final_request
+from .cross_corrections import corrected_followup
 from .verify import verify
 from .device_control import apply_lighting, lighting_report
 from .discovery import lighting, display_name
@@ -49,6 +50,7 @@ class JarvisAgent(conversation.ConversationEntity):
         self._voice_markers = {}
         self._information_topics = {}
         self._information_runs = {}
+        self._previous_failed = {}
 
     @property
     def supported_languages(self):
@@ -71,6 +73,7 @@ class JarvisAgent(conversation.ConversationEntity):
         memory_key=context_key(user_input,conversation_id,area_override=area_override)
         now=monotonic()
         self._recent_lights={k:v for k,v in self._recent_lights.items() if now-v['at'] < 120}
+        self._previous_failed={k:v for k,v in self._previous_failed.items() if now-v['at'] < 90}
         self._pending_clarifications={k:v for k,v in self._pending_clarifications.items() if now-v['at'] < 120}
         self._information_topics={k:v for k,v in getattr(self,'_information_topics',{}).items() if now-v['at'] < 120}
         self._information_runs=getattr(self,'_information_runs',{})
@@ -87,12 +90,28 @@ class JarvisAgent(conversation.ConversationEntity):
             if not command_text:command_text=''
         memory_key=context_key(user_input,conversation_id,voice_profile,area_override)
         original_text=str(command_text)
+        previous_failure=self._previous_failed.pop(memory_key,None)
+        cross_corrected=False
+        try:
+            replacement=corrected_followup(command_text,previous_failure)
+            if replacement is not None:
+                command_text=replacement
+                cross_corrected=True
+        except ValueError as err:
+            # Preserve the explicit error for the normal preflight failure path.
+            cross_error=err
+        else:
+            cross_error=None
         command_text=resolve_alias(self.hass,command_text)
         command_text,language_changes=normalize_request(command_text)
         corrections.extend(language_changes)
-        correction_error=None
+        correction_error=cross_error
+        if cross_corrected:
+            corrections.append('corrected previous failed command')
         request_preview=command_text.lower().startswith(('preview ', 'dry run ', 'what would you do if i said '))
         try:
+            if correction_error is not None:
+                raise correction_error
             command_text,self_corrected=final_request(command_text)
         except ValueError as err:
             correction_error=err
@@ -117,7 +136,11 @@ class JarvisAgent(conversation.ConversationEntity):
             # Match the existing opt-in, bounded diagnostics history. Never speak
             # routing failures or claim that playback or barge-in was verified.
             if self.hass.data.get('jarvis_local', {}).get('debug_enabled', False):
-                record = {
+                if not preview and outcome in {'failed','rejected'} and not cross_corrected:
+            self._previous_failed[memory_key]={'at':monotonic(),'outcome':outcome}
+            while len(self._previous_failed)>64:
+                del self._previous_failed[next(iter(self._previous_failed))]
+        record = {
                     'time': datetime.now(timezone.utc).isoformat(),
                     'received_text': original_text, 'resolved_text': command_text,
                     'speaker_personalized': bool(voice_profile),
