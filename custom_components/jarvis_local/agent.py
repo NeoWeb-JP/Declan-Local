@@ -167,6 +167,8 @@ class JarvisAgent(conversation.ConversationEntity):
                 history = self.hass.data['jarvis_local'].setdefault('diagnostics', [])
                 history.append(record)
                 del history[:-20]
+            self._last_requests[memory_key] = {'at': monotonic(), 'heard': original_text[:200],
+                'resolved': 'stop satellite audio', 'outcome': stop_report['outcome']}
             result.async_set_speech('', extra_data={'jarvis_local': {'trackable': False}})
             return conversation.ConversationResult(
                 response=result, conversation_id=conversation_id,
@@ -478,7 +480,7 @@ class JarvisAgent(conversation.ConversationEntity):
             history.append(record)
             del history[:-20]
         self._last_requests[memory_key] = {'at': monotonic(), 'heard': original_text[:200],
-            'resolved': resolved_text[:200], 'outcome': outcome}
+            'resolved': resolved_text[:200], 'outcome': 'preview only' if preview else outcome}
         while len(self._last_requests) > 64:
             del self._last_requests[next(iter(self._last_requests))]
         observe_learning(self.hass, record)
