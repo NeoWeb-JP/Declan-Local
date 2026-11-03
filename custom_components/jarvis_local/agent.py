@@ -14,11 +14,14 @@ from .morning import morning_reply
 from .social import social_reply
 from .timers import parse as parse_timer
 from .followup import followup, followup_steps, additional_room
+from .conversation_memory import context_key
+from .learning import observe as observe_learning, resolve_alias
 from .clarification import request as clarification_request, resolve as clarification_resolve
 from .personality import confirmation
 from .audience import mode as audience_mode
 from .transcript import correct
 from .corrections import final_request
+from .cross_corrections import corrected_followup
 from .verify import verify
 from .device_control import apply_lighting, lighting_report
 from .discovery import lighting, display_name
@@ -47,6 +50,7 @@ class JarvisAgent(conversation.ConversationEntity):
         self._voice_markers = {}
         self._information_topics = {}
         self._information_runs = {}
+        self._previous_failed = {}
 
     @property
     def supported_languages(self):
@@ -66,9 +70,10 @@ class JarvisAgent(conversation.ConversationEntity):
         failure=None
         media_report=None
         conversation_id=user_input.conversation_id or uuid4().hex
-        memory_key=(getattr(user_input.context,'user_id',None),conversation_id,getattr(user_input,'satellite_id',None) or getattr(user_input,'device_id',None),getattr(area_override,'id',None))
+        memory_key=context_key(user_input,conversation_id,area_override=area_override)
         now=monotonic()
         self._recent_lights={k:v for k,v in self._recent_lights.items() if now-v['at'] < 120}
+        self._previous_failed={k:v for k,v in self._previous_failed.items() if now-v['at'] < 90}
         self._pending_clarifications={k:v for k,v in self._pending_clarifications.items() if now-v['at'] < 120}
         self._information_topics={k:v for k,v in getattr(self,'_information_topics',{}).items() if now-v['at'] < 120}
         self._information_runs=getattr(self,'_information_runs',{})
@@ -83,14 +88,30 @@ class JarvisAgent(conversation.ConversationEntity):
             cfg=self.hass.data.get('jarvis_local',{}).get('voice_id_config',{})
             command_text,voice_profile=unwrap(command_text,cfg.get('secret'),cfg.get('profiles',{}),self._voice_markers)
             if not command_text:command_text=''
-        if isinstance(voice_profile,str) and voice_profile:
-            memory_key=memory_key+(voice_profile,)
+        memory_key=context_key(user_input,conversation_id,voice_profile,area_override)
         original_text=str(command_text)
+        previous_failure=self._previous_failed.pop(memory_key,None)
+        cross_corrected=False
+        try:
+            replacement=corrected_followup(command_text,previous_failure)
+            if replacement is not None:
+                command_text=replacement
+                cross_corrected=True
+        except ValueError as err:
+            # Preserve the explicit error for the normal preflight failure path.
+            cross_error=err
+        else:
+            cross_error=None
+        command_text=resolve_alias(self.hass,command_text)
         command_text,language_changes=normalize_request(command_text)
         corrections.extend(language_changes)
-        correction_error=None
+        correction_error=cross_error
+        if cross_corrected:
+            corrections.append('corrected previous failed command')
         request_preview=command_text.lower().startswith(('preview ', 'dry run ', 'what would you do if i said '))
         try:
+            if correction_error is not None:
+                raise correction_error
             command_text,self_corrected=final_request(command_text)
         except ValueError as err:
             correction_error=err
@@ -421,6 +442,10 @@ class JarvisAgent(conversation.ConversationEntity):
             self._information_topics.pop(memory_key,None)
         if getattr(user_input,'device_id',None) or getattr(user_input,'satellite_id',None):
             speech=speech.replace(' Try "help" for supported requests.', '')
+        if not preview and outcome in {'failed','rejected'} and not cross_corrected:
+            self._previous_failed[memory_key]={'at':monotonic(),'outcome':outcome}
+            while len(self._previous_failed)>64:
+                del self._previous_failed[next(iter(self._previous_failed))]
         record = {
             'time':datetime.now(timezone.utc).isoformat(),
             'received_text':original_text,'resolved_text':resolved_text,'speaker_personalized':bool(voice_profile),'transcript_corrections':corrections,
@@ -434,6 +459,7 @@ class JarvisAgent(conversation.ConversationEntity):
             history=self.hass.data['jarvis_local'].setdefault('diagnostics',[])
             history.append(record)
             del history[:-20]
+        observe_learning(self.hass, record)
         trackable = (outcome == 'completed' and not preview and not continue_conversation
                      and bool(steps) and all(step.get('kind') in {'light', 'switch_light', 'brightness', 'media_control', 'music', 'music_assistant_play', 'action', 'status', 'information'}
                                              and not step.get('unverified') and (step.get('kind')!='information' or step.get('available')) for step in steps))

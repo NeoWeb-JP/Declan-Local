@@ -9,11 +9,14 @@ def followup(text):
     text=re.sub(r'^(?:(?:no[ ,]+)?actually[ ,]+|no[ ,]+i meant[ ,]+)', '', text)
     for prefix in ['preview ','dry run ','what would you do if i said ']:
         if text.startswith(prefix):preview=True;text=text[len(prefix):];break
+    # Explicit pronouns only: never infer a new device or room from a follow-up.
+    text=re.sub(r'\b(?:those lights|these lights|the same lights|those|these|that light|that)\b',
+                lambda m: 'it' if m[0].startswith('that') else 'them', text)
     m=re.fullmatch(r'(?:please )?(?:turn|switch) (?:them|it) (?:back )?(on|off)(?: again)?(?: please)?',text)
     if m:return 'turn '+m[1]+' __previous_lights__',preview
     m=re.fullmatch(r'(?:please )?(?:turn|switch) (on|off) (?:them|it)(?: please)?',text)
     if m:return 'turn '+m[1]+' __previous_lights__',preview
-    m=re.fullmatch(r'(?:please )?(?:set|adjust) (?:them|it) to (\d+(?:\.\d+)?) (?:percent|%)(?: please)?',text)
+    m=re.fullmatch(r'(?:please )?(?:set|adjust|put|make) (?:them|it) (?:to |at )?(\d+(?:\.\d+)?)\s*(?:percent|%)(?: please)?',text)
     if m:return 'set __previous_lights__ to '+m[1]+' percent',preview
     text=re.sub(r'^no[ ,]+(?=make\b)', '', text)
     m=re.fullmatch(r'(?:make (?:them|it) (?:(?:a bit|a little) )?|(?:a bit |a little )?)(brighter|dimmer)',text)

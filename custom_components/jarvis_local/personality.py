@@ -23,8 +23,21 @@ async def _timed_script(hass, name, data, context, stage):
                       (perf_counter() - started) * 1000)
 
 
+# Home responses blend the existing sassy catalogue with sharper lines.
+# Guest and quiet-hours safety policies remain independent.
+SAVAGE_LINES = {
+    'general': ['Sorted, my bru. Try to contain your amazement.', 'Done. I will add it to my list of heroic achievements.'],
+    'on': ['Lights on. A bright idea at last, my bru.', 'Lights on. Even I cannot improve your taste.'],
+    'off': ['Lights off. Finally, some peace from your interior design.', 'Lights off. I have seen enough too.'],
+    'brightness': ['Brightness adjusted. Your standards remain a mystery.', 'Adjusted. The lights are doing better than your instructions.'],
+    'music': ['Music request sent, my bru. Your taste is still under investigation.', 'Asked the speakers to play it. Even I cannot guarantee your playlist choices.'],
+    'self_correction': ['Right, corrected. I will pretend the first instruction never happened.', 'Got the correction, my bru. Much better.'],
+}
+
+
 def choose(hass, mode, action, catalog):
-    pool = list(dict.fromkeys(catalog[mode].get(action, [])))
+    extras = SAVAGE_LINES.get(action, []) if mode == 'Home' else []
+    pool = list(dict.fromkeys(list(catalog[mode].get(action, [])) + extras))
     if not pool:
         return None
     history = hass.data.setdefault('jarvis_local', {}).setdefault('reply_history', {}).setdefault(
