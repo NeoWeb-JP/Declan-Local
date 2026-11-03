@@ -60,7 +60,7 @@ def test_preview_and_disabled_debug_never_generate_candidates():
 
 def test_exact_approved_alias_only():
     hass = SimpleNamespace(data={'jarvis_local': {
-        'approved_aliases': {'turn the cosy lights on': 'turn on lounge lights'}})
+        'approved_aliases': {'turn the cosy lights on': 'turn on lounge lights'}}})
     assert resolve_alias(hass, '  TURN  the cosy lights ON ') == 'turn on lounge lights'
     assert resolve_alias(hass, 'turn the cosy lights off') == 'turn the cosy lights off'
     assert resolve_alias(hass, 'turn the cosy lights on and unlock door') == 'turn the cosy lights on and unlock door'
