@@ -45,19 +45,22 @@
       "A decision at last, my bru.",
       "Final answer, gentlemen?",
       "Revised instructions. How thrilling.",
-      "Your change of mind has been noted."
+      "Your change of mind has been noted.",
+      "Correction noted. Decisiveness remains a work in progress."
     ],
     "bedtime": [
       "Downstairs is settling down, gentlemen. Do give me the night off.",
       "Good night, gentlemen. Downstairs is ready for your retirement.",
       "Downstairs is settling down, gentlemen. My duties end well before the double entendres do.",
-      "Good night, gentlemen. Downstairs is your concern; preserving my dignity is mine."
+      "Good night, gentlemen. Downstairs is your concern; preserving my dignity is mine.",
+      "Good night. I hope the house behaves itself."
     ],
     "movie": [
       "Movie Time, gentlemen. A little decisiveness suits you.",
       "Movie Time. I await your complaints about the lighting.",
       "Movie Time, gentlemen. A little less foreplay with the menu, if you please.",
-      "Movie Time. Pick a title; I cannot watch you argue all night."
+      "Movie Time. Pick a title; I cannot watch you argue all night.",
+      "Movie Time. A little cinematic escapism awaits."
     ]
   },
   "Guest": {
@@ -65,45 +68,58 @@
       "All arranged. A small victory for domestic order.",
       "Done. I do enjoy a clear instruction.",
       "Consider it handled. Effortlessly, of course.",
-      "All sorted. The household remains in capable hands."
+      "All sorted. The household remains in capable hands.",
+      "All arranged. Clear instructions are always appreciated."
     ],
     "on": [
       "Lights on. A little illumination helps.",
       "Lights on. Much more civilised.",
       "Lights on. Consider the ambience arranged.",
-      "Lights on. An excellent choice."
+      "Lights on. An excellent choice.",
+      "Lights on. Your moment of illumination has arrived."
     ],
     "off": [
       "Lights off. A calmer atmosphere.",
       "Lights off. All neatly handled.",
       "Lights off. The bulbs thank you.",
-      "Lights off. Enjoy the peace."
+      "Lights off. Enjoy the peace.",
+      "Lights off. A considerate gesture towards my electricity bill."
     ],
     "brightness": [
       "Brightness adjusted. How refined.",
       "Lighting adjusted to suit.",
       "Brightness adjusted. A pleasing improvement.",
-      "Lighting adjusted. Ambience matters."
+      "Lighting adjusted. Ambience matters.",
+      "Lighting adjusted. Atmosphere is apparently my department."
     ],
     "morning": [
       "Good morning. The morning routine is underway.",
       "Good morning. The house is getting ready for the day.",
       "Morning. Everything is proceeding nicely.",
-      "Good morning. Another day in capable hands."
+      "Good morning. Another day in capable hands.",
+      "Good morning. The house is preparing for another eventful day."
     ],
     "self_correction": [
       "Revised instructions. Of course.",
       "A change of plan. All arranged.",
       "Certainly. The latest request takes precedence.",
-      "Understood. A little refinement to the plan."
+      "Understood. A little refinement to the plan.",
+      "Revised instructions noted."
     ],
     "bedtime": [
       "Good night. Enjoy a peaceful evening.",
-      "Good night. I shall leave you in peace."
+      "Good night. I shall leave you in peace.",
+      "Good night. I hope the house behaves itself.",
+      "Good night. A little peace is an excellent choice.",
+      "Good night. Enjoy a quiet evening."
     ],
     "movie": [
       "Movie Time. Enjoy the show.",
-      "Movie Time. A most civilised plan."
+      "Movie Time. A most civilised plan.",
+      "Movie Time. A little cinematic escapism awaits.",
+      "Movie Time. Let the entertainment begin.",
+      "Movie Time. An excellent excuse to settle in."
     ]
   }
 }
+
