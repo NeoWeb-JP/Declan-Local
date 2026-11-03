@@ -1,6 +1,6 @@
 """Learning observations are opt-in and never change command behaviour."""
 from types import SimpleNamespace
-from custom_components.jarvis_local.learning import observe, summary, suggestions
+from custom_components.jarvis_local.learning import observe, summary, suggestions, resolve_alias, normalize_alias
 
 
 def test_disabled_debug_keeps_no_evidence():
@@ -55,3 +55,17 @@ def test_preview_and_disabled_debug_never_generate_candidates():
     for _ in range(3):
         observe(hass, {'outcome': 'failed', 'received_text': 'play jazz', 'preview': True})
     assert suggestions(hass) == []
+
+
+def test_exact_approved_alias_only():
+    hass = SimpleNamespace(data={'jarvis_local': {
+        'approved_aliases': {'turn the cosy lights on': 'turn on lounge lights'}})
+    assert resolve_alias(hass, '  TURN  the cosy lights ON ') == 'turn on lounge lights'
+    assert resolve_alias(hass, 'turn the cosy lights off') == 'turn the cosy lights off'
+    assert resolve_alias(hass, 'turn the cosy lights on and unlock door') == 'turn the cosy lights on and unlock door'
+
+
+def test_alias_validation_rejects_non_plain_text():
+    import pytest
+    with pytest.raises(ValueError):
+        normalize_alias('turn on <script>')
