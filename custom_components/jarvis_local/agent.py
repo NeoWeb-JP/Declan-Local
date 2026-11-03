@@ -449,7 +449,7 @@ class JarvisAgent(conversation.ConversationEntity):
         if getattr(user_input,'device_id',None) or getattr(user_input,'satellite_id',None):
             speech=speech.replace(' Try "help" for supported requests.', '')
         if not preview and outcome in {'failed','rejected'} and not cross_corrected:
-            self._previous_failed[memory_key]={'at':monotonic(),'outcome':outcome}
+            self._previous_failed[memory_key]={'at':monotonic(),'outcome':outcome,'heard':original_text[:200]}
             while len(self._previous_failed)>64:
                 del self._previous_failed[next(iter(self._previous_failed))]
         record = {
@@ -468,6 +468,11 @@ class JarvisAgent(conversation.ConversationEntity):
             history.append(record)
             del history[:-20]
         observe_learning(self.hass, record)
+        if cross_corrected and previous_failure and previous_failure.get('heard') and outcome == 'completed' and not preview:
+            observe_learning(self.hass, {**record, 'received_text': previous_failure['heard'],
+                'resolved_text': command_text, 'transcript_corrections': ['voice correction']})
+            if self.hass.data['jarvis_local'].get('debug_enabled', False):
+                speech += ' I have saved that correction for review in Declan learning.'
         trackable = (outcome == 'completed' and not preview and not continue_conversation
                      and bool(steps) and all(step.get('kind') in {'light', 'switch_light', 'brightness', 'media_control', 'music', 'music_assistant_play', 'action', 'status', 'information'}
                                              and not step.get('unverified') and (step.get('kind')!='information' or step.get('available')) for step in steps))

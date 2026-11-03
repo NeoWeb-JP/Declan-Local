@@ -140,7 +140,7 @@ def suggestions(hass, minimum_occurrences=1):
                                              'reason': str(item.get('reason') or '')[:160],
                                              'category': failure_category(item.get('reason'))})
             group['count'] += 1
-        if 'superseded earlier command' in (item.get('corrections') or []) and item.get('outcome') == 'completed':
+        if any(marker in (item.get('corrections') or []) for marker in ('superseded earlier command', 'voice correction')) and item.get('outcome') == 'completed':
             resolved = ' '.join(str(item.get('resolved') or '').casefold().split())
             if not resolved or resolved == heard:
                 continue
@@ -148,15 +148,58 @@ def suggestions(hass, minimum_occurrences=1):
             group = groups.setdefault(key, {'type': 'correction_candidate',
                                              'heard': heard, 'suggested': resolved, 'count': 0})
             group['count'] += 1
+            if 'voice correction' in (item.get('corrections') or []):
+                group['source'] = 'voice'
+    for key, group in list(groups.items()):
+        if group.get('source') == 'voice':
+            groups.pop(('failed', group['heard']), None)
     threshold = max(1, int(minimum_occurrences))
     rejected = set(hass.data.get('jarvis_local', {}).get('rejected_aliases', []))
     approved = hass.data.get('jarvis_local', {}).get('approved_aliases', {})
-    pending = [group for group in groups.values() if group['count'] >= (max(2, threshold) if group['type'] == 'correction_candidate' else threshold)
+    pending = [group for group in groups.values() if group['count'] >= (max(2, threshold) if group['type'] == 'correction_candidate' and group.get('source') != 'voice' else threshold)
                and group['heard'] not in rejected and group['heard'] not in approved]
     for group in pending:
         if group['type'] == 'repeated_failure' and group['category'] == 'unrecognised_command':
             group['similar_approved'] = speech_variants(group['heard'], approved)
+            options = command_suggestions(hass, group['heard'], group['similar_approved'])
+            if options:
+                group['options'] = options
     return sorted(pending, key=lambda group: (-group['count'], group['heard']))
+
+
+
+def command_suggestions(hass, heard, approved_matches):
+    """Rank review-only phrases; use only Assist-exposed live light inventory."""
+    from difflib import SequenceMatcher
+    options = [{'command': item['suggested'], 'source': 'approved phrase'}
+               for item in approved_matches]
+    # Do not guess an action, polarity or multi-step request from fuzzy speech.
+    action = re.search(r'\b(on|off)\b', heard)
+    unsafe = re.search(r"\b(?:don't|not|never|then|and|unlock|lock|open|close)\b", heard)
+    if action and not unsafe and callable(getattr(getattr(hass, 'states', None), 'async_all', None)):
+        from .discovery import inventory, display_name, lighting
+        rooms, unassigned = inventory(hass)
+        ids = set(unassigned) | {entity for room in rooms.values() for entity in room['lights']}
+        ranked = []
+        for entity in sorted(ids):
+            state = hass.states.get(entity)
+            if state is None or state.state in {'unknown', 'unavailable'}:
+                continue
+            command = 'turn ' + action[1] + ' ' + display_name(state).casefold()
+            score = SequenceMatcher(None, heard, command).ratio()
+            if score < 0.55:
+                continue
+            try:
+                step = lighting(hass, command)
+            except ValueError:
+                continue
+            if step and step.get('kind') == 'light' and step.get('data', {}).get('entity_id') == [entity]:
+                ranked.append((score, {'command': command, 'source': 'known light'}))
+        options += [option for _, option in sorted(ranked, key=lambda pair: -pair[0])[:3]]
+    unique = {}
+    for option in options:
+        unique.setdefault(option['command'], option)
+    return list(unique.values())[:3]
 
 
 def validate_manual_light_command(text):
@@ -175,6 +218,24 @@ def validate_manual_light_command(text):
         target, action = match.groups()
     return f'turn {action} {target}'
 
+
+
+def validate_taught_command(hass, text):
+    """Allow named exposed lights, keeping manual training narrowly scoped."""
+    try:
+        return validate_manual_light_command(text)
+    except ValueError:
+        value = normalize_alias(text).strip(' .!?')
+        if not re.fullmatch(r'(?:turn|switch) (?:on|off) [a-z0-9 -]+', value) or any(
+                word in value.split() for word in ('all', 'every', 'everything', 'and', 'then', 'or')):
+            raise ValueError('Teach one explicitly named light action')
+        if not callable(getattr(getattr(hass, 'states', None), 'async_all', None)):
+            raise ValueError('Teach one known light action')
+        from .discovery import lighting
+        step = lighting(hass, value)
+        if not step or step.get('kind') != 'light' or len(step.get('data', {}).get('entity_id', [])) != 1:
+            raise ValueError('Teach one known light action')
+        return value
 
 
 def normalize_alias(text):
@@ -218,10 +279,10 @@ async def review(hass, heard, decision, suggested=None):
         aliases[key] = target
         rejected.discard(key)
     elif decision == 'approve_manual':
-        target = validate_manual_light_command(suggested)
+        target = validate_taught_command(hass, suggested)
         if key == target or key in aliases and aliases[key] != target:
             raise ValueError('Conflicting or identical alias')
-        if not any(c['type'] == 'repeated_failure' and c['heard'] == key
+        if not any(c['heard'] == key
                    for c in suggestions(hass)):
             raise ValueError('Only observed failures can be taught manually')
         if len(aliases) >= 40 and key not in aliases:

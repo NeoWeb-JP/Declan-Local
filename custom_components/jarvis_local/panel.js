@@ -66,7 +66,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
 <div class="tools recording-search-controls"><label>Search saved recordings <input type="search" class="recording-search" aria-label="Search saved recordings" placeholder="Search phrases, clip types or voices" maxlength="200"></label><button type="button" class="clear-recording-search">Clear search</button></div><small class="recording-search-status" role="status"></small>
 <div class="voice-cache-entries"></div><nav class="tools recording-pagination" aria-label="Saved recording pages"><button type="button" class="previous-recordings">Previous</button><span class="recordings-page-status" role="status">Page 1 of 1</span><button type="button" class="next-recordings">Next</button></nav></details></details>
 <details class="quick-section"><summary>Favourites and frequently used</summary><section class="quick-commands" aria-label="Saved and frequently used commands"><h3>Favourites</h3><div class="favourites"></div><h3>Frequently used</h3><div class="frequent"></div><small>Tap a favourite to run it. Frequent commands fill the message box. Commands are stored on this device.</small><button type="button" class="favourite-current">Save typed command as favourite</button><button type="button" class="clear-frequent">Clear frequent commands</button><small class="quick-status" role="status"></small></section></details>
-<details><summary>Tools</summary><div class="tools"><button type="button" data-command="help">Help</button><button type="button" data-command="discover lights">Discover lights</button><button type="button" data-command="list zones">Zones</button><button type="button" data-command="which lights are on">Light status</button></div><label class="room-label">Chat room <select class="room" aria-label="Chat room"><option value="">No room selected</option></select></label><details class="learning-section"><summary>Declan learning</summary><small>Review failed commands from the first attempt and repeated successful corrections. Up to 40 recent learning examples are saved across restarts. Only administrator-approved exact aliases are used. No commands run during review.</small><div class="tools"><button type="button" class="learning-refresh">Refresh suggestions</button></div><small class="learning-status" role="status"></small><details class="learning-waiting-section" open><summary>Waiting for suggestion</summary><div class="learning-pending"></div></details><details class="learning-approved-section"><summary>Approved</summary><div class="learning-approved"></div></details><details class="learning-rejected-section"><summary>Rejected</summary><div class="learning-rejected"></div></details></details><details><summary>Troubleshooting</summary><label><input type="checkbox" class="debug-toggle"> Enable debug and troubleshooting</label><small>Off by default. When enabled, recent request details are held temporarily in memory and routing messages are shown in chat. Disabling clears them.</small><div class="debug-content" hidden><button type="button" class="test-suite">Preview checks</button><div class="tools"><button type="button" class="refresh">Refresh</button><button type="button" class="copy-diag">Copy</button><button type="button" class="clear-diag">Clear</button></div><span class="copy-status" role="status"></span><div class="diagnostic-cards"></div><details><summary>Raw diagnostics</summary><pre class="diagnostics" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto"></pre></details></div></details></details></ha-card>`;
+<details><summary>Tools</summary><div class="tools"><button type="button" data-command="help">Help</button><button type="button" data-command="discover lights">Discover lights</button><button type="button" data-command="list zones">Zones</button><button type="button" data-command="which lights are on">Light status</button></div><label class="room-label">Chat room <select class="room" aria-label="Chat room"><option value="">No room selected</option></select></label><details class="learning-section"><summary>Declan learning</summary><small>Review failed commands from the first attempt and repeated successful corrections. Only administrator-approved exact aliases are used. No commands run during review.</small><div class="tools"><button type="button" class="learning-refresh">Refresh suggestions</button></div><small class="learning-status" role="status"></small><details class="learning-waiting-section" open><summary>Waiting for suggestion</summary><div class="learning-pending"></div></details><details class="learning-approved-section"><summary>Approved</summary><div class="learning-approved"></div></details><details class="learning-rejected-section"><summary>Rejected</summary><div class="learning-rejected"></div></details></details><details><summary>Troubleshooting</summary><label><input type="checkbox" class="debug-toggle"> Enable debug and troubleshooting</label><small>Off by default. When enabled, recent request details are held temporarily in memory and routing messages are shown in chat. Disabling clears them.</small><div class="debug-content" hidden><button type="button" class="test-suite">Preview checks</button><div class="tools"><button type="button" class="refresh">Refresh</button><button type="button" class="copy-diag">Copy</button><button type="button" class="clear-diag">Clear</button></div><span class="copy-status" role="status"></span><div class="diagnostic-cards"></div><details><summary>Raw diagnostics</summary><pre class="diagnostics" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto"></pre></details></div></details></details></ha-card>`;
     this.root.querySelector('.menu').onclick = () => this.dispatchEvent(new Event('hass-toggle-menu', {bubbles:true, composed:true}));
     this.root.querySelector('.open-settings').onclick=()=>this.openSettings();
     this.root.querySelector('.close-settings').onclick=()=>this.showSettings(false);
@@ -955,29 +955,24 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
         title.textContent=(item.type==='correction_candidate'?'Correction suggestion':'Failed command')+' ('+item.count+' '+(item.count===1?'example':'examples')+')';
         card.append(title);
         const heard=document.createElement('p');heard.textContent='Heard: '+item.heard;card.append(heard);
-        if(item.suggested){const target=document.createElement('p');target.textContent='Suggested: '+item.suggested;card.append(target);}
-        else {
-          const reason=document.createElement('p');reason.textContent='Reason: '+(item.reason || 'Not available');card.append(reason);
-          if(item.category){const category=document.createElement('p');category.textContent='Failure type: '+item.category.replaceAll('_',' ');card.append(category);}
-          if(item.similar_approved?.length){
-            const hint=document.createElement('p');hint.textContent='Similar approved phrase (review before teaching): '+item.similar_approved[0].heard+' → '+item.similar_approved[0].suggested;
-            card.append(hint);
-          }
-          const field=document.createElement('input');field.type='text';field.maxLength=150;
-          field.placeholder='e.g. turn off fairy lights';field.setAttribute('aria-label','Correct lighting command for '+item.heard);
-          field.style.cssText='display:block;width:100%;box-sizing:border-box;margin:10px 0;padding:10px';
-          card.append(field);
-          const teach=document.createElement('button');teach.type='button';teach.textContent='Teach this phrase';
-          teach.onclick=()=>{const value=field.value.trim();if(!value){field.setCustomValidity('Enter the correct lighting command first');field.reportValidity();field.focus();return;}field.setCustomValidity('');this.reviewLearning(item.heard,'approve_manual',value);};
-          field.oninput=()=>field.setCustomValidity('');
-          card.append(teach);
+        const reason=document.createElement('p');reason.textContent='Reason: '+(item.reason || (item.source==='voice'?'Your spoken correction':'Correction observed'));card.append(reason);
+        const field=document.createElement('input');field.type='text';field.maxLength=150;
+        field.placeholder='e.g. turn off fairy lights';field.setAttribute('aria-label','Correct command for '+item.heard);
+        field.style.cssText='display:block;width:100%;box-sizing:border-box;margin:10px 0;padding:10px';
+        const options=item.options || (item.suggested?[{command:item.suggested,source:item.source==='voice'?'spoken correction':'successful correction'}]:[]);
+        field.value=options[0]?.command || '';
+        for(const option of options){
+          const choice=document.createElement('button');choice.type='button';
+          choice.textContent=option.command+' ('+option.source+')';
+          choice.onclick=()=>{field.value=option.command;field.setCustomValidity('');};
+          card.append(choice);
         }
+        card.append(field);
+        const teach=document.createElement('button');teach.type='button';teach.textContent='Teach and approve';
+        teach.onclick=()=>{const value=field.value.trim();if(!value){field.setCustomValidity('Enter the correct command first');field.reportValidity();field.focus();return;}field.setCustomValidity('');this.reviewLearning(item.heard,item.type==='correction_candidate' && value===item.suggested?'approve':'approve_manual',value);};
+        field.oninput=()=>field.setCustomValidity('');
+        card.append(teach);
         const controls=document.createElement('div');controls.className='tools';
-        if(item.type==='correction_candidate'){
-          const approve=document.createElement('button');approve.type='button';approve.textContent='Approve';
-          approve.onclick=()=>this.reviewLearning(item.heard,'approve',item.suggested);
-          controls.append(approve);
-        }
         const reject=document.createElement('button');reject.type='button';reject.textContent='Reject';
         reject.onclick=()=>this.reviewLearning(item.heard,'reject');
         controls.append(reject);card.append(controls);pending.append(card);
