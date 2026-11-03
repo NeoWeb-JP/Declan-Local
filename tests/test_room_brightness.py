@@ -95,3 +95,60 @@ def test_agent_uses_source_room_and_preview_calls_no_services():
         assert args == ('light','turn_on',{'entity_id':['light.kitchen'],'brightness_pct':65})
     finally:case.doCleanups()
 
+
+@pytest.mark.parametrize('phrase,expected', [('too bright',35),('too dark',65),('too bright in the kitchen',35)])
+def test_natural_adjustments(phrase,expected):
+    hass=fixtures.Hass();hass.data={}
+    step=room_brightness(hass,phrase,hass.areas.entries['kitchen'])
+    assert step['calls'][0]['data']['brightness_pct'] == expected
+
+
+def test_undo_restores_each_light_and_rejects_intervening_changes():
+    from jarvis_test.room_brightness import undo_room_brightness
+    hass=fixtures.Hass();hass.data={}
+    add_light(hass,'light.second',brightness=204)
+    step=room_brightness(hass,'make kitchen darker')
+    saved={'room':'Kitchen','before':step['undo_before'],'after':step['undo_after']}
+    for entity,expected in step['undo_after'].items():
+        hass.states.get(entity).state=expected['state']
+        hass.states.get(entity).attributes['brightness']=expected['brightness']
+    undo=undo_room_brightness(hass,saved)
+    assert {call['data']['entity_id'][0]:call['data']['brightness'] for call in undo['calls']} == {'light.kitchen':128,'light.second':204}
+    hass.states.get('light.second').attributes['brightness']=20
+    with pytest.raises(ValueError,match='changed'):
+        undo_room_brightness(hass,saved)
+
+
+def test_agent_undo_is_scoped_previewable_single_use_and_expires():
+    import test_agent_dialogue as dialogue
+    case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
+    try:
+        case.hass.devices.entries['voice-device']=types.SimpleNamespace(area_id='kitchen')
+        original_call=case.hass.services.async_call
+        async def update(domain,service,data,**kwargs):
+            await original_call(domain,service,data,**kwargs)
+            for entity in data['entity_id']:
+                state=case.hass.states.get(entity)
+                state.state='off' if service=='turn_off' else 'on'
+                if 'brightness_pct' in data:state.attributes['brightness']=round(data['brightness_pct']/100*255)
+                if 'brightness' in data:state.attributes['brightness']=data['brightness']
+        case.hass.services.async_call=update
+        def request(text,cid='one'):
+            return complete(case.agent.async_handle(dialogue.UserInput(text,cid,device='voice-device')))
+        request('too bright')
+        count=len(case.hass.services.calls)
+        request('undo that','other')
+        request('preview undo that')
+        assert len(case.hass.services.calls) == count
+        request('undo that')
+        assert case.hass.states.get('light.kitchen').attributes['brightness'] == 128
+        count=len(case.hass.services.calls)
+        request('undo that')
+        assert len(case.hass.services.calls) == count
+        request('too dark')
+        for snapshot in case.agent._brightness_undo.values():snapshot['at'] -= 121
+        count=len(case.hass.services.calls)
+        request('undo that')
+        assert len(case.hass.services.calls) == count
+    finally:case.doCleanups()
+
