@@ -321,7 +321,7 @@ def register(hass):
                     save_media_search,search_media,
                     voice_cache,voice_cache_audio,prepare_voice_phrase,import_voice_clips,
                     preview_voice_sentence,save_voice_sentence,review_voice_catalogue,
-                    prepare_voice_catalogue]:websocket_api.async_register_command(hass,handler)
+                    prepare_voice_catalogue,learning_review_list,learning_review]:websocket_api.async_register_command(hass,handler)
 
 
 @websocket_api.require_admin
