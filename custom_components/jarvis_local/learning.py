@@ -17,7 +17,7 @@ def _validated_evidence(value):
         return []
     result = []
     for item in value[-40:]:
-        if not isinstance(item, dict) or item.get('outcome') not in {
+        if not isinstance(item, dict) or not isinstance(item.get('outcome'), str) or item['outcome'] not in {
                 'failed', 'rejected', 'partial', 'completed'}:
             continue
         if not isinstance(item.get('heard'), str) or not item['heard'].strip():
