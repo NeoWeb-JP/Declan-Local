@@ -10,7 +10,7 @@ from custom_components.jarvis_local.transcript import recognition_diagnostic
 def test_similar_approved_speech_only_suggested():
     hass = SimpleNamespace(data={'jarvis_local': {
         'debug_enabled': True,
-        'approved_aliases': {'very light off': 'turn off fairy lights'}})
+        'approved_aliases': {'very light off': 'turn off fairy lights'}}})
     for _ in range(2):
         observe(hass, {'outcome': 'rejected', 'received_text': 'very lights off',
                        'error': 'I did not understand'})
