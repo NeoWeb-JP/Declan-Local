@@ -160,7 +160,9 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
             UserInput('Dinner on, no I mean movie time'))
         self.assertEqual(len(self.hass.services.calls),1)
         self.assertEqual(self.hass.services.calls[0][0][:2],('script','jarvis_local_movie'))
-        self.assertIn('Changed your mind? No problem.',result.response.speech)
+        from jarvis_test.personality import CONTEXT_LINES
+        self.assertTrue(any(line in result.response.speech for line in CONTEXT_LINES['Guest']['self_correction']))
+        self.assertIn('Routine request sent.',result.response.speech)
 
     async def test_incomplete_correction_runs_nothing(self):
         result=await self.agent.async_handle(UserInput('Lights on, scratch that'))

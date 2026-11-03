@@ -26,14 +26,14 @@ async def _timed_script(hass, name, data, context, stage):
 # Home responses blend the existing sassy catalogue with sharper lines.
 # Guest and quiet-hours safety policies remain independent.
 SAVAGE_LINES = {
-    'general': ['Sorted, my bru. Try to contain your amazement.', 'Done. I will add it to my list of heroic achievements.'],
-    'on': ['Lights on. A bright idea at last, my bru.', 'Lights on. Even I cannot improve your taste.'],
-    'off': ['Lights off. Finally, some peace from your interior design.', 'Lights off. I have seen enough too.'],
-    'brightness': ['Brightness adjusted. Your standards remain a mystery.', 'Adjusted. The lights are doing better than your instructions.'],
-    'music': ['Music request sent, my bru. Your taste is still under investigation.', 'Asked the speakers to play it. Even I cannot guarantee your playlist choices.'],
-    'self_correction': ['Right, corrected. I will pretend the first instruction never happened.', 'Got the correction, my bru. Much better.'],
-    'clarification': ['Which room, my bru? I am clever, not psychic.', 'Name the room, and I will take it from there.'],
-    'failed': ['That did not work. I am not claiming a victory for that one.', 'No luck, my bru. Nothing to celebrate yet.'],
+    'general': ["Sorted, my bru. Try to contain your amazement.", "Done. I will add it to my list of heroic achievements.", "Handled. My imaginary promotion edges closer.", "Sorted. You make delegation look effortless.", "Done. Another entry for my wildly impressive memoir."],
+    'on': ["Lights on. A bright idea at last, my bru.", "Lights on. Even I cannot improve your taste.", "Lights on. Your moment of illumination has arrived.", "Lights on. The room has finally caught up with my brilliance.", "Lights on. Another dazzling achievement for the staff."],
+    'off': ["Lights off. Finally, some peace from your interior design.", "Lights off. I have seen enough too.", "Lights off. A considerate gesture towards my electricity bill.", "Lights off. The decor may rest its case.", "Lights off. At last, subtlety enters the room."],
+    'brightness': ["Brightness adjusted. Your standards remain a mystery.", "Adjusted. The lights are doing better than your instructions.", "Lighting adjusted. Atmosphere is apparently my department.", "Brightness adjusted. Such drama over a few photons.", "Lighting adjusted. I expect a glowing appraisal."],
+    'music': ["Music request sent, my bru. Your taste is still under investigation.", "Asked the speakers to play it. Even I cannot guarantee your playlist choices.", "Music request sent. Your soundtrack has a remarkably attentive butler.", "Music requested. My imaginary turntables are delighted.", "Music request sent. Another demanding shift in entertainment."],
+    'self_correction': ["Correction noted, my bru. The latest instruction it is.", "Got the correction, my bru. Much better.", "Correction noted. Decisiveness remains a work in progress.", "The latest instruction it is. I admire your commitment to revisions.", "Revised instructions noted. My paperwork is imaginary, fortunately."],
+    'clarification': ["Which room, my bru? I am clever, not psychic.", "Name the room, and I will take it from there.", "One detail, please. Even brilliance benefits from specifics.", "A little more detail will save us both an encore.", "Help your overqualified butler out with one detail."],
+    'failed': ["That did not work. I am not claiming a victory for that one.", "No luck, my bru. Nothing to celebrate yet.", "That request hit a snag. My dignity remains mostly intact.", "A complication. How terribly on brand for today.", "That needs another look. Even I have my moments."],
 }
 
 
@@ -93,9 +93,51 @@ async def confirmation(hass, context, fallback, action='general'):
         return fallback
 
 
-def failure_reply(hass, reason, mode='Home'):
-    """Optional failure preface: never imply an action was performed."""
-    if mode != 'Home' or quiet(hass):
+def plain_responses(hass):
+    """Synchronous paths must not bypass a legacy script's unknown Night policy."""
+    return quiet(hass) or (not get(hass, 'quiet_hours') and bool(get(hass, 'personality_script')))
+
+
+CONTEXT_LINES = {
+    'Home': {
+        'clarification': ["One small detail, my bru.", "A little precision would work wonders.", "One detail, please. Even brilliance benefits from specifics.", "A little more detail will save us both an encore.", "Help your overqualified butler out with one detail."],
+        'self_correction': SAVAGE_LINES['self_correction'],
+        'failed': ["That request hit a snag, my bru.", "A small complication, my bru.", "That request hit a snag. My dignity remains mostly intact.", "A complication. How terribly on brand for today.", "That needs another look. Even I have my moments."],
+        'music': ["Your soundtrack request is noted, my bru.", "A musical assignment. Naturally.", "Music request sent. Your soundtrack has a remarkably attentive butler.", "Music requested. My imaginary turntables are delighted.", "Music request sent. Another demanding shift in entertainment."],
+    },
+    'Guest': {
+        'clarification': ["A little more detail, please.", "Let me clarify that.", "Could you clarify one detail?", "Please be a little more specific.", "One more detail will help."],
+        'self_correction': ["Correction noted.", "Your revised instruction is noted.", "Revised instructions noted.", "Certainly. I have noted the correction.", "The latest instruction it is."],
+        'failed': ["That request needs another look.", "Let us try that again.", "Let us try a clearer instruction.", "I need a little more information.", "I could not complete that request as given."],
+        'music': ["Music request noted.", "Of course.", "Your music request has been sent.", "The music request is on its way.", "Request sent to the music player."],
+    },
+}
+
+
+def contextual_reply(hass, reason, kind):
+    """Keep precise questions and errors; personality cannot replace their facts."""
+    if plain_responses(hass):
         return reason
-    line = choose(hass, 'Home', 'failed', {'Home': {'failed': []}})
-    return f'{line} {reason}' if line else reason
+    serious = ('security', 'alarm', 'emergency', 'smoke', 'fire', 'unavailable',
+               'timeout', 'timed out', 'service', 'rejected', 'device', 'check the', 'failed',
+               'not confirmed', 'hasn\'t confirmed', 'could not control', 'couldn\'t control')
+    if any(word in reason.casefold() for word in serious):
+        return reason
+    mode = audience_mode(hass)
+    pool = CONTEXT_LINES.get(mode, {}).get(kind, [])
+    if not pool:
+        return reason
+    history = hass.data.setdefault('jarvis_local', {}).setdefault('reply_history', {}).setdefault(
+        (mode, 'context_' + kind), deque(maxlen=1))
+    line = random.choice([text for text in pool if text not in history] or pool)
+    history.append(line)
+    return line + ' ' + reason
+
+
+def failure_reply(hass, reason, mode=None):
+    """Compatibility wrapper; derive privacy from current household state."""
+    if mode == 'Guest':
+        return reason
+    return contextual_reply(hass, reason, 'failed')
+
+
