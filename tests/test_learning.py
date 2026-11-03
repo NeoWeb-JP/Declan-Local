@@ -1,6 +1,7 @@
 """Learning observations are opt-in and never change command behaviour."""
 from types import SimpleNamespace
 import pytest
+import asyncio
 from custom_components.jarvis_local.learning import observe, summary, suggestions, resolve_alias, normalize_alias
 
 
@@ -72,8 +73,7 @@ def test_alias_validation_rejects_non_plain_text():
         normalize_alias('turn on <script>')
 
 
-@pytest.mark.asyncio
-async def test_review_approval_persistence_and_removal(monkeypatch):
+def test_review_approval_persistence_and_removal(monkeypatch):
     import sys
     from custom_components.jarvis_local.learning import review
     saved = []
@@ -89,25 +89,23 @@ async def test_review_approval_persistence_and_removal(monkeypatch):
               'transcript_corrections': ['superseded earlier command']}
     observe(hass, sample)
     observe(hass, sample)
-    await review(hass, sample['received_text'], 'approve', 'turn on lounge')
+    asyncio.run(review(hass, sample['received_text'], 'approve', 'turn on lounge'))
     assert resolve_alias(hass, sample['received_text']) == 'turn on lounge'
     assert suggestions(hass) == []
     assert saved[-1]['approved']
-    await review(hass, sample['received_text'], 'remove')
+    asyncio.run(review(hass, sample['received_text'], 'remove'))
     assert resolve_alias(hass, sample['received_text']) == sample['received_text']
     assert saved[-1]['approved'] == {}
 
 
-@pytest.mark.asyncio
-async def test_rejected_candidate_cannot_be_approved_without_evidence(monkeypatch):
+def test_rejected_candidate_cannot_be_approved_without_evidence(monkeypatch):
     from custom_components.jarvis_local.learning import review
     hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
     with pytest.raises(ValueError):
-        await review(hass, 'unlock door', 'approve', 'turn on lounge lights')
+        asyncio.run(review(hass, 'unlock door', 'approve', 'turn on lounge lights'))
 
 
-@pytest.mark.asyncio
-async def test_manual_teaching_of_repeated_fairy_light_mishearing(monkeypatch):
+def test_manual_teaching_of_repeated_fairy_light_mishearing(monkeypatch):
     from homeassistant.helpers import storage
     from custom_components.jarvis_local.learning import review
     saved = []
@@ -120,21 +118,20 @@ async def test_manual_teaching_of_repeated_fairy_light_mishearing(monkeypatch):
         observe(hass, {'outcome': 'rejected', 'received_text': 'very light off.',
                        'error': 'Not understood'})
     assert suggestions(hass)[0]['type'] == 'repeated_failure'
-    await review(hass, 'very light off.', 'approve_manual', 'turn off fairy lights')
+    asyncio.run(review(hass, 'very light off.', 'approve_manual', 'turn off fairy lights'))
     assert resolve_alias(hass, 'VERY LIGHT OFF.') == 'turn off fairy lights'
     assert saved[-1]['approved']['very light off.'] == 'turn off fairy lights'
     assert suggestions(hass) == []
 
 
-@pytest.mark.asyncio
-async def test_manual_teaching_rejects_unobserved_or_unsafe_actions():
+def test_manual_teaching_rejects_unobserved_or_unsafe_actions():
     from custom_components.jarvis_local.learning import review
     hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
     with pytest.raises(ValueError):
-        await review(hass, 'unlock the door', 'approve_manual', 'turn off fairy lights')
+        asyncio.run(review(hass, 'unlock the door', 'approve_manual', 'turn off fairy lights'))
     for _ in range(2):
         observe(hass, {'outcome': 'rejected', 'received_text': 'very light off'})
     with pytest.raises(ValueError):
-        await review(hass, 'very light off', 'approve_manual', 'unlock front door')
+        asyncio.run(review(hass, 'very light off', 'approve_manual', 'unlock front door'))
     with pytest.raises(ValueError):
-        await review(hass, 'very light off', 'approve_manual', 'turn off all lights')
+        asyncio.run(review(hass, 'very light off', 'approve_manual', 'turn off all lights'))
