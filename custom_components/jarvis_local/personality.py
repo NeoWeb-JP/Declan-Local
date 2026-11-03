@@ -30,6 +30,8 @@ SAVAGE_LINES = {
     'on': ['Lights on. A bright idea at last, my bru.', 'Lights on. Even I cannot improve your taste.'],
     'off': ['Lights off. Finally, some peace from your interior design.', 'Lights off. I have seen enough too.'],
     'brightness': ['Brightness adjusted. Your standards remain a mystery.', 'Adjusted. The lights are doing better than your instructions.'],
+    'music': ['Music request sent, my bru. Your taste is still under investigation.', 'Asked the speakers to play it. Even I cannot guarantee your playlist choices.'],
+    'self_correction': ['Right, corrected. I will pretend the first instruction never happened.', 'Got the correction, my bru. Much better.'],
 }
 
 
