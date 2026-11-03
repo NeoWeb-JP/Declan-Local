@@ -4,6 +4,7 @@ No automatic execution rules are learned from failures: that would let a
 misrecognition silently become a device command. Diagnostics remain in memory.
 """
 from collections import Counter
+import re
 
 
 def observe(hass, record):
@@ -34,6 +35,31 @@ def summary(hass):
             'correction_samples': sum(bool(item['corrections']) for item in evidence)}
 
 
+def speech_variants(heard, approved):
+    """Review-only close phrases; never turn similarity into an executable alias."""
+    from difflib import SequenceMatcher
+    cleaned = re.sub(r'[^a-z0-9 ]', '', heard.casefold()).strip()
+    matches = []
+    for source, target in approved.items():
+        reference = re.sub(r'[^a-z0-9 ]', '', source.casefold()).strip()
+        if cleaned and reference and cleaned != reference and SequenceMatcher(
+                None, cleaned, reference).ratio() >= 0.78:
+            matches.append({'heard': source, 'suggested': target})
+    return matches[:3]
+
+
+def failure_category(reason):
+    """Keep transport/device faults separate from possible recognition failures."""
+    reason = str(reason or '').casefold()
+    if any(term in reason for term in ('unavailable', 'timed out', 'timeout',
+                                      'service call', 'connection error', 'offline')):
+        return 'device_or_service'
+    if any(term in reason for term in ('which room', 'which lights', 'ambiguous',
+                                      'multiple matches')):
+        return 'clarification'
+    return 'unrecognised_command'
+
+
 def suggestions(hass, minimum_occurrences=2):
     """Review-only repeated failures and explicit correction pairs.
 
@@ -51,7 +77,8 @@ def suggestions(hass, minimum_occurrences=2):
             key = ('failed', heard)
             group = groups.setdefault(key, {'type': 'repeated_failure',
                                              'heard': heard, 'count': 0,
-                                             'reason': str(item.get('reason') or '')[:160]})
+                                             'reason': str(item.get('reason') or '')[:160],
+                                             'category': failure_category(item.get('reason'))})
             group['count'] += 1
         if 'superseded earlier command' in (item.get('corrections') or []) and item.get('outcome') == 'completed':
             resolved = ' '.join(str(item.get('resolved') or '').casefold().split())
@@ -64,9 +91,12 @@ def suggestions(hass, minimum_occurrences=2):
     threshold = max(2, int(minimum_occurrences))
     rejected = set(hass.data.get('jarvis_local', {}).get('rejected_aliases', []))
     approved = hass.data.get('jarvis_local', {}).get('approved_aliases', {})
-    return sorted((group for group in groups.values() if group['count'] >= threshold
-                   and group['heard'] not in rejected and group['heard'] not in approved),
-                  key=lambda group: (-group['count'], group['heard']))[:20]
+    pending = [group for group in groups.values() if group['count'] >= threshold
+               and group['heard'] not in rejected and group['heard'] not in approved]
+    for group in pending:
+        if group['type'] == 'repeated_failure' and group['category'] == 'unrecognised_command':
+            group['similar_approved'] = speech_variants(group['heard'], approved)
+    return sorted(pending, key=lambda group: (-group['count'], group['heard']))[:20]
 
 
 def validate_manual_light_command(text):
