@@ -81,7 +81,10 @@ def normalize_alias(text):
 
 def resolve_alias(hass, text):
     """Only explicit admin-approved exact phrases; never infer an action."""
-    key = normalize_alias(text) if isinstance(text, str) and 3 <= len(text) <= 150 else None
+    try:
+        key = normalize_alias(text)
+    except ValueError:
+        return text
     return hass.data.get('jarvis_local', {}).get('approved_aliases', {}).get(key, text)
 
 
