@@ -18,7 +18,7 @@ from .followup import followup, followup_steps, additional_room
 from .conversation_memory import context_key, context_followup, verified_lighting_context
 from .learning import observe as observe_learning, resolve_alias
 from .clarification import request as clarification_request, resolve as clarification_resolve
-from .personality import confirmation, contextual_reply
+from .personality import confirmation, contextual_reply, plain_responses
 from .audience import mode as audience_mode
 from .transcript import correct, recognition_diagnostic
 from .corrections import final_request
@@ -348,22 +348,13 @@ class JarvisAgent(conversation.ConversationEntity):
                                 continue
                             if step['kind'] == 'media_control':
                                 await self.hass.services.async_call('media_player',step['name'],step['data'],blocking=True,context=user_input.context)
-                                import random
-                                replies.append(random.choice((
-                                    'Request sent to ' + step['target_label'] + '.',
-                                    'Sorted. Alexa would still be thinking about it.',
-                                    'Done. Another task Alexa can cross off her imaginary to-do list.',
-                                )))
+                                replies.append(contextual_reply(self.hass,
+                                    'Request sent to ' + step['target_label'] + '.', 'music'))
                                 continue
                             if step['kind'] == 'music_assistant_play':
                                 await self.hass.services.async_call('music_assistant', 'play_media', step['data'], target={'entity_id': step['entity_id']}, blocking=True, context=user_input.context)
-                                import random
-                                replies.append(random.choice((
-                                    'Requested ' + step['data']['media_id'] + ' in ' + step['target_label'] + '.',
-                                    'Music requested for ' + step['target_label'] + '. Alexa can sit this one out.',
-                                    'On it. No need to ask Alexa three times.',
-                                    'Music requested. Alexa, take notes.',
-                                )))
+                                replies.append(contextual_reply(self.hass,
+                                    'Requested ' + step['data']['media_id'] + ' in ' + step['target_label'] + '.', 'music'))
                                 continue
                             if step['kind'] == 'music':
                                 await self.hass.services.async_call('script',step['name'],step['data'],blocking=True,context=user_input.context)
@@ -377,8 +368,11 @@ class JarvisAgent(conversation.ConversationEntity):
                                 return_response=True, context=user_input.context)
                             if (reply or {}).get('response'):
                                 routine_reply=reply['response']
+                                if step['name']!='jarvis_local_good_morning':
+                                    action='bedtime' if step['name']=='jarvis_local_good_night' else 'movie' if step['data'].get('requested_action')=='start' else 'general'
+                                    routine_reply=await confirmation(self.hass,user_input.context,'Routine request sent.',action=action)
                                 if step['name']=='jarvis_local_good_morning':
-                                    if audience_mode(self.hass) == 'Guest':
+                                    if audience_mode(self.hass) == 'Guest' or plain_responses(self.hass):
                                         routine_reply=await confirmation(self.hass,user_input.context,'Good morning. The morning routine is underway.',action='morning')
                                     else:
                                         routine_reply=morning_reply(voice_profile, cfg.get('profiles', {}), self.hass.data.setdefault('jarvis_local', {}).setdefault('morning_history', {}))
@@ -404,8 +398,8 @@ class JarvisAgent(conversation.ConversationEntity):
                     action='off' if steps[0]['name']=='turn_off' else 'on'
                     replies.insert(0,await confirmation(self.hass,user_input.context,'Turning '+action+' the lights.',action=action))
                 speech = ' '.join(r for r in replies if r)
-                if outcome == 'completed' and (self_corrected or cross_corrected) and not preview and media_report is None and all(s.get('kind') in {'light','switch_light','brightness','action','guest'} for s in steps):
-                    speech = await confirmation(self.hass,user_input.context,'Changed your mind? No problem.',action='self_correction') + ' ' + speech
+                if outcome == 'completed' and (self_corrected or cross_corrected) and not preview and media_report is None and all(s.get('kind') in {'light','switch_light','brightness','action','guest','media_control','music_assistant_play','music'} for s in steps):
+                    speech = contextual_reply(self.hass,speech,'self_correction')
                 if outcome in {'completed', 'partial'} and any(
                         step.get('kind') in {'light','switch_light','brightness','action','guest'} or step.get('unverified') for step in steps):
                     remembered=verified_lighting_context(steps,monotonic())
@@ -429,7 +423,7 @@ class JarvisAgent(conversation.ConversationEntity):
         if not preview:
             if continue_conversation:
                 speech=contextual_reply(self.hass,speech,'clarification')
-            elif outcome=='rejected':
+            elif outcome in {'rejected','failed','partial'}:
                 speech=contextual_reply(self.hass,speech,'failed')
         record = {
             'time':datetime.now(timezone.utc).isoformat(),

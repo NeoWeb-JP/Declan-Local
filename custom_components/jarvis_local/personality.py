@@ -31,7 +31,7 @@ SAVAGE_LINES = {
     'off': ['Lights off. Finally, some peace from your interior design.', 'Lights off. I have seen enough too.'],
     'brightness': ['Brightness adjusted. Your standards remain a mystery.', 'Adjusted. The lights are doing better than your instructions.'],
     'music': ['Music request sent, my bru. Your taste is still under investigation.', 'Asked the speakers to play it. Even I cannot guarantee your playlist choices.'],
-    'self_correction': ['Right, corrected. I will pretend the first instruction never happened.', 'Got the correction, my bru. Much better.'],
+    'self_correction': ['Correction noted, my bru. The latest instruction it is.', 'Got the correction, my bru. Much better.'],
     'clarification': ['Which room, my bru? I am clever, not psychic.', 'Name the room, and I will take it from there.'],
     'failed': ['That did not work. I am not claiming a victory for that one.', 'No luck, my bru. Nothing to celebrate yet.'],
 }
@@ -93,24 +93,34 @@ async def confirmation(hass, context, fallback, action='general'):
         return fallback
 
 
+def plain_responses(hass):
+    """Synchronous paths must not bypass a legacy script's unknown Night policy."""
+    return quiet(hass) or (not get(hass, 'quiet_hours') and bool(get(hass, 'personality_script')))
+
+
 CONTEXT_LINES = {
     'Home': {
         'clarification': ['One small detail, my bru.', 'A little precision would work wonders.'],
-        'failed': ['That one escaped me, my bru.', 'My psychic module remains disappointingly absent.'],
+        'self_correction': SAVAGE_LINES['self_correction'],
+        'failed': ['That request hit a snag, my bru.', 'A small complication, my bru.'],
+        'music': ['Your soundtrack request is noted, my bru.', 'A musical assignment. Naturally.'],
     },
     'Guest': {
         'clarification': ['A little more detail, please.', 'Let me clarify that.'],
-        'failed': ['I could not match that request.', 'Let us try that again.'],
+        'self_correction': ['Correction noted.', 'Your revised instruction is noted.'],
+        'failed': ['That request needs another look.', 'Let us try that again.'],
+        'music': ['Music request noted.', 'Of course.'],
     },
 }
 
 
 def contextual_reply(hass, reason, kind):
     """Keep precise questions and errors; personality cannot replace their facts."""
-    if quiet(hass):
+    if plain_responses(hass):
         return reason
     serious = ('security', 'alarm', 'emergency', 'smoke', 'fire', 'unavailable',
-               'timeout', 'timed out', 'service', 'rejected', 'device', 'check the', 'failed')
+               'timeout', 'timed out', 'service', 'rejected', 'device', 'check the', 'failed',
+               'not confirmed', 'hasn\'t confirmed', 'could not control', 'couldn\'t control')
     if any(word in reason.casefold() for word in serious):
         return reason
     mode = audience_mode(hass)
