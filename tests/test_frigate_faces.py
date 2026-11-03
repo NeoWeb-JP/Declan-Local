@@ -9,12 +9,12 @@ def test_known_faces_above_threshold():
 
 def test_unknown_and_low_confidence_fail_closed():
     assert parse_result({"success": True, "face_name": "Mike", "score": 0.99}).name is None
-    assert parse_result({"success": True, "face_name": "Jaco", "score": 0.89}).name is None
+    assert parse_result({"success": True, "face_name": "Jaco", "score": 0.79}).name is None
     assert parse_result({"success": False, "face_name": "Edd", "score": 0.99}).name is None
 
 
 def test_invalid_scores_fail_closed():
-    for score in (None, True, -1, 2, float("nan"), "0.99"):
+    for score in (None, True, -1, 2, float("nan"), "invalid"):
         assert parse_result({"success": True, "face_name": "Jaco", "score": score}).name is None
 
 
@@ -42,3 +42,20 @@ spec.loader.exec_module(module)
 assert module.parse_result({"success": True, "face_name": "jaco", "score": 0.95}).name == "Jaco"
 """
     subprocess.run([sys.executable, "-c", script, str(module_path)], check=True)
+
+
+def test_numeric_and_string_scores_and_boundaries():
+    for score in (0.86, "0.86", 0.80, "0.80", 1, "1"):
+        assert parse_result({"success": True, "face_name": "Jaco", "score": score}) == FaceResult("Jaco", float(score))
+    for score in (0, "0", 0.799999, "0.799999"):
+        assert parse_result({"success": True, "face_name": "Jaco", "score": score}) == FaceResult(None, float(score))
+
+
+def test_invalid_and_nonfinite_scores():
+    for score in (False, [], {}, "", "bad", "NaN", "inf", "-inf", "1e999", float("inf"), float("-inf"), "-0.01", "1.01", 10**1000):
+        assert parse_result({"success": True, "face_name": "Jaco", "score": score}) == FaceResult(None, None)
+
+
+def test_invalid_thresholds_fail_closed():
+    for minimum in (True, "0.8", None, -1, 2, float("nan"), float("inf")):
+        assert parse_result({"success": True, "face_name": "Jaco", "score": "0.86"}, minimum) == FaceResult(None, None)
