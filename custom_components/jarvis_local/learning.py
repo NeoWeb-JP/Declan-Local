@@ -60,8 +60,8 @@ def failure_category(reason):
     return 'unrecognised_command'
 
 
-def suggestions(hass, minimum_occurrences=2):
-    """Review-only repeated failures and explicit correction pairs.
+def suggestions(hass, minimum_occurrences=1):
+    """Review failures immediately and repeated explicit correction pairs.
 
     Never install aliases, infer devices or run actions from observations.
     """
@@ -88,15 +88,15 @@ def suggestions(hass, minimum_occurrences=2):
             group = groups.setdefault(key, {'type': 'correction_candidate',
                                              'heard': heard, 'suggested': resolved, 'count': 0})
             group['count'] += 1
-    threshold = max(2, int(minimum_occurrences))
+    threshold = max(1, int(minimum_occurrences))
     rejected = set(hass.data.get('jarvis_local', {}).get('rejected_aliases', []))
     approved = hass.data.get('jarvis_local', {}).get('approved_aliases', {})
-    pending = [group for group in groups.values() if group['count'] >= threshold
+    pending = [group for group in groups.values() if group['count'] >= (max(2, threshold) if group['type'] == 'correction_candidate' else threshold)
                and group['heard'] not in rejected and group['heard'] not in approved]
     for group in pending:
         if group['type'] == 'repeated_failure' and group['category'] == 'unrecognised_command':
             group['similar_approved'] = speech_variants(group['heard'], approved)
-    return sorted(pending, key=lambda group: (-group['count'], group['heard']))[:20]
+    return sorted(pending, key=lambda group: (-group['count'], group['heard']))
 
 
 def validate_manual_light_command(text):
@@ -163,7 +163,7 @@ async def review(hass, heard, decision, suggested=None):
             raise ValueError('Conflicting or identical alias')
         if not any(c['type'] == 'repeated_failure' and c['heard'] == key
                    for c in suggestions(hass)):
-            raise ValueError('Only observed repeated failures can be taught manually')
+            raise ValueError('Only observed failures can be taught manually')
         if len(aliases) >= 40 and key not in aliases:
             raise ValueError('Maximum approved aliases reached')
         aliases[key] = target
