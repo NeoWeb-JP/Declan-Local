@@ -93,6 +93,16 @@ class JarvisAgent(conversation.ConversationEntity):
         recent_key=memory_key
         memory_key=(conversation_id, memory_key)
         original_text=str(command_text)
+
+        self._last_requests = {k:v for k,v in getattr(self, '_last_requests', {}).items() if now-v['at'] < 120}
+        if original_text.casefold().strip(' .?!') in {'what did you hear', 'what did you hear me say', 'what did you understand'}:
+            previous = self._last_requests.get(memory_key)
+            if previous:
+                speech = 'I heard: ' + previous['heard'] + '. I understood: ' + (previous['resolved'] or 'no supported command') + '. Result: ' + previous['outcome'] + '.'
+            else:
+                speech = 'I do not have a recent request in this conversation to repeat.'
+            result.async_set_speech(speech, extra_data={'jarvis_local': {'trackable': False}})
+            return conversation.ConversationResult(response=result, conversation_id=conversation_id, continue_conversation=False)
         previous_failure=self._previous_failed.pop(memory_key,None)
         cross_corrected=False
         try:
@@ -467,6 +477,10 @@ class JarvisAgent(conversation.ConversationEntity):
             history=self.hass.data['jarvis_local'].setdefault('diagnostics',[])
             history.append(record)
             del history[:-20]
+        self._last_requests[memory_key] = {'at': monotonic(), 'heard': original_text[:200],
+            'resolved': resolved_text[:200], 'outcome': outcome}
+        while len(self._last_requests) > 64:
+            del self._last_requests[next(iter(self._last_requests))]
         observe_learning(self.hass, record)
         if cross_corrected and previous_failure and previous_failure.get('heard') and outcome == 'completed' and not preview:
             observe_learning(self.hass, {**record, 'received_text': previous_failure['heard'],

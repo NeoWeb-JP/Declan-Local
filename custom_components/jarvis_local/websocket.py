@@ -334,6 +334,7 @@ def learning_review_list(hass, connection, msg):
         'summary': summary(hass),
         'pending': suggestions(hass),
         'approved': data.get('approved_aliases', {}),
+        'usage': data.get('learning_usage', {}),
         'rejected': data.get('rejected_aliases', []),
         'debug_enabled': data.get('debug_enabled', False),
     })
@@ -343,7 +344,7 @@ def learning_review_list(hass, connection, msg):
 @websocket_api.websocket_command({
     vol.Required('type'): 'jarvis_local/learning_review',
     vol.Required('heard'): str,
-    vol.Required('decision'): vol.In(['approve', 'approve_manual', 'reject', 'remove']),
+    vol.Required('decision'): vol.In(['approve', 'approve_manual', 'edit', 'reject', 'remove']),
     vol.Optional('suggested'): str,
 })
 @websocket_api.async_response

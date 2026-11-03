@@ -35,6 +35,58 @@ def _validated_evidence(value):
     return result
 
 
+
+def _validated_usage(value):
+    if not isinstance(value, dict):
+        return {}
+    result = {}
+    for key, item in list(value.items())[:40]:
+        if not isinstance(key, str) or not isinstance(item, dict):
+            continue
+        result[key[:150]] = {
+            'successes': max(0, item.get('successes', 0)) if type(item.get('successes', 0)) is int else 0,
+            'failures': max(0, item.get('failures', 0)) if type(item.get('failures', 0)) is int else 0,
+            'last_success': item.get('last_success') if isinstance(item.get('last_success'), str) else None,
+            'last_failure': item.get('last_failure') if isinstance(item.get('last_failure'), str) else None,
+            'needs_review': item.get('needs_review') is True,
+        }
+    return result
+
+
+def _snapshot(data):
+    return {'examples': _validated_evidence(data.get('learning_evidence', [])),
+            'usage': _validated_usage(data.get('learning_usage', {}))}
+
+
+def track_usage(hass, record):
+    if record.get('preview') or 'voice correction' in (record.get('transcript_corrections') or []):
+        return
+    data = hass.data.setdefault('jarvis_local', {})
+    try:
+        key = normalize_alias(record.get('received_text'))
+    except ValueError:
+        return
+    if key not in data.get('approved_aliases', {}):
+        return
+    outcome = record.get('outcome')
+    steps = record.get('steps') or []
+    success = outcome == 'completed' and bool(steps) and not any(step.get('unverified') for step in steps)
+    failure = outcome in {'failed', 'rejected', 'partial'}
+    if not success and not failure:
+        return
+    usage = data.setdefault('learning_usage', {})
+    item = usage.setdefault(key, {'successes': 0, 'failures': 0, 'needs_review': False})
+    if success:
+        item['successes'] += 1
+        item['last_success'] = record.get('time')
+        item['needs_review'] = False
+    else:
+        item['failures'] += 1
+        item['last_failure'] = record.get('time')
+        item['needs_review'] = True
+    _save_evidence(data)
+
+
 async def load_evidence(hass):
     """Restore examples without approving aliases or executing actions."""
     from homeassistant.helpers.storage import Store
@@ -46,6 +98,7 @@ async def load_evidence(hass):
     except (OSError, ValueError):
         _LOGGER.warning('Could not load saved learning examples')
         saved = None
+    data['learning_usage'] = _validated_usage(saved.get('usage') if isinstance(saved, dict) else None)
     data['learning_evidence'] = _validated_evidence(
         saved.get('examples') if isinstance(saved, dict) else None)
 
@@ -55,7 +108,7 @@ def _save_evidence(data):
     if store is not None:
         # Read at write time to avoid stale snapshots; HA flushes on shutdown.
         store.async_delay_save(
-            lambda: {'examples': _validated_evidence(data.get('learning_evidence', []))}, 1)
+            lambda: _snapshot(data), 1)
 
 
 async def flush_evidence(hass):
@@ -63,10 +116,11 @@ async def flush_evidence(hass):
     data = hass.data.get('jarvis_local', {})
     store = data.get('learning_evidence_store')
     if store is not None:
-        await store.async_save({'examples': _validated_evidence(data.get('learning_evidence', []))})
+        await store.async_save(_snapshot(data))
 
 
 def observe(hass, record):
+    track_usage(hass, record)
     data = hass.data.setdefault('jarvis_local', {})
     if not data.get('debug_enabled', False) or record.get('preview'):
         return
@@ -261,7 +315,7 @@ async def review(hass, heard, decision, suggested=None):
     """Administrator API handler. Persist decisions, never execute anything."""
     from homeassistant.helpers.storage import Store
     key = normalize_alias(heard)
-    if decision not in {'approve', 'approve_manual', 'reject', 'remove'}:
+    if decision not in {'approve', 'approve_manual', 'edit', 'reject', 'remove'}:
         raise ValueError('Unknown review decision')
     data = hass.data.setdefault('jarvis_local', {})
     aliases = dict(data.get('approved_aliases', {}))
@@ -278,11 +332,13 @@ async def review(hass, heard, decision, suggested=None):
             raise ValueError('Maximum approved aliases reached')
         aliases[key] = target
         rejected.discard(key)
-    elif decision == 'approve_manual':
+    elif decision in {'approve_manual', 'edit'}:
+        if decision == 'edit' and key not in aliases:
+            raise ValueError('Only approved phrases can be edited')
         target = validate_taught_command(hass, suggested)
-        if key == target or key in aliases and aliases[key] != target:
+        if key == target or (decision != 'edit' and key in aliases and aliases[key] != target):
             raise ValueError('Conflicting or identical alias')
-        if not any(c['heard'] == key
+        if decision != 'edit' and not any(c['heard'] == key
                    for c in suggestions(hass)):
             raise ValueError('Only observed failures can be taught manually')
         if len(aliases) >= 40 and key not in aliases:
@@ -297,6 +353,9 @@ async def review(hass, heard, decision, suggested=None):
         rejected.discard(key)
     await Store(hass, 1, 'jarvis_local.learning_aliases').async_save(
         {'approved': aliases, 'rejected': sorted(rejected)[:80]})
+    if decision in {'edit', 'remove', 'reject'}:
+        data.get('learning_usage', {}).pop(key, None)
+        _save_evidence(data)
     data['approved_aliases'] = aliases
     data['rejected_aliases'] = sorted(rejected)[:80]
     return {'approved': aliases, 'rejected': sorted(rejected)[:80]}

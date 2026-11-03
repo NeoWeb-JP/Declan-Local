@@ -980,7 +980,17 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
       for(const [heard,target] of Object.entries(data.approved || {})){
         const card=document.createElement('div');card.className='diag-card';
         const line=document.createElement('p');line.textContent=heard+' → '+target;card.append(line);
-        const remove=document.createElement('button');remove.type='button';remove.textContent='Remove approval';
+        const usage=data.usage?.[heard] || {};
+        const feedback=document.createElement('p');
+        feedback.textContent=(usage.needs_review?'Needs review — trained phrase still failing. ':'')+
+          'Successful uses: '+(usage.successes || 0)+'. Failed uses: '+(usage.failures || 0)+
+          '. Last success: '+(usage.last_success || 'Not yet confirmed')+'.';
+        card.append(feedback);
+        const edit=document.createElement('input');edit.type='text';edit.value=target;edit.maxLength=150;
+        edit.setAttribute('aria-label','Edit taught command for '+heard);card.append(edit);
+        const save=document.createElement('button');save.type='button';save.textContent='Save correction';
+        save.onclick=()=>this.reviewLearning(heard,'edit',edit.value.trim());card.append(save);
+        const remove=document.createElement('button');remove.type='button';remove.textContent='Undo teaching';
         remove.onclick=()=>this.reviewLearning(heard,'remove');card.append(remove);approved.append(card);
       }
       if(!Object.keys(data.approved || {}).length)approved.textContent='No approved aliases.';

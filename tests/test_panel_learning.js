@@ -33,6 +33,16 @@ vm.runInNewContext(fs.readFileSync('custom_components/jarvis_local/panel.js','ut
  assert.deepEqual(review,['kitchen lanp off','approve','turn off kitchen lamp']);
  card.children.find(item=>item.className==='tools').children[0].onclick();
  assert.deepEqual(review,['kitchen lanp off','reject']);
- console.log('Learning choices, editing, voice approval and rejection passed.');
+ data.pending=[];data.approved={'lanp off':'turn off kitchen lights'};
+ data.usage={'lanp off':{successes:2,failures:1,needs_review:true,last_success:'2026-11-03'}};
+ await panel.loadLearning();
+ card=els['.learning-approved'].children[0];
+ assert(card.children.some(item=>String(item.textContent).includes('Needs review')));
+ card.children.find(item=>item.tag==='input').value='turn off fairy lights';
+ card.children.find(item=>item.textContent==='Save correction').onclick();
+ assert.deepEqual(review,['lanp off','edit','turn off fairy lights']);
+ card.children.find(item=>item.textContent==='Undo teaching').onclick();
+ assert.deepEqual(review,['lanp off','remove']);
+ console.log('Learning choices, feedback, editing, undo and rejection passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
