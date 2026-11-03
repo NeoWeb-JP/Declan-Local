@@ -308,7 +308,14 @@ def validate_taught_command(hass, text):
     """Accept commands that Declan can plan without running them."""
     from .planner import plan
 
+    try:
+        return validate_manual_light_command(text)
+    except ValueError:
+        pass
+
     value = normalize_alias(text).strip(' .!?')
+    if not callable(getattr(getattr(hass, 'states', None), 'async_all', None)):
+        raise ValueError('Enter a supported command to teach')
     steps, preview = plan(hass, value)
     if preview or not steps:
         raise ValueError('Enter a supported command to teach')
