@@ -34,6 +34,8 @@ from .status import answer
 from .information_dialogue import parse as parse_information, read as read_information
 from .speech import recover_off
 from .room_context import source_area, apply_room
+from .room_brightness import undo_room_brightness
+from .lighting_preferences import prepare_preference, save_preference
 from datetime import datetime, timezone
 
 _LOGGER = logging.getLogger(__name__)
@@ -73,6 +75,7 @@ class JarvisAgent(conversation.ConversationEntity):
         conversation_id=user_input.conversation_id or uuid4().hex
         memory_key=context_key(user_input,conversation_id,area_override=area_override)
         now=monotonic()
+        self._brightness_undo={k:v for k,v in getattr(self,'_brightness_undo',{}).items() if now-v['at'] < 120}
         self._recent_lights={k:v for k,v in self._recent_lights.items() if now-v['at'] < 120}
         self._previous_failed={k:v for k,v in self._previous_failed.items() if now-v['at'] < 90}
         self._pending_clarifications={k:v for k,v in self._pending_clarifications.items() if now-v['at'] < 120}
@@ -255,7 +258,20 @@ class JarvisAgent(conversation.ConversationEntity):
                         previous=self._recent_lights.get(recent_key)
                         extra=context_followup(command_text, previous) or additional_room(command_text, previous.get('action') if previous else None)
                         resolved_text=apply_room(extra or command_text,area,self.hass)
-                        steps, preview = plan(self.hass, resolved_text,area)
+                        undo_text=resolved_text.lower().strip(' .?!')
+                        undo_preview=False
+                        for prefix in ('preview ', 'dry run ', 'what would you do if i said '):
+                            if undo_text.startswith(prefix):
+                                undo_preview=True
+                                undo_text=undo_text[len(prefix):]
+                                break
+                        if undo_text in {'undo that', 'undo the brightness change', 'undo last light change'}:
+                            preview=undo_preview
+                            steps=[undo_room_brightness(self.hass,self._brightness_undo.get(memory_key))]
+                        else:
+                            steps, preview = plan(self.hass, resolved_text,area)
+                            if len(steps)==1 and steps[0]['kind']=='lighting_preference':
+                                steps=[await prepare_preference(self.hass,steps[0])]
                         if extra:
                             followup_used=True
         except ValueError as err:
@@ -297,6 +313,9 @@ class JarvisAgent(conversation.ConversationEntity):
                 async with self._lock:
                     try:
                         for step in steps:
+                            if step['kind']=='lighting_preference':
+                                replies.append(await save_preference(self.hass,step))
+                                continue
                             if step['kind'] == 'information':
                                 self._recent_lights.pop(recent_key,None)
                                 token=object()
@@ -347,6 +366,23 @@ class JarvisAgent(conversation.ConversationEntity):
                                     successes.extend(ok)
                                     failures.extend(failed_ids)
                                     unknown.extend(unchecked)
+                                if step.get('room_brightness'):
+                                    self._brightness_undo.pop(memory_key,None)
+                                if step.get('room_brightness') and successes:
+                                    self._brightness_undo[memory_key]={'at':monotonic(), 'room':step['target_label'],
+                                        'before':{i:step['undo_before'][i] for i in successes},
+                                        'after':{i:step['undo_after'][i] for i in successes}}
+                                    while len(self._brightness_undo)>64:
+                                        del self._brightness_undo[next(iter(self._brightness_undo))]
+                                elif step.get('is_brightness_undo'):
+                                    saved=self._brightness_undo.get(memory_key)
+                                    if saved:
+                                        for entity in successes:
+                                            saved['before'].pop(entity,None)
+                                            saved['after'].pop(entity,None)
+                                        if not saved['before']:self._brightness_undo.pop(memory_key,None)
+                                elif successes:
+                                    self._brightness_undo.pop(memory_key,None)
                                 step['succeeded'] = successes
                                 step['failed'] = failures
                                 step['unverified'] = unknown

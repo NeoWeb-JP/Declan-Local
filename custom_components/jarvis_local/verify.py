@@ -8,6 +8,10 @@ def pending(hass, domain, action, data):
         wanted='off' if action=='turn_off' else 'on'
         if state is None or state.state!=wanted:
             missing.append(entity);continue
+        if 'brightness' in data:
+            value=state.attributes.get('brightness')
+            if not isinstance(value,(int,float)) or abs(value-data['brightness'])>2:
+                missing.append(entity);continue
         if 'brightness_pct' in data:
             value=state.attributes.get('brightness')
             if not isinstance(value,(int,float)) or abs(value/255*100-data['brightness_pct'])>4:
