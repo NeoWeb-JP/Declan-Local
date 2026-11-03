@@ -14,7 +14,7 @@ from .morning import morning_reply
 from .social import social_reply
 from .timers import parse as parse_timer
 from .followup import followup, followup_steps, additional_room
-from .conversation_memory import context_key
+from .conversation_memory import context_key, context_followup
 from .learning import observe as observe_learning, resolve_alias
 from .clarification import request as clarification_request, resolve as clarification_resolve
 from .personality import confirmation
@@ -233,7 +233,7 @@ class JarvisAgent(conversation.ConversationEntity):
                         followup_used=True
                     else:
                         previous=self._recent_lights.get(memory_key)
-                        extra=additional_room(command_text, previous.get('action') if previous else None)
+                        extra=context_followup(command_text, previous) or additional_room(command_text, previous.get('action') if previous else None)
                         resolved_text=apply_room(extra or command_text,area,self.hass)
                         steps, preview = plan(self.hass, resolved_text,area)
                         if extra:
