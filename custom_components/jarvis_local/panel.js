@@ -66,7 +66,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
 <div class="tools recording-search-controls"><label>Search saved recordings <input type="search" class="recording-search" aria-label="Search saved recordings" placeholder="Search phrases, clip types or voices" maxlength="200"></label><button type="button" class="clear-recording-search">Clear search</button></div><small class="recording-search-status" role="status"></small>
 <div class="voice-cache-entries"></div><nav class="tools recording-pagination" aria-label="Saved recording pages"><button type="button" class="previous-recordings">Previous</button><span class="recordings-page-status" role="status">Page 1 of 1</span><button type="button" class="next-recordings">Next</button></nav></details></details>
 <details class="quick-section"><summary>Favourites and frequently used</summary><section class="quick-commands" aria-label="Saved and frequently used commands"><h3>Favourites</h3><div class="favourites"></div><h3>Frequently used</h3><div class="frequent"></div><small>Tap a favourite to run it. Frequent commands fill the message box. Commands are stored on this device.</small><button type="button" class="favourite-current">Save typed command as favourite</button><button type="button" class="clear-frequent">Clear frequent commands</button><small class="quick-status" role="status"></small></section></details>
-<details><summary>Tools</summary><div class="tools"><button type="button" data-command="help">Help</button><button type="button" data-command="discover lights">Discover lights</button><button type="button" data-command="list zones">Zones</button><button type="button" data-command="which lights are on">Light status</button></div><label class="room-label">Chat room <select class="room" aria-label="Chat room"><option value="">No room selected</option></select></label><details><summary>Troubleshooting</summary><label><input type="checkbox" class="debug-toggle"> Enable debug and troubleshooting</label><small>Off by default. When enabled, recent request details are held temporarily in memory and routing messages are shown in chat. Disabling clears them.</small><div class="debug-content" hidden><button type="button" class="test-suite">Preview checks</button><div class="tools"><button type="button" class="refresh">Refresh</button><button type="button" class="copy-diag">Copy</button><button type="button" class="clear-diag">Clear</button></div><span class="copy-status" role="status"></span><div class="diagnostic-cards"></div><details><summary>Raw diagnostics</summary><pre class="diagnostics" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto"></pre></details></div></details></details></ha-card>`;
+<details><summary>Tools</summary><div class="tools"><button type="button" data-command="help">Help</button><button type="button" data-command="discover lights">Discover lights</button><button type="button" data-command="list zones">Zones</button><button type="button" data-command="which lights are on">Light status</button></div><label class="room-label">Chat room <select class="room" aria-label="Chat room"><option value="">No room selected</option></select></label><details class="learning-section"><summary>Declan learning</summary><small>Review repeated failed commands and successful corrections. Only administrator-approved exact aliases are used. No commands run during review.</small><div class="tools"><button type="button" class="learning-refresh">Refresh suggestions</button></div><small class="learning-status" role="status"></small><div class="learning-pending"></div><h3>Approved phrases</h3><div class="learning-approved"></div><h3>Rejected phrases</h3><div class="learning-rejected"></div></details><details><summary>Troubleshooting</summary><label><input type="checkbox" class="debug-toggle"> Enable debug and troubleshooting</label><small>Off by default. When enabled, recent request details are held temporarily in memory and routing messages are shown in chat. Disabling clears them.</small><div class="debug-content" hidden><button type="button" class="test-suite">Preview checks</button><div class="tools"><button type="button" class="refresh">Refresh</button><button type="button" class="copy-diag">Copy</button><button type="button" class="clear-diag">Clear</button></div><span class="copy-status" role="status"></span><div class="diagnostic-cards"></div><details><summary>Raw diagnostics</summary><pre class="diagnostics" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto"></pre></details></div></details></details></ha-card>`;
     this.root.querySelector('.menu').onclick = () => this.dispatchEvent(new Event('hass-toggle-menu', {bubbles:true, composed:true}));
     this.root.querySelector('.open-settings').onclick=()=>this.openSettings();
     this.root.querySelector('.close-settings').onclick=()=>this.showSettings(false);
@@ -118,6 +118,8 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     this.root.querySelector('.voice-pipeline').onchange = e => {try {localStorage.setItem('jarvis_local_voice_pipeline',e.target.value);} catch (_) {} this.updateOverview(); };
     this.loadVoicePipelines();
     for (const button of this.root.querySelectorAll('[data-command]')) button.onclick = () => {this.root.querySelector('form input').value=button.dataset.command;this.send();};
+    this.root.querySelector('.learning-refresh').onclick=()=>this.loadLearning();
+    this.root.querySelector('.learning-section').addEventListener('toggle',e=>{if(e.target.open)this.loadLearning();});
     this.root.querySelector('.clear').onclick = () => {this.root.querySelector('.history').replaceChildren();this.conversationId=undefined;};
   }
   disconnectedCallback() {
@@ -932,6 +934,69 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
       }
     } catch(e) {this.line('Checks error',e.message || String(e));}
     finally {this.busy=false;this.loadInfo();}
+  }
+  async loadLearning() {
+    if (!this._hass || this.loadingLearning) return;
+    this.loadingLearning=true;
+    const status=this.root.querySelector('.learning-status');
+    status.textContent='Loading suggestions…';
+    try {
+      const data=await this._hass.callWS({type:'jarvis_local/learning_review_list'});
+      const pending=this.root.querySelector('.learning-pending');
+      const approved=this.root.querySelector('.learning-approved');
+      const rejected=this.root.querySelector('.learning-rejected');
+      pending.replaceChildren();approved.replaceChildren();rejected.replaceChildren();
+      status.textContent=(data.debug_enabled?'':'Enable troubleshooting to collect new examples. ')+
+        (data.summary?.total || 0)+' observations, '+(data.pending?.length || 0)+' suggestions awaiting review.';
+      if(!data.pending?.length)pending.textContent='No repeated suggestions yet.';
+      for(const item of data.pending || []){
+        const card=document.createElement('div');card.className='diag-card';
+        const title=document.createElement('p');
+        title.textContent=(item.type==='correction_candidate'?'Correction suggestion':'Repeated failure')+' ('+item.count+' examples)';
+        card.append(title);
+        const heard=document.createElement('p');heard.textContent='Heard: '+item.heard;card.append(heard);
+        if(item.suggested){const target=document.createElement('p');target.textContent='Suggested: '+item.suggested;card.append(target);}
+        else {const reason=document.createElement('p');reason.textContent='Reason: '+(item.reason || 'Not available');card.append(reason);}
+        const controls=document.createElement('div');controls.className='tools';
+        if(item.type==='correction_candidate'){
+          const approve=document.createElement('button');approve.type='button';approve.textContent='Approve';
+          approve.onclick=()=>this.reviewLearning(item.heard,'approve',item.suggested);
+          controls.append(approve);
+        }
+        const reject=document.createElement('button');reject.type='button';reject.textContent='Reject';
+        reject.onclick=()=>this.reviewLearning(item.heard,'reject');
+        controls.append(reject);card.append(controls);pending.append(card);
+      }
+      for(const [heard,target] of Object.entries(data.approved || {})){
+        const card=document.createElement('div');card.className='diag-card';
+        const line=document.createElement('p');line.textContent=heard+' → '+target;card.append(line);
+        const remove=document.createElement('button');remove.type='button';remove.textContent='Remove approval';
+        remove.onclick=()=>this.reviewLearning(heard,'remove');card.append(remove);approved.append(card);
+      }
+      if(!Object.keys(data.approved || {}).length)approved.textContent='No approved aliases.';
+      for(const heard of data.rejected || []){
+        const card=document.createElement('div');card.className='diag-card';
+        const label=document.createElement('span');label.textContent=heard+' ';card.append(label);
+        const reset=document.createElement('button');reset.type='button';reset.textContent='Reconsider';
+        reset.onclick=()=>this.reviewLearning(heard,'remove');card.append(reset);rejected.append(card);
+      }
+      if(!data.rejected?.length)rejected.textContent='No rejected phrases.';
+    } catch(e) {status.textContent='Could not load learning suggestions: '+(e.message || String(e));}
+    finally {this.loadingLearning=false;}
+  }
+  async reviewLearning(heard,decision,suggested) {
+    if(this.reviewingLearning || !this._hass)return;
+    this.reviewingLearning=true;
+    const status=this.root.querySelector('.learning-status');
+    status.textContent='Saving decision…';
+    try {
+      const request={type:'jarvis_local/learning_review',heard,decision};
+      if(suggested)request.suggested=suggested;
+      await this._hass.callWS(request);
+      status.textContent='Review saved.';
+      await this.loadLearning();
+    } catch(e) {status.textContent='Review failed: '+(e.message || String(e));}
+    finally {this.reviewingLearning=false;}
   }
   async loadInfo() {
     if (!this._hass || !this.root || this.loadingInfo) return;
