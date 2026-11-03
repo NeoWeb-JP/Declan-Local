@@ -1,4 +1,7 @@
 """Diagnostics exercise the actual stop handler and debug-toggle implementation."""
+from custom_components.jarvis_local.conversation_memory import context_key
+from custom_components.jarvis_local.cross_corrections import corrected_followup
+from custom_components.jarvis_local.learning import resolve_alias
 import ast
 import asyncio
 from datetime import datetime, timezone
@@ -33,6 +36,7 @@ def handler():
         normalize_request=understanding.normalize_request,
         final_request=corrections.final_request,
     )
+    namespace.update(context_key=context_key, corrected_followup=corrected_followup, resolve_alias=resolve_alias)
     exec(compile(ast.Module(body=[method], type_ignores=[]), '<actual stop handler>', 'exec'), namespace)
     return namespace['async_handle']
 
@@ -47,7 +51,7 @@ class StopDiagnostics(unittest.TestCase):
             data={'jarvis_local': self.data}, services=types.SimpleNamespace(async_call=self.call))
         self.agent = types.SimpleNamespace(
             hass=self.hass, _lock=asyncio.Lock(), _recent_lights={},
-            _pending_clarifications={}, _voice_markers={})
+            _previous_failed={}, _pending_clarifications={}, _voice_markers={})
 
     async def request(self, satellite=SATELLITE, text='Stop'):
         user = types.SimpleNamespace(
@@ -150,6 +154,7 @@ class StopDiagnostics(unittest.TestCase):
             def __init__(self, *args): pass
             async def async_save(self, data): saves.append(data)
         namespace = {'Store': Store}
+        namespace.update(context_key=context_key, corrected_followup=corrected_followup, resolve_alias=resolve_alias)
         exec(compile(ast.Module(body=[method], type_ignores=[]), '<actual debug toggle>', 'exec'), namespace)
         replies = []
         connection = types.SimpleNamespace(send_result=lambda *args: replies.append(args))

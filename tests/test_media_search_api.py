@@ -80,7 +80,9 @@ class MediaAPI(unittest.TestCase):
             namespace = {
                 "websocket_api": types.SimpleNamespace(require_admin=require_admin,
                     websocket_command=lambda schema: lambda fn: fn, async_response=lambda fn: fn),
-                "vol": types.SimpleNamespace(Required=lambda key: key),
+                "vol": types.SimpleNamespace(Required=lambda key: key, Optional=lambda key: key,
+                    All=lambda *args: lambda value: value, Range=lambda **kwargs: lambda value: value,
+                    In=lambda values: lambda value: value),
                 "parse_search": media.parse_search, "run_media_search": self.run,
                 "save_media_search_config": AsyncMock(),
             }

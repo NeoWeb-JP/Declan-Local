@@ -18,6 +18,8 @@ class VoiceApi(unittest.IsolatedAsyncioTestCase):
             item=types.ModuleType(name);item.__path__=[];modules[name]=item
         vol=types.ModuleType('voluptuous')
         vol.Required=lambda key,**kwargs:key
+        vol.All=lambda *validators: lambda value:value
+        vol.Range=lambda **kwargs: lambda value:value
         vol.Optional=lambda key,**kwargs:key
         vol.In=lambda values:lambda value:value
         modules['voluptuous']=vol

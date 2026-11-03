@@ -71,12 +71,12 @@ class MediaAgent(unittest.TestCase):
         self.search.assert_not_awaited()
 
     @immediate
-    async def test_music_requests_still_use_existing_music_path(self):
+    async def test_music_requests_never_fall_back_to_retired_script(self):
         self.hass.data = {"jarvis_local": {"settings": {"music_script": "script.music"}}}
         self.hass.states.values["script.music"] = fixtures.fixtures.State("script.music", "Music", "off")
         await self.agent.async_handle(fixtures.UserInput("play country music in kitchen"))
         self.search.assert_not_awaited()
-        self.assertEqual(self.hass.services.calls[0][0][:2], ("script", "music"))
+        self.assertEqual(self.hass.services.calls, [])
 
     @immediate
     async def test_weather_question_is_understood_without_household_actions(self):

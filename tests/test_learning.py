@@ -37,7 +37,8 @@ def test_repeated_failures_become_review_only_candidates():
                        'error': 'unknown target'})
     assert suggestions(hass) == [{'type': 'repeated_failure',
                                    'heard': 'switch the snuggly lights',
-                                   'count': 2, 'reason': 'unknown target'}]
+                                   'count': 2, 'reason': 'unknown target',
+                                   'category': 'unrecognised_command', 'similar_approved': []}]
     assert 'learned_commands' not in hass.data['jarvis_local']
 
 
@@ -105,7 +106,7 @@ def test_rejected_candidate_cannot_be_approved_without_evidence(monkeypatch):
         asyncio.run(review(hass, 'unlock door', 'approve', 'turn on lounge lights'))
 
 
-def test_manual_teaching_of_repeated_fairy_light_mishearing(monkeypatch):
+def test_manual_teaching_of_first_fairy_light_mishearing(monkeypatch):
     from homeassistant.helpers import storage
     from custom_components.jarvis_local.learning import review
     saved = []
@@ -114,7 +115,7 @@ def test_manual_teaching_of_repeated_fairy_light_mishearing(monkeypatch):
         async def async_save(self, value): saved.append(value)
     monkeypatch.setattr(storage, 'Store', FakeStore)
     hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
-    for _ in range(2):
+    for _ in range(1):
         observe(hass, {'outcome': 'rejected', 'received_text': 'very light off.',
                        'error': 'Not understood'})
     assert suggestions(hass)[0]['type'] == 'repeated_failure'
@@ -146,3 +147,20 @@ def test_teach_accepts_natural_light_command_order():
         validate_manual_light_command('turn off all lights')
     with pytest.raises(ValueError):
         validate_manual_light_command('unlock the front door')
+
+
+@pytest.mark.parametrize('outcome', ['failed', 'rejected', 'partial'])
+def test_first_failure_is_immediately_reviewable(outcome):
+    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    observe(hass, {'outcome': outcome, 'received_text': 'very light off'})
+    assert suggestions(hass)[0]['count'] == 1
+    assert suggestions(hass, minimum_occurrences=2) == []
+    assert resolve_alias(hass, 'very light off') == 'very light off'
+
+
+def test_all_retained_unique_failures_are_reviewable():
+    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    for i in range(40):
+        observe(hass, {'outcome': 'failed', 'received_text': f'failed command {i}'})
+    assert len(suggestions(hass)) == 40
+

@@ -79,3 +79,19 @@ def split_joined(text, names):
         if match:
             matches.add(match[1]+alias+" "+match[2]+(match[3] or ""))
     return next(iter(matches)) if len(matches)==1 else text
+
+
+def recognition_diagnostic(received, resolved, corrections, outcome, error=None, satellite_id=None):
+    """Explain the observable stage, not microphone gain or an inferred root cause."""
+    from .learning import failure_category
+    if outcome in {'failed', 'rejected', 'partial'}:
+        category = failure_category(error)
+        stage = ('device_or_service' if category == 'device_or_service'
+                 else 'clarification' if category == 'clarification'
+                 else 'command_understanding')
+    elif corrections or received != resolved:
+        stage = 'transcript_normalisation'
+    else:
+        stage = 'no_detected_transcript_issue'
+    return {'stage': stage, 'satellite': bool(satellite_id),
+            'changed_transcript': bool(corrections or received != resolved)}

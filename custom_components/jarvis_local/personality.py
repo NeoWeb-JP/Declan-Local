@@ -32,6 +32,8 @@ SAVAGE_LINES = {
     'brightness': ['Brightness adjusted. Your standards remain a mystery.', 'Adjusted. The lights are doing better than your instructions.'],
     'music': ['Music request sent, my bru. Your taste is still under investigation.', 'Asked the speakers to play it. Even I cannot guarantee your playlist choices.'],
     'self_correction': ['Right, corrected. I will pretend the first instruction never happened.', 'Got the correction, my bru. Much better.'],
+    'clarification': ['Which room, my bru? I am clever, not psychic.', 'Name the room, and I will take it from there.'],
+    'failed': ['That did not work. I am not claiming a victory for that one.', 'No luck, my bru. Nothing to celebrate yet.'],
 }
 
 
@@ -89,3 +91,11 @@ async def confirmation(hass, context, fallback, action='general'):
     except (HomeAssistantError, ValueError, TypeError, KeyError, OSError):
         _LOGGER.warning('Declan reply unavailable; using plain confirmation')
         return fallback
+
+
+def failure_reply(hass, reason, mode='Home'):
+    """Optional failure preface: never imply an action was performed."""
+    if mode != 'Home' or quiet(hass):
+        return reason
+    line = choose(hass, 'Home', 'failed', {'Home': {'failed': []}})
+    return f'{line} {reason}' if line else reason

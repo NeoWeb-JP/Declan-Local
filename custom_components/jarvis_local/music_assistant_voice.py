@@ -13,13 +13,13 @@ ROOMS = {
 def plan_music(hass, text, area=None):
     """Plan explicit Music Assistant playback, resolving only known rooms."""
     request = text.strip().rstrip(".!?")
-    request = re.sub(r"^(?:please\\s+)?play\\s+", "", request, flags=re.I)
+    request = re.sub(r"^(?:please\s+)?play\s+", "", request, flags=re.I)
     if request == text.strip().rstrip(".!?"):
         return None
-    request = re.sub(r"^(?:some|me some)\\s+", "", request, flags=re.I)
+    request = re.sub(r"^(?:some|me some)\s+", "", request, flags=re.I)
     room_names = sorted(ROOMS, key=len, reverse=True)
     room_pattern = "|".join(re.escape(name) for name in room_names)
-    match = re.fullmatch(r"(.+?)\\s+(?:in|on|through)\\s+(?:the\\s+)?(" + room_pattern + r")", request, re.I)
+    match = re.fullmatch(r"(.+?)\s+(?:(?:in|on|through)\s+(?:the\s+)?)?(" + room_pattern + r")", request, re.I)
     if match:
         query, room = match.groups()
         room = room.lower()
@@ -48,8 +48,11 @@ def plan_music(hass, text, area=None):
         kind = "track"
         query = query[9:].strip()
     elif " by " in query.lower():
-        parts = re.split(r"\\s+by\\s+", query, maxsplit=1, flags=re.I)
+        parts = re.split(r"\s+by\s+", query, maxsplit=1, flags=re.I)
         query, artist = parts[0].strip(), parts[1].strip()
+        kind = "track"
+    if artist is None and " by " in query.lower():
+        query, artist = [part.strip() for part in re.split(r"\s+by\s+", query, maxsplit=1, flags=re.I)]
         kind = "track"
     if not query or (artist is not None and not artist):
         raise ValueError("Please name music to play. Nothing was run.")

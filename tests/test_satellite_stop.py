@@ -1,4 +1,7 @@
 """Stop regressions runnable without a Home Assistant installation."""
+from custom_components.jarvis_local.conversation_memory import context_key
+from custom_components.jarvis_local.cross_corrections import corrected_followup
+from custom_components.jarvis_local.learning import resolve_alias
 import ast
 import asyncio
 import importlib.util
@@ -76,10 +79,12 @@ class Stops(unittest.TestCase):
             normalize_request=understanding.normalize_request,
             final_request=corrections.final_request,
             stop_player=stop.stop_player)
+        ns.update(context_key=context_key, corrected_followup=corrected_followup, resolve_alias=resolve_alias)
         exec(compile(ast.Module(body=[method],type_ignores=[]),'<actual handler>','exec'),ns)
         context=types.SimpleNamespace(user_id='user')
         satellite='assist_satellite.bedroom'
-        key=('user','one',satellite,None)
+        key=('user','user',satellite,None)
+        pending_key=('one',key)
         other=('user','other','assist_satellite.kitchen',None)
         for phrase in ('Stop','Be quiet','Shut up'):
             for fail in (False,True):
@@ -89,7 +94,7 @@ class Stops(unittest.TestCase):
                     services=types.SimpleNamespace(async_call=call))
                 agent=types.SimpleNamespace(hass=hass,_lock=asyncio.Lock(),
                     _recent_lights={k:{'at':monotonic()} for k in (key,other)},
-                    _pending_clarifications={k:{'at':monotonic()} for k in (key,other)})
+                    _previous_failed={}, _pending_clarifications={k:{'at':monotonic()} for k in (pending_key,other)})
                 await agent._lock.acquire()
                 user=types.SimpleNamespace(language='en',conversation_id='one',context=context,
                     satellite_id=satellite,device_id=None,text=phrase)
