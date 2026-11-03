@@ -2,7 +2,7 @@
 import re
 
 _CORRECTION = re.compile(r"^(?:no[ ,]+i[ ,]+meant|sorry[ ,]+i[ ,]+meant|actually[ ,]+i[ ,]+meant|no[ ,]+actually|scratch that)[ ,]+(.+)$", re.I)
-_ACTION = re.compile(r"^(?:turn|switch|set|adjust|dim|brighten|make|play|pause|resume|skip|stop|start|cancel|preview|dry run)\\b", re.I)
+_ACTION = re.compile(r"^(?:turn|switch|set|adjust|dim|brighten|make|play|pause|resume|skip|stop|start|cancel|preview|dry run)\b", re.I)
 
 
 def corrected_followup(text, previous):

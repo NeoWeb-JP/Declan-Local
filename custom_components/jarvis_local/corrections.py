@@ -5,7 +5,7 @@ _EXPLICIT = re.compile(
     r"\b(?:no[ ,]+i[ ,]+mean(?:t)?|sorry[ ,]+i[ ,]+meant|scratch[ ,]+that|"
     r"no[ ,]+actually|actually[ ,]+i[ ,]+meant)\b", re.I)
 _START = r"(?:turn|switch|set|adjust|dim|brighten|make|start|end|stop|cancel|be quiet|shut up|good morning|good night|movie time|cinema time|dinner on|preview|dry run)\b"
-_SHORT = re.compile(r"\b(?:actually|rather|sorry)(?!\s+than\b)(?=[ ,]+(?:" + _START + r"))", re.I)
+_SHORT = re.compile(r"\b(?:actually|rather|sorry)(?!\s+than\b)(?=[ ,]+(?:" + _START + r"|(?:the |maybe |probably |just |only )))", re.I)
 _NO_STOP = re.compile(r"\bno(?=[ ,]+(?:stop|cancel|be quiet|shut up)\b)", re.I)
 _NO_RELATIVE = re.compile(r"\bno(?=[ ,]+(?:make|adjust|set) (?:it|them)\b)", re.I)
 _PREVIEW = re.compile(r"^(preview\s+|dry run\s+|what would you do if i said\s+)", re.I)
@@ -39,7 +39,7 @@ def final_request(text):
         earlier = body[:marker.start()].strip(' ,;.!?')
         action = re.fullmatch(r'(?:please )?(?:turn|switch) (on|off) (?:the )?(.+)', earlier, re.I)
         target = re.sub(r'^(?:just |only |the )+', '', command, flags=re.I).strip()
-        if action and re.fullmatch(r'[a-z][a-z0-9 -]{2,70}', target, re.I) and not re.search(r'\b(?:and|then|after|before|instead|because|maybe|probably|please|i|me|we)\b', target, re.I):
+        if action and command.lower().startswith(('the ', 'just ', 'only ')) and re.fullmatch(r'[a-z][a-z0-9 -]{2,70}', target, re.I) and not re.search(r'\b(?:and|then|after|before|instead|because|maybe|probably|please|i|me|we)\b', target, re.I):
             previous_target = action[2].lower()
             if 'light' in previous_target and not re.search(r'\b(?:lights?|spotlights?)\b', target, re.I):
                 target += ' lights'

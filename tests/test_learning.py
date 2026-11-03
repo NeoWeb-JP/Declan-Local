@@ -37,7 +37,8 @@ def test_repeated_failures_become_review_only_candidates():
                        'error': 'unknown target'})
     assert suggestions(hass) == [{'type': 'repeated_failure',
                                    'heard': 'switch the snuggly lights',
-                                   'count': 2, 'reason': 'unknown target'}]
+                                   'count': 2, 'reason': 'unknown target',
+                                   'category': 'unrecognised_command', 'similar_approved': []}]
     assert 'learned_commands' not in hass.data['jarvis_local']
 
 
