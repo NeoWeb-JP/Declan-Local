@@ -15,7 +15,7 @@ from .social import social_reply
 from .timers import parse as parse_timer
 from .followup import followup, followup_steps, additional_room
 from .conversation_memory import context_key
-from .learning import observe as observe_learning
+from .learning import observe as observe_learning, resolve_alias
 from .clarification import request as clarification_request, resolve as clarification_resolve
 from .personality import confirmation
 from .audience import mode as audience_mode
@@ -87,6 +87,7 @@ class JarvisAgent(conversation.ConversationEntity):
             if not command_text:command_text=''
         memory_key=context_key(user_input,conversation_id,voice_profile,area_override)
         original_text=str(command_text)
+        command_text=resolve_alias(self.hass,command_text)
         command_text,language_changes=normalize_request(command_text)
         corrections.extend(language_changes)
         correction_error=None
