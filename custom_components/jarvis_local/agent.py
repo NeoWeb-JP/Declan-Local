@@ -10,6 +10,7 @@ from .media_search import parse_search
 from .media_search_adapters import search as search_media
 from .settings import get
 from .speaker_identity import unwrap, bridge_profile
+from .visual_observation import inspect_speaker_camera
 from .morning import morning_reply
 from .social import social_reply
 from .timers import parse as parse_timer
@@ -160,6 +161,9 @@ class JarvisAgent(conversation.ConversationEntity):
             return conversation.ConversationResult(
                 response=result, conversation_id=conversation_id,
                 continue_conversation=False)
+        frigate_url=get(self.hass, 'frigate_url', '')
+        if frigate_url and getattr(user_input, 'satellite_id', None):
+            await inspect_speaker_camera(self.hass, user_input.satellite_id, frigate_url)
         try:
             if correction_error:
                 raise correction_error
