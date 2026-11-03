@@ -958,6 +958,11 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
         if(item.suggested){const target=document.createElement('p');target.textContent='Suggested: '+item.suggested;card.append(target);}
         else {
           const reason=document.createElement('p');reason.textContent='Reason: '+(item.reason || 'Not available');card.append(reason);
+          if(item.category){const category=document.createElement('p');category.textContent='Failure type: '+item.category.replaceAll('_',' ');card.append(category);}
+          if(item.similar_approved?.length){
+            const hint=document.createElement('p');hint.textContent='Similar approved phrase (review before teaching): '+item.similar_approved[0].heard+' → '+item.similar_approved[0].suggested;
+            card.append(hint);
+          }
           const field=document.createElement('input');field.type='text';field.maxLength=150;
           field.placeholder='e.g. turn off fairy lights';field.setAttribute('aria-label','Correct lighting command for '+item.heard);
           field.style.cssText='display:block;width:100%;box-sizing:border-box;margin:10px 0;padding:10px';
