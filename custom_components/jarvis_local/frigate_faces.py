@@ -8,8 +8,6 @@ from dataclasses import dataclass
 import math
 from urllib.parse import urlsplit
 
-import aiohttp
-
 ALLOWED = {"jaco": "Jaco", "edd": "Edd"}
 MIN_SCORE = 0.90
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -43,6 +41,9 @@ async def recognize(hass, image_path, base_url, token=None, timeout=3.0):
     Use Frigate's authenticated HTTPS reverse proxy with a scoped credential
     when available. Do not configure an untrusted/public endpoint.
     """
+    # Keep optional HTTP dependencies out of parser and agent imports.
+    import aiohttp
+
     parsed = urlsplit(base_url)
     if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in ("", "/"):
         raise ValueError("Invalid Frigate base URL")
