@@ -83,6 +83,16 @@ def plan_stop_music(hass,text,area=None):
 
 
 def plan_music_transport(hass,text,area=None):
+    shuffle=re.fullmatch(
+        r'(?:please )?(?:(?:turn|switch) (?:the )?shuffle (on|off)|(enable|disable) (?:the )?shuffle|'
+        r'shuffle(?: (?:music|songs|tracks))?(?: (on|off))?)'
+        r'(?: in (?:the )?(.+?))?(?: please)?[.!?]?',text.strip(),re.I)
+    if shuffle:
+        mode=(shuffle[1] or shuffle[2] or shuffle[3] or 'on').lower()
+        room,entity,state=_player(hass,shuffle[4],area)
+        _support(state,'SHUFFLE_SET')
+        return _control('shuffle_set',room,entity,shuffle=mode in {'on','enable'})
+
     match=re.fullmatch(r'(?:please )?(pause|resume|continue|skip|next|previous|restart)'
         r'(?: (?:the |this )?(?:music|song|track|it))?'
         r'(?: (?:(?:in|on) (?:the )?)?('+_ROOM_PATTERN+r'))?(?: please)?[.!?]?',text.strip(),re.I)
