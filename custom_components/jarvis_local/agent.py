@@ -136,11 +136,7 @@ class JarvisAgent(conversation.ConversationEntity):
             # Match the existing opt-in, bounded diagnostics history. Never speak
             # routing failures or claim that playback or barge-in was verified.
             if self.hass.data.get('jarvis_local', {}).get('debug_enabled', False):
-                if not preview and outcome in {'failed','rejected'} and not cross_corrected:
-            self._previous_failed[memory_key]={'at':monotonic(),'outcome':outcome}
-            while len(self._previous_failed)>64:
-                del self._previous_failed[next(iter(self._previous_failed))]
-        record = {
+                record = {
                     'time': datetime.now(timezone.utc).isoformat(),
                     'received_text': original_text, 'resolved_text': command_text,
                     'speaker_personalized': bool(voice_profile),
@@ -446,6 +442,10 @@ class JarvisAgent(conversation.ConversationEntity):
             self._information_topics.pop(memory_key,None)
         if getattr(user_input,'device_id',None) or getattr(user_input,'satellite_id',None):
             speech=speech.replace(' Try "help" for supported requests.', '')
+        if not preview and outcome in {'failed','rejected'} and not cross_corrected:
+            self._previous_failed[memory_key]={'at':monotonic(),'outcome':outcome}
+            while len(self._previous_failed)>64:
+                del self._previous_failed[next(iter(self._previous_failed))]
         record = {
             'time':datetime.now(timezone.utc).isoformat(),
             'received_text':original_text,'resolved_text':resolved_text,'speaker_personalized':bool(voice_profile),'transcript_corrections':corrections,
