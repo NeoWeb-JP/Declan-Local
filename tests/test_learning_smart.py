@@ -87,3 +87,18 @@ def test_agent_links_voice_correction_only_in_same_conversation():
     finally:
         case.doCleanups()
 
+
+def test_dinner_time_can_be_taught_and_previewed_without_services():
+    hass = fixtures.Hass()
+    hass.data = {'jarvis_local': {'debug_enabled': True}}
+    original_get = hass.states.get
+    hass.states.get = lambda entity_id: (
+        SimpleNamespace(state='off') if entity_id == 'script.dinner_time' else original_get(entity_id)
+    )
+    learning.observe(hass, {'outcome': 'rejected', 'received_text': 'dinner calling.'})
+
+    assert learning.validate_taught_command(hass, 'Dinner Time') == 'dinner time'
+    result = learning.test_correction(hass, 'dinner calling.', 'Dinner Time')
+    assert result['preview']
+    assert 'run the Dinner Time routine' in result['summary']
+    assert learning.resolve_alias(hass, 'dinner calling.') == 'dinner calling.'

@@ -410,6 +410,13 @@ class JarvisAgent(conversation.ConversationEntity):
                                 await self.hass.services.async_call('script',step['name'],step['data'],blocking=True,context=user_input.context)
                                 replies.append('I requested '+step['data']['music']+' in '+step['data']['location']+'.')
                                 continue
+                            if step['kind'] == 'dinner_routine':
+                                await self.hass.services.async_call(
+                                    'script', 'turn_on', {},
+                                    target={'entity_id': step['entity_id']},
+                                    blocking=True, context=user_input.context)
+                                replies.append('Dinner Time routine started.')
+                                continue
                             if step['kind'] == 'status':
                                 replies.append(answer(self.hass, step['text']))
                                 continue
