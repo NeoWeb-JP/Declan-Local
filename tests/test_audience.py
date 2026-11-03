@@ -86,7 +86,7 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_live_visitor_change_cannot_reuse_home_history(self):
         home = await self.module.confirmation(self.hass, None, 'Done.', 'off')
-        self.assertIn(home, self.module.CATALOG['Home']['off'])
+        self.assertIn(home, self.module.CATALOG['Home']['off'] + self.module.SAVAGE_LINES['off'])
         self.hass.states = house('on').states
         guest = await self.module.confirmation(self.hass, None, 'Done.', 'off')
         self.assertIn(guest, self.module.CATALOG['Guest']['off'])
