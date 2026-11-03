@@ -135,3 +135,14 @@ def test_manual_teaching_rejects_unobserved_or_unsafe_actions():
         asyncio.run(review(hass, 'very light off', 'approve_manual', 'unlock front door'))
     with pytest.raises(ValueError):
         asyncio.run(review(hass, 'very light off', 'approve_manual', 'turn off all lights'))
+
+
+def test_teach_accepts_natural_light_command_order():
+    from custom_components.jarvis_local.learning import validate_manual_light_command
+    assert validate_manual_light_command('Fairy lights off') == 'turn off fairy lights'
+    assert validate_manual_light_command('turn off fairy lights') == 'turn off fairy lights'
+    assert validate_manual_light_command('turn on the bedroom light') == 'turn on bedroom light'
+    with pytest.raises(ValueError):
+        validate_manual_light_command('turn off all lights')
+    with pytest.raises(ValueError):
+        validate_manual_light_command('unlock the front door')

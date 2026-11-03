@@ -963,7 +963,8 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
           field.style.cssText='display:block;width:100%;box-sizing:border-box;margin:10px 0;padding:10px';
           card.append(field);
           const teach=document.createElement('button');teach.type='button';teach.textContent='Teach this phrase';
-          teach.onclick=()=>{const value=field.value.trim();if(!value){field.focus();return;}this.reviewLearning(item.heard,'approve_manual',value);};
+          teach.onclick=()=>{const value=field.value.trim();if(!value){field.setCustomValidity('Enter the correct lighting command first');field.reportValidity();field.focus();return;}field.setCustomValidity('');this.reviewLearning(item.heard,'approve_manual',value);};
+          field.oninput=()=>field.setCustomValidity('');
           card.append(teach);
         }
         const controls=document.createElement('div');controls.className='tools';
@@ -1002,8 +1003,8 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
       const request={type:'jarvis_local/learning_review',heard,decision};
       if(suggested)request.suggested=suggested;
       await this._hass.callWS(request);
-      status.textContent='Review saved.';
       await this.loadLearning();
+      status.textContent=decision==='approve_manual'?'Phrase taught and saved. Try saying it again.':'Review saved.';
     } catch(e) {status.textContent='Review failed: '+(e.message || String(e));}
     finally {this.reviewingLearning=false;}
   }
