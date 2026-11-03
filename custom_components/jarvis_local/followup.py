@@ -10,7 +10,8 @@ def followup(text):
     for prefix in ['preview ','dry run ','what would you do if i said ']:
         if text.startswith(prefix):preview=True;text=text[len(prefix):];break
     # Explicit pronouns only: never infer a new device or room from a follow-up.
-    text=re.sub(r'\b(?:those lights|these lights|the same lights|those|these|that light|that)\b',\n                lambda m: 'it' if m[0].startswith('that') else 'them', text)
+    text=re.sub(r'\b(?:those lights|these lights|the same lights|those|these|that light|that)\b',
+                lambda m: 'it' if m[0].startswith('that') else 'them', text)
     m=re.fullmatch(r'(?:please )?(?:turn|switch) (?:them|it) (?:back )?(on|off)(?: again)?(?: please)?',text)
     if m:return 'turn '+m[1]+' __previous_lights__',preview
     m=re.fullmatch(r'(?:please )?(?:turn|switch) (on|off) (?:them|it)(?: please)?',text)
