@@ -19,7 +19,7 @@ from .learning import observe as observe_learning, resolve_alias
 from .clarification import request as clarification_request, resolve as clarification_resolve
 from .personality import confirmation
 from .audience import mode as audience_mode
-from .transcript import correct
+from .transcript import correct, recognition_diagnostic
 from .corrections import final_request
 from .cross_corrections import corrected_followup
 from .verify import verify
@@ -454,6 +454,8 @@ class JarvisAgent(conversation.ConversationEntity):
             'area':area.name if area else None,'preview':preview,
             'steps':steps,'outcome':outcome,'error':failure,'followup_used':followup_used,
             'response':speech,'elapsed_ms':round((perf_counter()-start)*1000),
+            'recognition':recognition_diagnostic(original_text,resolved_text,corrections,outcome,failure,
+                getattr(user_input,'satellite_id',None)),
         }
         if self.hass.data.setdefault('jarvis_local',{}).get('debug_enabled',False):
             history=self.hass.data['jarvis_local'].setdefault('diagnostics',[])
