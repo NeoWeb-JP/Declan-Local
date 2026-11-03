@@ -67,6 +67,28 @@ def test_status_uses_reported_metadata_and_honestly_handles_missing_title():
     assert 'not reported' in plan_music_status(value,"what's playing",area)['response']
 
 
+@pytest.mark.parametrize('room,entity',list(ROOMS.items()))
+def test_playback_transport_volume_and_status_share_room_mapping(room,entity):
+    value=hass()
+    assert plan_music(value,'play Queen in '+room)['entity_id']==entity
+    assert plan_music_transport(value,'pause music in '+room)['data']['entity_id']==entity
+    assert plan_music_volume(value,'set volume in '+room+' to 30 percent')['data']['entity_id']==entity
+    assert room in plan_music_status(value,'what is playing in '+room)['response']
+
+
+def test_unsupported_and_unavailable_players_fail_before_dispatch():
+    value=hass()
+    state=value.states.get(ROOMS['kitchen'])
+    state.attributes['supported_features']=0
+    with pytest.raises(ValueError,match='support'):
+        plan_music_transport(value,'pause music in kitchen')
+    with pytest.raises(ValueError,match='support'):
+        plan_music_volume(value,'set volume in kitchen to 30 percent')
+    state.state='unavailable'
+    with pytest.raises(ValueError,match='unavailable'):
+        plan_music(value,'play Queen in kitchen')
+
+
 def test_agent_volume_preview_and_execution_use_music_player():
     case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
     try:
