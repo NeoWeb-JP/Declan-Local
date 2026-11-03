@@ -23,12 +23,39 @@ async def _timed_script(hass, name, data, context, stage):
                       (perf_counter() - started) * 1000)
 
 
+# Optional local style selection. Guest privacy and quiet hours always win.
+STYLE_LINES = {
+    'Classic': {
+        'general': ['Done. All sorted.', 'Consider it handled.'],
+        'on': ['Lights on.', 'The lights are on.'],
+        'off': ['Lights off.', 'The lights are off.'],
+        'brightness': ['Brightness adjusted.', 'Lighting adjusted.'],
+    },
+    'Savage': {
+        'general': ['Sorted, my bru. Try to contain your amazement.', 'Done. I will add it to my list of heroic achievements.'],
+        'on': ['Lights on. A bright idea at last, my bru.', 'Lights on. Even I cannot improve your taste.'],
+        'off': ['Lights off. Finally, some peace from your interior design.', 'Lights off. I have seen enough too.'],
+        'brightness': ['Brightness adjusted. Your standards remain a mystery.', 'Adjusted. The lights are doing better than your instructions.'],
+    },
+}
+
+
+def selected_style(hass, mode):
+    if mode != 'Home' or quiet(hass):
+        return None
+    state = hass.states.get('input_select.jarvis_personality')
+    value = getattr(state, 'state', None)
+    return value if value in {'Classic', 'Sassy', 'Savage'} else None
+
+
 def choose(hass, mode, action, catalog):
-    pool = list(dict.fromkeys(catalog[mode].get(action, [])))
+    style = selected_style(hass, mode)
+    overrides = STYLE_LINES.get(style, {}).get(action)
+    pool = list(dict.fromkeys(overrides if overrides else catalog[mode].get(action, [])))
     if not pool:
         return None
     history = hass.data.setdefault('jarvis_local', {}).setdefault('reply_history', {}).setdefault(
-        (mode, action), deque(maxlen=3))
+        (mode, action, style), deque(maxlen=3))
     available = [line for line in pool if line not in history] or pool
     line = random.choice(available)
     history.append(line)
