@@ -104,3 +104,37 @@ async def test_rejected_candidate_cannot_be_approved_without_evidence(monkeypatc
     hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
     with pytest.raises(ValueError):
         await review(hass, 'unlock door', 'approve', 'turn on lounge lights')
+
+
+@pytest.mark.asyncio
+async def test_manual_teaching_of_repeated_fairy_light_mishearing(monkeypatch):
+    from homeassistant.helpers import storage
+    from custom_components.jarvis_local.learning import review
+    saved = []
+    class FakeStore:
+        def __init__(self, *args): pass
+        async def async_save(self, value): saved.append(value)
+    monkeypatch.setattr(storage, 'Store', FakeStore)
+    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    for _ in range(2):
+        observe(hass, {'outcome': 'rejected', 'received_text': 'very light off.',
+                       'error': 'Not understood'})
+    assert suggestions(hass)[0]['type'] == 'repeated_failure'
+    await review(hass, 'very light off.', 'approve_manual', 'turn off fairy lights')
+    assert resolve_alias(hass, 'VERY LIGHT OFF.') == 'turn off fairy lights'
+    assert saved[-1]['approved']['very light off.'] == 'turn off fairy lights'
+    assert suggestions(hass) == []
+
+
+@pytest.mark.asyncio
+async def test_manual_teaching_rejects_unobserved_or_unsafe_actions():
+    from custom_components.jarvis_local.learning import review
+    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    with pytest.raises(ValueError):
+        await review(hass, 'unlock the door', 'approve_manual', 'turn off fairy lights')
+    for _ in range(2):
+        observe(hass, {'outcome': 'rejected', 'received_text': 'very light off'})
+    with pytest.raises(ValueError):
+        await review(hass, 'very light off', 'approve_manual', 'unlock front door')
+    with pytest.raises(ValueError):
+        await review(hass, 'very light off', 'approve_manual', 'turn off all lights')
