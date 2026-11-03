@@ -25,6 +25,10 @@ async def async_setup_entry(hass, entry):
     debug_settings = await Store(hass, 1, "jarvis_local.debug").async_load()
     data["debug_enabled"] = isinstance(debug_settings, dict) and debug_settings.get("enabled") is True
     data["diagnostics"] = []
+    learning_state = await Store(hass, 1, "jarvis_local.learning_aliases").async_load()
+    learning_state = learning_state if isinstance(learning_state, dict) else {}
+    data["approved_aliases"] = {k:v for k,v in learning_state.get("approved", {}).items() if isinstance(k,str) and isinstance(v,str)} if isinstance(learning_state.get("approved", {}),dict) else {}
+    data["rejected_aliases"] = learning_state.get("rejected", []) if isinstance(learning_state.get("rejected", []),list) else []
     import json
     def load_voice_config():
         path=Path(hass.config.path('jarvis_voice_id.json'))
