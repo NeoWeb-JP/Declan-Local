@@ -17,7 +17,8 @@ def test_track_artist_filter():
     assert step["data"] == {"media_id": "Bohemian Rhapsody", "media_type": "track", "artist": "Queen"}
 
 def test_no_room_does_not_guess():
-    assert plan_music(SimpleNamespace(states=States()), "play Norah Jones") is None
+    with pytest.raises(ValueError, match="Which room"):
+        plan_music(SimpleNamespace(states=States()), "play Norah Jones")
 
 def test_missing_player_fails_without_action():
     hass = SimpleNamespace(states=SimpleNamespace(get=lambda _: None))

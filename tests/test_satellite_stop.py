@@ -83,7 +83,8 @@ class Stops(unittest.TestCase):
         exec(compile(ast.Module(body=[method],type_ignores=[]),'<actual handler>','exec'),ns)
         context=types.SimpleNamespace(user_id='user')
         satellite='assist_satellite.bedroom'
-        key=('user','one',satellite,None)
+        key=('user','user',satellite,None)
+        pending_key=('one',key)
         other=('user','other','assist_satellite.kitchen',None)
         for phrase in ('Stop','Be quiet','Shut up'):
             for fail in (False,True):
@@ -93,7 +94,7 @@ class Stops(unittest.TestCase):
                     services=types.SimpleNamespace(async_call=call))
                 agent=types.SimpleNamespace(hass=hass,_lock=asyncio.Lock(),
                     _recent_lights={k:{'at':monotonic()} for k in (key,other)},
-                    _previous_failed={}, _pending_clarifications={k:{'at':monotonic()} for k in (key,other)})
+                    _previous_failed={}, _pending_clarifications={k:{'at':monotonic()} for k in (pending_key,other)})
                 await agent._lock.acquire()
                 user=types.SimpleNamespace(language='en',conversation_id='one',context=context,
                     satellite_id=satellite,device_id=None,text=phrase)

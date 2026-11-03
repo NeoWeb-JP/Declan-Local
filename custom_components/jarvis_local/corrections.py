@@ -39,7 +39,7 @@ def final_request(text):
         earlier = body[:marker.start()].strip(' ,;.!?')
         action = re.fullmatch(r'(?:please )?(?:turn|switch) (on|off) (?:the )?(.+)', earlier, re.I)
         target = re.sub(r'^(?:just |only |the )+', '', command, flags=re.I).strip()
-        if action and command.lower().startswith(('the ', 'just ', 'only ')) and re.fullmatch(r'[a-z][a-z0-9 -]{2,70}', target, re.I) and not re.search(r'\b(?:and|then|after|before|instead|because|maybe|probably|please|i|me|we)\b', target, re.I):
+        if short and action and command.lower().startswith(('the ', 'just ', 'only ')) and re.fullmatch(r'[a-z][a-z0-9 -]{2,70}', target, re.I) and not re.search(r'\b(?:and|then|after|before|instead|because|maybe|probably|please|i|me|we)\b', target, re.I):
             previous_target = action[2].lower()
             if 'light' in previous_target and not re.search(r'\b(?:lights?|spotlights?)\b', target, re.I):
                 target += ' lights'
