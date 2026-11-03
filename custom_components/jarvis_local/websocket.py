@@ -322,3 +322,39 @@ def register(hass):
                     voice_cache,voice_cache_audio,prepare_voice_phrase,import_voice_clips,
                     preview_voice_sentence,save_voice_sentence,review_voice_catalogue,
                     prepare_voice_catalogue]:websocket_api.async_register_command(hass,handler)
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required('type'): 'jarvis_local/learning_review_list'})
+@callback
+def learning_review_list(hass, connection, msg):
+    from .learning import suggestions, summary
+    data = hass.data.get('jarvis_local', {})
+    connection.send_result(msg['id'], {
+        'summary': summary(hass),
+        'pending': suggestions(hass),
+        'approved': data.get('approved_aliases', {}),
+        'rejected': data.get('rejected_aliases', []),
+        'debug_enabled': data.get('debug_enabled', False),
+    })
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({
+    vol.Required('type'): 'jarvis_local/learning_review',
+    vol.Required('heard'): str,
+    vol.Required('decision'): vol.In(['approve', 'reject', 'remove']),
+    vol.Optional('suggested'): str,
+})
+@websocket_api.async_response
+async def learning_review(hass, connection, msg):
+    from .learning import review
+    try:
+        result = await review(hass, msg['heard'], msg['decision'], msg.get('suggested'))
+    except ValueError as err:
+        connection.send_error(msg['id'], 'invalid_review', str(err))
+        return
+    except (OSError, HomeAssistantError):
+        connection.send_error(msg['id'], 'save_failed', 'Could not save learning review')
+        return
+    connection.send_result(msg['id'], result)
