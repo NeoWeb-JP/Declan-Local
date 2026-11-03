@@ -1,10 +1,69 @@
 """Bounded, opt-in evidence for improving Declan's command grammar.
 
 No automatic execution rules are learned from failures: that would let a
-misrecognition silently become a device command. Diagnostics remain in memory.
+misrecognition silently become a device command. Learning examples are saved separately from transient diagnostics.
 """
 from collections import Counter
 import re
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
+
+
+def _validated_evidence(value):
+    """Restore only bounded learning fields, ignoring malformed examples."""
+    if not isinstance(value, list):
+        return []
+    result = []
+    for item in value[-40:]:
+        if not isinstance(item, dict) or item.get('outcome') not in {
+                'failed', 'rejected', 'partial', 'completed'}:
+            continue
+        if not isinstance(item.get('heard'), str) or not item['heard'].strip():
+            continue
+        corrections = item.get('corrections', [])
+        result.append({
+            'time': item.get('time') if isinstance(item.get('time'), str) else None,
+            'heard': item['heard'][:200],
+            'resolved': item.get('resolved', '')[:200] if isinstance(item.get('resolved', ''), str) else '',
+            'outcome': item['outcome'],
+            'reason': item.get('reason', '')[:160] if isinstance(item.get('reason', ''), str) else '',
+            'corrections': [text[:200] for text in corrections[:5] if isinstance(text, str)]
+                           if isinstance(corrections, list) else [],
+        })
+    return result
+
+
+async def load_evidence(hass):
+    """Restore examples without approving aliases or executing actions."""
+    from homeassistant.helpers.storage import Store
+    data = hass.data.setdefault('jarvis_local', {})
+    store = Store(hass, 1, 'jarvis_local.learning_evidence')
+    data['learning_evidence_store'] = store
+    try:
+        saved = await store.async_load()
+    except (OSError, ValueError):
+        _LOGGER.warning('Could not load saved learning examples')
+        saved = None
+    data['learning_evidence'] = _validated_evidence(
+        saved.get('examples') if isinstance(saved, dict) else None)
+
+
+def _save_evidence(data):
+    store = data.get('learning_evidence_store')
+    if store is not None:
+        # Read at write time to avoid stale snapshots; HA flushes on shutdown.
+        store.async_delay_save(
+            lambda: {'examples': _validated_evidence(data.get('learning_evidence', []))}, 1)
+
+
+async def flush_evidence(hass):
+    """Finish pending writes before unloading."""
+    data = hass.data.get('jarvis_local', {})
+    store = data.get('learning_evidence_store')
+    if store is not None:
+        await store.async_save({'examples': _validated_evidence(data.get('learning_evidence', []))})
 
 
 def observe(hass, record):
@@ -26,6 +85,7 @@ def observe(hass, record):
         'corrections': list(corrections)[:5],
     })
     del evidence[:-40]
+    _save_evidence(data)
 
 
 def summary(hass):
