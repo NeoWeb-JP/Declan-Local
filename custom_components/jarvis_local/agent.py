@@ -35,6 +35,7 @@ from .information_dialogue import parse as parse_information, read as read_infor
 from .speech import recover_off
 from .room_context import source_area, apply_room
 from .room_brightness import undo_room_brightness
+from .lighting_preferences import prepare_preference, save_preference
 from datetime import datetime, timezone
 
 _LOGGER = logging.getLogger(__name__)
@@ -255,6 +256,8 @@ class JarvisAgent(conversation.ConversationEntity):
                             steps=[undo_room_brightness(self.hass,self._brightness_undo.get(memory_key))]
                         else:
                             steps, preview = plan(self.hass, resolved_text,area)
+                            if len(steps)==1 and steps[0]['kind']=='lighting_preference':
+                                steps=[await prepare_preference(self.hass,steps[0])]
                         if extra:
                             followup_used=True
         except ValueError as err:
@@ -296,6 +299,9 @@ class JarvisAgent(conversation.ConversationEntity):
                 async with self._lock:
                     try:
                         for step in steps:
+                            if step['kind']=='lighting_preference':
+                                replies.append(await save_preference(self.hass,step))
+                                continue
                             if step['kind'] == 'information':
                                 self._recent_lights.pop(recent_key,None)
                                 token=object()

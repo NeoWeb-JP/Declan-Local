@@ -3,6 +3,7 @@ import re
 from .settings import get
 from .music_assistant_voice import plan_music, plan_stop_music, plan_music_transport
 from .room_brightness import room_brightness
+from .lighting_preferences import preference_request
 from .media import media_plan
 from .parser import parse
 from .status import answer
@@ -41,6 +42,9 @@ def plan(hass, text, area=None):
     guest = guest_recognize(guest_text)
     if guest is not None:
         return [guest_build(hass,guest)],preview
+    preference = preference_request(hass, text, area)
+    if preference is not None:
+        return [preference], preview
     brightness_step = room_brightness(hass, text, area)
     if brightness_step is not None:
         return [brightness_step], preview
