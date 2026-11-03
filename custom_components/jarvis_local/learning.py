@@ -62,7 +62,10 @@ def suggestions(hass, minimum_occurrences=2):
                                              'heard': heard, 'suggested': resolved, 'count': 0})
             group['count'] += 1
     threshold = max(2, int(minimum_occurrences))
-    return sorted((group for group in groups.values() if group['count'] >= threshold),
+    rejected = set(hass.data.get('jarvis_local', {}).get('rejected_aliases', []))
+    approved = hass.data.get('jarvis_local', {}).get('approved_aliases', {})
+    return sorted((group for group in groups.values() if group['count'] >= threshold
+                   and group['heard'] not in rejected and group['heard'] not in approved),
                   key=lambda group: (-group['count'], group['heard']))[:20]
 
 
