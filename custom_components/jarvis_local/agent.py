@@ -15,6 +15,7 @@ from .social import social_reply
 from .timers import parse as parse_timer
 from .followup import followup, followup_steps, additional_room
 from .conversation_memory import context_key
+from .learning import observe as observe_learning
 from .clarification import request as clarification_request, resolve as clarification_resolve
 from .personality import confirmation
 from .audience import mode as audience_mode
@@ -434,6 +435,7 @@ class JarvisAgent(conversation.ConversationEntity):
             history=self.hass.data['jarvis_local'].setdefault('diagnostics',[])
             history.append(record)
             del history[:-20]
+        observe_learning(self.hass, record)
         trackable = (outcome == 'completed' and not preview and not continue_conversation
                      and bool(steps) and all(step.get('kind') in {'light', 'switch_light', 'brightness', 'media_control', 'music', 'music_assistant_play', 'action', 'status', 'information'}
                                              and not step.get('unverified') and (step.get('kind')!='information' or step.get('available')) for step in steps))
