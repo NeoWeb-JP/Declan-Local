@@ -20,15 +20,17 @@ async def inspect_speaker_camera(hass, satellite_id, frigate_url):
     if not satellite_id or not frigate_url:
         return None
     _LOGGER.debug("Visual observation stage=camera_resolution outcome=started")
-    camera = camera_for_satellite(hass, satellite_id)
-    if camera is None:
-        _LOGGER.debug("Visual observation stage=camera_resolution outcome=unavailable_or_ambiguous")
-        return None
-    destination = Path(hass.config.path("declan_snapshots")) / (uuid4().hex + ".jpg")
-    stage = "snapshot"
+    destination = None
+    stage = "camera_resolution"
     try:
         # Snapshot and recognition must never block voice commands indefinitely.
         async with asyncio.timeout(5):
+            camera = camera_for_satellite(hass, satellite_id)
+            if camera is None:
+                _LOGGER.debug("Visual observation stage=camera_resolution outcome=unavailable_or_ambiguous")
+                return None
+            destination = Path(hass.config.path("declan_snapshots")) / (uuid4().hex + ".jpg")
+            stage = "snapshot"
             await capture(hass, camera, destination)
             _LOGGER.debug("Visual observation stage=snapshot outcome=complete")
             stage = "recognition"
@@ -45,7 +47,8 @@ async def inspect_speaker_camera(hass, satellite_id, frigate_url):
         return None
     finally:
         try:
-            await hass.async_add_executor_job(destination.unlink, True)
+            if destination is not None:
+                await hass.async_add_executor_job(destination.unlink, True)
             _LOGGER.debug("Visual observation stage=cleanup outcome=complete")
         except OSError:
             _LOGGER.warning("Visual observation stage=cleanup outcome=failed")

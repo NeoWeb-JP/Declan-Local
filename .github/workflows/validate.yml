@@ -26,6 +26,7 @@ jobs:
       - run: node tests/test_panel_stop_diagnostics.js
       - run: node tests/test_panel_phrase_cache.js
       - run: node tests/test_panel_catalogue.js
+      - run: node tests/test_panel_learning.js
   hassfest:
     runs-on: ubuntu-latest
     steps:
