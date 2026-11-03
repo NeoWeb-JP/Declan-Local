@@ -93,9 +93,39 @@ async def confirmation(hass, context, fallback, action='general'):
         return fallback
 
 
-def failure_reply(hass, reason, mode='Home'):
-    """Optional failure preface: never imply an action was performed."""
-    if mode != 'Home' or quiet(hass):
+CONTEXT_LINES = {
+    'Home': {
+        'clarification': ['One small detail, my bru.', 'A little precision would work wonders.'],
+        'failed': ['That one escaped me, my bru.', 'My psychic module remains disappointingly absent.'],
+    },
+    'Guest': {
+        'clarification': ['A little more detail, please.', 'Let me clarify that.'],
+        'failed': ['I could not match that request.', 'Let us try that again.'],
+    },
+}
+
+
+def contextual_reply(hass, reason, kind):
+    """Keep precise questions and errors; personality cannot replace their facts."""
+    if quiet(hass):
         return reason
-    line = choose(hass, 'Home', 'failed', {'Home': {'failed': []}})
-    return f'{line} {reason}' if line else reason
+    serious = ('security', 'alarm', 'emergency', 'smoke', 'fire', 'unavailable',
+               'timeout', 'timed out', 'service', 'rejected', 'device', 'check the', 'failed')
+    if any(word in reason.casefold() for word in serious):
+        return reason
+    mode = audience_mode(hass)
+    pool = CONTEXT_LINES.get(mode, {}).get(kind, [])
+    if not pool:
+        return reason
+    history = hass.data.setdefault('jarvis_local', {}).setdefault('reply_history', {}).setdefault(
+        (mode, 'context_' + kind), deque(maxlen=1))
+    line = random.choice([text for text in pool if text not in history] or pool)
+    history.append(line)
+    return line + ' ' + reason
+
+
+def failure_reply(hass, reason, mode=None):
+    """Compatibility wrapper; derive privacy from current household state."""
+    if mode == 'Guest':
+        return reason
+    return contextual_reply(hass, reason, 'failed')

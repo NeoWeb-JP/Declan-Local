@@ -15,10 +15,10 @@ from .morning import morning_reply
 from .social import social_reply
 from .timers import parse as parse_timer
 from .followup import followup, followup_steps, additional_room
-from .conversation_memory import context_key, context_followup
+from .conversation_memory import context_key, context_followup, verified_lighting_context
 from .learning import observe as observe_learning, resolve_alias
 from .clarification import request as clarification_request, resolve as clarification_resolve
-from .personality import confirmation
+from .personality import confirmation, contextual_reply
 from .audience import mode as audience_mode
 from .transcript import correct, recognition_diagnostic
 from .corrections import final_request
@@ -251,22 +251,6 @@ class JarvisAgent(conversation.ConversationEntity):
                 from dataclasses import replace
                 return await self.async_handle(replace(user_input, text=recovered),area_override)
             speech = str(err)
-            if speech.startswith('I did not understand "') and speech.endswith('Try "help" for supported requests.'):
-                import random
-                speech = random.choice((
-                    "What? Put your teeth back in and try that again.",
-                    "I speak several languages. Whatever that was isn't one of them.",
-                    "Was that a command, or did you just sneeze?",
-                    "I'm going to pretend I didn't hear that. Try again, my bru.",
-                    "That sounded important. Shame none of it made sense.",
-                    "I'm a voice assistant, not a psychic. Give me something to work with.",
-                    "Even Alexa would've struggled with that one. And that's saying something.",
-                    "Could you repeat that, preferably using actual words?",
-                    "Alexa says she understood you. She's lying, obviously.",
-                    "That sounded like something you'd ask Alexa. Let's try proper words instead.",
-                    "If you wanted a random answer, Alexa's still available. Try again.",
-                    "Alexa would have confidently done the wrong thing. I prefer to ask you to repeat it.",
-                ))
             failure=str(err)
         else:
             if preview:
@@ -420,27 +404,17 @@ class JarvisAgent(conversation.ConversationEntity):
                     action='off' if steps[0]['name']=='turn_off' else 'on'
                     replies.insert(0,await confirmation(self.hass,user_input.context,'Turning '+action+' the lights.',action=action))
                 speech = ' '.join(r for r in replies if r)
-                if outcome == 'completed' and self_corrected and not preview and media_report is None and all(s.get('kind') in {'light','switch_light','brightness','action','guest'} for s in steps):
+                if outcome == 'completed' and (self_corrected or cross_corrected) and not preview and media_report is None and all(s.get('kind') in {'light','switch_light','brightness','action','guest'} for s in steps):
                     speech = await confirmation(self.hass,user_input.context,'Changed your mind? No problem.',action='self_correction') + ' ' + speech
-                if outcome in {'completed', 'partial'}:
-                    light_ids=[]
-                    invalidated=False
-                    for step in steps:
-                        if step['kind'] in {'light','switch_light'}:
-                            light_ids.extend(step.get('succeeded', []))
-                        elif step['kind']=='brightness':
-                            light_ids.extend(step.get('succeeded', []))
-                        elif step['kind'] in {'action','guest'} or step.get('unverified') or step.get('failed'):
-                            invalidated=True
-                    if invalidated and not light_ids:
+                if outcome in {'completed', 'partial'} and any(
+                        step.get('kind') in {'light','switch_light','brightness','action','guest'} or step.get('unverified') for step in steps):
+                    remembered=verified_lighting_context(steps,monotonic())
+                    if remembered:
+                        self._recent_lights[recent_key]=remembered
+                        while len(self._recent_lights)>64:
+                            del self._recent_lights[next(iter(self._recent_lights))]
+                    else:
                         self._recent_lights.pop(recent_key,None)
-                    elif light_ids:
-                        self._recent_lights[recent_key]={'at':monotonic(),'ids':list(dict.fromkeys(light_ids)),
-                            'action':next((st['name'] for st in reversed(steps)
-                                           if st.get('kind') in {'light','switch_light'} and st.get('succeeded')
-                                           and st.get('name') in {'turn_on','turn_off'}),None)}
-                    while len(self._recent_lights)>64:
-                        del self._recent_lights[next(iter(self._recent_lights))]
         if outcome in {'failed','rejected'}:
             self._recent_lights.pop(recent_key,None)
             self._information_topics.pop(memory_key,None)
@@ -452,6 +426,11 @@ class JarvisAgent(conversation.ConversationEntity):
             self._previous_failed[memory_key]={'at':monotonic(),'outcome':outcome}
             while len(self._previous_failed)>64:
                 del self._previous_failed[next(iter(self._previous_failed))]
+        if not preview:
+            if continue_conversation:
+                speech=contextual_reply(self.hass,speech,'clarification')
+            elif outcome=='rejected':
+                speech=contextual_reply(self.hass,speech,'failed')
         record = {
             'time':datetime.now(timezone.utc).isoformat(),
             'received_text':original_text,'resolved_text':resolved_text,'speaker_personalized':bool(voice_profile),'transcript_corrections':corrections,
