@@ -78,6 +78,17 @@ class StopDiagnostics(unittest.TestCase):
             {'entity_id': PLAYER}, blocking=True, context=self.context)
 
     @immediate
+    async def test_stop_bypasses_configured_camera_inspection(self):
+        self.data['settings']['frigate_url'] = 'http://frigate.local'
+        get_setting = unittest.mock.Mock(side_effect=AssertionError('Stop must bypass camera settings'))
+        inspect_camera = AsyncMock(side_effect=AssertionError('Stop must bypass camera inspection'))
+        self.process.__globals__.update(get=get_setting, inspect_speaker_camera=inspect_camera)
+        record = await self.request()
+        self.assertEqual(record['stop']['reason'], 'request_sent')
+        get_setting.assert_not_called()
+        inspect_camera.assert_not_awaited()
+
+    @immediate
     async def test_skipped_routes_are_distinct_and_run_no_actions(self):
         cases = [
             (None, {SATELLITE: PLAYER}, 'missing_satellite'),
