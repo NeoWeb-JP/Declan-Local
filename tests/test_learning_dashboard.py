@@ -41,13 +41,13 @@ def test_review_history_survives_restart_with_before_and_after(storage,monkeypat
     assert len(learning._validated_history([event]*120))==100
 
 
-def test_unknown_voice_request_requests_one_repair_turn_without_looping():
+def test_unknown_voice_requests_end_without_reopening_microphone():
     case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
     try:
         def request(text):
             user=dialogue.UserInput(text);user.satellite_id='assist_satellite.kitchen'
             return complete(case.agent.async_handle(user))
-        assert request('unrecognised babble one').continue_conversation is True
+        assert request('unrecognised babble one').continue_conversation is False
         assert request('unrecognised babble two').continue_conversation is False
         assert request('unrecognised babble three').continue_conversation is False
         assert case.hass.services.calls==[]
