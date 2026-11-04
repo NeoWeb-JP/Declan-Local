@@ -486,12 +486,6 @@ class JarvisAgent(conversation.ConversationEntity):
                 del self._previous_failed[next(iter(self._previous_failed))]
         if repair_used and outcome=='rejected':
             self._repair_turns[memory_key]=repair_used
-        if outcome=='rejected' and not preview and not request_preview and getattr(user_input,'satellite_id',None) and not repair_used and not any(
-                word in str(failure or '').casefold() for word in ('unavailable','service','security','alarm','emergency','failed','timeout')):
-            continue_conversation=True
-            self._repair_turns[memory_key]={'at':monotonic()}
-            while len(self._repair_turns)>64:del self._repair_turns[next(iter(self._repair_turns))]
-            speech += ' Please tell me what you meant.'
         if not preview:
             if continue_conversation:
                 speech=contextual_reply(self.hass,speech,'clarification')
