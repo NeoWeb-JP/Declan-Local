@@ -106,8 +106,6 @@ class JarvisAgent(conversation.ConversationEntity):
                 speech = 'I do not have a recent request in this conversation to repeat.'
             result.async_set_speech(speech, extra_data={'jarvis_local': {'trackable': False}})
             return conversation.ConversationResult(response=result, conversation_id=conversation_id, continue_conversation=False)
-        self._repair_turns={k:v for k,v in getattr(self,'_repair_turns',{}).items() if now-v['at']<90}
-        repair_used=self._repair_turns.pop(memory_key,None)
         previous_failure=self._previous_failed.pop(memory_key,None)
         cross_corrected=False
         try:
@@ -410,13 +408,6 @@ class JarvisAgent(conversation.ConversationEntity):
                                 await self.hass.services.async_call('script',step['name'],step['data'],blocking=True,context=user_input.context)
                                 replies.append('I requested '+step['data']['music']+' in '+step['data']['location']+'.')
                                 continue
-                            if step['kind'] == 'sexy_routine':
-                                reply = await self.hass.services.async_call(
-                                    'script', 'declan_sexy_time',
-                                    {'operation': step['operation']}, blocking=True,
-                                    return_response=True, context=user_input.context)
-                                replies.append((reply or {}).get('speech') or 'Routine request sent.')
-                                continue
                             if step['kind'] == 'dinner_routine':
                                 await self.hass.services.async_call(
                                     'script', 'turn_on', {},
@@ -484,14 +475,6 @@ class JarvisAgent(conversation.ConversationEntity):
             self._previous_failed[memory_key]={'at':monotonic(),'outcome':outcome,'heard':original_text[:200]}
             while len(self._previous_failed)>64:
                 del self._previous_failed[next(iter(self._previous_failed))]
-        if repair_used and outcome=='rejected':
-            self._repair_turns[memory_key]=repair_used
-        if outcome=='rejected' and not preview and not request_preview and getattr(user_input,'satellite_id',None) and not repair_used and not any(
-                word in str(failure or '').casefold() for word in ('unavailable','service','security','alarm','emergency','failed','timeout')):
-            continue_conversation=True
-            self._repair_turns[memory_key]={'at':monotonic()}
-            while len(self._repair_turns)>64:del self._repair_turns[next(iter(self._repair_turns))]
-            speech += ' Please tell me what you meant.'
         if not preview:
             if continue_conversation:
                 speech=contextual_reply(self.hass,speech,'clarification')
