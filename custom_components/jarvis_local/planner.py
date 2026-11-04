@@ -36,6 +36,22 @@ def plan(hass, text, area=None):
             text = text[len(prefix):].strip()
             break
     text = text.strip(' "\'')
+    sexy = re.fullmatch(r'(?:(start|activate|end|stop) )?sexy time[.!?]?', text)
+    if sexy:
+        operation = 'end' if sexy.group(1) in {'end', 'stop'} else 'start'
+        entity_id = 'script.declan_sexy_time'
+        state = hass.states.get(entity_id)
+        if state is None or state.state in {'unknown', 'unavailable'}:
+            raise ValueError('The Sexy Time routine is unavailable. Nothing was run.')
+        return [{'kind': 'sexy_routine', 'operation': operation,
+                 'label': operation + ' the Sexy Time routine'}], preview
+    if text.rstrip('.!?') == 'dinner time':
+        entity_id = 'script.dinner_time'
+        state = hass.states.get(entity_id)
+        if state is None or state.state in {'unknown', 'unavailable'}:
+            raise ValueError('The Dinner Time routine is unavailable. Nothing was run.')
+        return [{'kind': 'dinner_routine', 'entity_id': entity_id,
+                 'label': 'run the Dinner Time routine'}], preview
     guest_text = raw_text
     if preview:
         guest_text = re.sub(r'^(?:what would you do if i said |preview |dry run )', '', guest_text, flags=re.I)
