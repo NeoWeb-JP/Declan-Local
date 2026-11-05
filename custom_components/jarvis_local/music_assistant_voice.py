@@ -59,7 +59,7 @@ def plan_music(hass,text,area=None):
     if typed:
         kind={'song':'track'}.get(typed[1].lower(),typed[1].lower());query=typed[2].strip()
     elif query.lower().endswith(' music') and query.lower()[:-6].strip() in {
-            'country','rock','pop','jazz','classical','blues','dance','folk','reggae','soul','ambient','electronic','hip hop','braai','romantic'}:
+            'country','rock','pop','jazz','classical','blues','dance','folk','reggae','soul','ambient','electronic','hip hop','braai','romantic','80s','90s','eighties','nineties','work focus','adhd focus','massage','afrikaans','sexy time'}:
         kind='playlist';query=query[:-6].strip()
     if kind in {'artist','track','album'} and ' by ' in query.lower():
         query,artist=[part.strip() for part in re.split(r'\s+by\s+',query,maxsplit=1,flags=re.I)]
@@ -68,7 +68,7 @@ def plan_music(hass,text,area=None):
     if not query or len(query)>150 or artist is not None and not artist:
         raise ValueError('Please name music to play. Nothing was run.')
     if kind == 'playlist' and query.lower() in {'country','rock','pop','jazz','classical','blues','dance','folk','reggae','soul','ambient','electronic','hip hop','braai','romantic'}:
-        category = query.lower()
+        category = {'eighties': '80s', 'nineties': '90s'}.get(query.lower(), query.lower().replace(' ', '_'))
         return {'kind': 'music_category', 'category': category, 'room': room,
                 'label': 'play rotating ' + category + ' music in ' + room}
     data={'media_id':query,'media_type':kind}
