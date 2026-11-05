@@ -45,7 +45,7 @@ class DeclanOpenAISTT(stt.SpeechToTextEntity):
 
     @property
     def supported_languages(self):
-        return ["en"]
+        return ["en", "en-GB", "en-US", "en-ZA"]
 
     @property
     def supported_formats(self):
