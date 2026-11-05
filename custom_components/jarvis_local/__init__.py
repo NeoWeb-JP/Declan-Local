@@ -45,6 +45,8 @@ async def async_setup_entry(hass, entry):
     except (OSError,ValueError):
         data['voice_id_config']={}
 
+    from .music_controller import async_register as register_music
+    await register_music(hass)
     from .timers import Timers
     data["timers"] = Timers(hass)
     await data["timers"].start()
@@ -84,6 +86,8 @@ async def async_unload_entry(hass, entry):
         hass.data[DOMAIN].pop('guest_authority', None)
         await hass.data[DOMAIN]["timers"].stop()
         frontend.async_remove_panel(hass, "jarvis-local-app")
+        from .music_controller import async_unregister as unregister_music
+        unregister_music(hass)
         hass.data[DOMAIN].pop("agent", None)
         hass.data[DOMAIN].pop("voice_manager", None)
         hass.data[DOMAIN].pop("diagnostics", None)
