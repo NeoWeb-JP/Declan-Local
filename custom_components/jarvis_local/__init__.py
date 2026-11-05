@@ -17,6 +17,9 @@ async def async_setup(hass, config):
 async def async_setup_entry(hass, entry):
     data = hass.data.setdefault(DOMAIN, {})
     data["version"] = await hass.async_add_executor_job(read_version)
+    async def _reload_on_options_change(hass, changed_entry):
+        await hass.config_entries.async_reload(changed_entry.entry_id)
+    entry.async_on_unload(entry.add_update_listener(_reload_on_options_change))
     from .media_search_config import load as load_media_search
     data["media_search_config"] = await load_media_search(hass)
     from .settings import load
@@ -42,6 +45,8 @@ async def async_setup_entry(hass, entry):
     except (OSError,ValueError):
         data['voice_id_config']={}
 
+    from .music_controller import async_register as register_music
+    await register_music(hass)
     from .timers import Timers
     data["timers"] = Timers(hass)
     await data["timers"].start()
@@ -49,7 +54,7 @@ async def async_setup_entry(hass, entry):
         from .websocket import register
         register(hass)
         data['ws_registered']=True
-    await hass.config_entries.async_forward_entry_setups(entry, ["conversation", "tts"])
+    await hass.config_entries.async_forward_entry_setups(entry, ["conversation", "tts", "stt"])
     if not data.get("static_registered"):
         await hass.http.async_register_static_paths([
             StaticPathConfig("/jarvis_local/panel.js", str(Path(__file__).parent / "panel.js"), False),
@@ -69,18 +74,20 @@ async def async_setup_entry(hass, entry):
             await data['guest_authority'].stop()
         frontend.async_remove_panel(hass, "jarvis-local-app")
         await data["timers"].stop()
-        await hass.config_entries.async_unload_platforms(entry, ["conversation", "tts"])
+        await hass.config_entries.async_unload_platforms(entry, ["conversation", "tts", "stt"])
         raise
     return True
 
 async def async_unload_entry(hass, entry):
     from .learning import flush_evidence
     await flush_evidence(hass)
-    if await hass.config_entries.async_unload_platforms(entry, ["conversation", "tts"]):
+    if await hass.config_entries.async_unload_platforms(entry, ["conversation", "tts", "stt"]):
         await hass.data[DOMAIN]['guest_authority'].stop()
         hass.data[DOMAIN].pop('guest_authority', None)
         await hass.data[DOMAIN]["timers"].stop()
         frontend.async_remove_panel(hass, "jarvis-local-app")
+        from .music_controller import async_unregister as unregister_music
+        unregister_music(hass)
         hass.data[DOMAIN].pop("agent", None)
         hass.data[DOMAIN].pop("voice_manager", None)
         hass.data[DOMAIN].pop("diagnostics", None)

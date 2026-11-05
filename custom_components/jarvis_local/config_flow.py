@@ -1,5 +1,6 @@
 """Single-instance setup and voice settings options."""
 import voluptuous as vol
+from homeassistant.helpers import selector
 from homeassistant import config_entries
 from homeassistant.components import tts
 
@@ -37,6 +38,8 @@ class VoiceOptionsFlow(config_entries.OptionsFlow):
                     step_id="init", data_schema=self._schema(current),
                     errors={"base": "same_provider"},
                 )
+            if not user_input.get("openai_stt_api_key"):
+                user_input["openai_stt_api_key"] = current.get("openai_stt_api_key", "")
             return self.async_create_entry(title="", data=user_input)
         return self.async_show_form(step_id="init", data_schema=self._schema(current))
 
@@ -56,6 +59,12 @@ class VoiceOptionsFlow(config_entries.OptionsFlow):
         schema = {
             vol.Required("primary_tts", default=current.get("primary_tts", PRIMARY)): str,
             vol.Required("fallback_tts", default=current.get("fallback_tts", FALLBACK)): str,
+            vol.Required("openai_stt_enabled", default=current.get("openai_stt_enabled", False)): bool,
+            vol.Required("openai_stt_model", default=current.get("openai_stt_model", "gpt-transcribe")):
+                vol.In(["gpt-transcribe", "gpt-4o-mini-transcribe"]),
+            vol.Optional("openai_stt_api_key"): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+            ),
             vol.Required("cache_enabled", default=current.get("cache_enabled", True)): bool,
             vol.Required("phrase_library_enabled", default=current.get("phrase_library_enabled", True)): bool,
             vol.Required("category_fallback", default=current.get("category_fallback", True)): bool,
