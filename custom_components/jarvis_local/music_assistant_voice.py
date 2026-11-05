@@ -55,7 +55,10 @@ def plan_music(hass,text,area=None):
     if re.search(r'\band (?:then )?(?:turn|switch|set|unlock|open|stop)\b',query,re.I):
         raise ValueError('Please give one music request at a time. Nothing was run.')
     kind='artist';artist=None
-    artist_mix = re.match(r'^(?:an? )?(.+?) mix
+    artist_mix = re.fullmatch(r'(?:an? )?(.+?) mix', query, re.I)
+    if artist_mix:
+        query = artist_mix.group(1).strip()
+        kind = 'playlist'
     typed=re.match(r'^(?:(?:the|my|a) )?(playlist|album|song|track|artist)\s+(.+)$',query,re.I)
     if typed:
         kind={'song':'track'}.get(typed[1].lower(),typed[1].lower());query=typed[2].strip()
