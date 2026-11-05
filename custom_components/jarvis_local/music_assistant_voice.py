@@ -59,7 +59,7 @@ def plan_music(hass,text,area=None):
     if typed:
         kind={'song':'track'}.get(typed[1].lower(),typed[1].lower());query=typed[2].strip()
     elif query.lower().endswith(' music') and query.lower()[:-6].strip() in {
-            'country','rock','pop','jazz','classical','blues','dance','folk','reggae','soul','ambient','electronic','hip hop'}:
+            'country','rock','pop','jazz','classical','blues','dance','folk','reggae','soul','ambient','electronic','hip hop','braai','romantic'}:
         kind='playlist';query=query[:-6].strip()
     if kind in {'artist','track','album'} and ' by ' in query.lower():
         query,artist=[part.strip() for part in re.split(r'\s+by\s+',query,maxsplit=1,flags=re.I)]
