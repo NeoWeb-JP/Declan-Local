@@ -67,6 +67,10 @@ def plan_music(hass,text,area=None):
     query=query.strip('"\x27')
     if not query or len(query)>150 or artist is not None and not artist:
         raise ValueError('Please name music to play. Nothing was run.')
+    if kind == 'playlist' and query.lower() in {'country','rock','pop','jazz','classical','blues','dance','folk','reggae','soul','ambient','electronic','hip hop','braai','romantic'}:
+        category = query.lower()
+        return {'kind': 'music_category', 'category': category, 'room': room,
+                'label': 'play rotating ' + category + ' music in ' + room}
     data={'media_id':query,'media_type':kind}
     if artist:data['artist']=artist
     return {'kind':'music_assistant_play','name':'play_media','data':data,'entity_id':entity,
