@@ -401,6 +401,13 @@ class JarvisAgent(conversation.ConversationEntity):
                                 replies.append(contextual_reply(self.hass,
                                     'Request sent to ' + step['target_label'] + '.', 'music'))
                                 continue
+                            if step['kind'] == 'music_category':
+                                await self.hass.services.async_call(
+                                    'jarvis_local', 'play_music_category',
+                                    {'category': step['category'], 'room': step['room']},
+                                    blocking=True, context=user_input.context)
+                                replies.append('Playing a different ' + step['category'] + ' playlist in ' + step['room'] + '.')
+                                continue
                             if step['kind'] == 'music_assistant_play':
                                 await self.hass.services.async_call('music_assistant', 'play_media', step['data'], target={'entity_id': step['entity_id']}, blocking=True, context=user_input.context)
                                 replies.append(contextual_reply(self.hass,
