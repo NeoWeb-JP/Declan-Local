@@ -105,7 +105,10 @@ async def async_register(hass):
         schema=vol.Schema({vol.Required("category"): str,
                            vol.Required("playlist"): str,
                            vol.Required("operation"): vol.In(("favourite", "exclude", "remove"))}))
-    cancel = async_track_time_interval(hass, refresh, timedelta(days=7))
+    async def scheduled_refresh(now):
+        await refresh()
+
+    cancel = async_track_time_interval(hass, scheduled_refresh, timedelta(days=7))
     hass.data.setdefault(DOMAIN, {})["music_refresh_unsub"] = cancel
 
 
