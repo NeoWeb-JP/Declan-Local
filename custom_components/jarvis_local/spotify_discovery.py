@@ -13,6 +13,11 @@ QUERIES = {
     "sexy_time": ("romantic evening", "slow romantic"),
     "rock": ("classic rock", "rock anthems"),
     "afrikaans": ("afrikaans treffers", "afrikaans musiek"),
+    "80s": ("80s hits", "best of the 80s"),
+    "90s": ("90s hits", "best of the 90s"),
+    "work_focus": ("deep focus instrumental", "music for concentration"),
+    "adhd_focus": ("adhd focus music", "adhd concentration instrumental"),
+    "massage": ("relaxing massage music", "spa massage instrumental"),
 }
 MAX_PLAYLISTS = 25
 
