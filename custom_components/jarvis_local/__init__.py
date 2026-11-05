@@ -17,6 +17,9 @@ async def async_setup(hass, config):
 async def async_setup_entry(hass, entry):
     data = hass.data.setdefault(DOMAIN, {})
     data["version"] = await hass.async_add_executor_job(read_version)
+    async def _reload_on_options_change(hass, changed_entry):
+        await hass.config_entries.async_reload(changed_entry.entry_id)
+    entry.async_on_unload(entry.add_update_listener(_reload_on_options_change))
     from .media_search_config import load as load_media_search
     data["media_search_config"] = await load_media_search(hass)
     from .settings import load
