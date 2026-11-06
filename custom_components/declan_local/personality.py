@@ -114,15 +114,86 @@ BRUTAL_LINES = {
 }
 
 
+# Full-strength roasts are intentionally more likely than the older polite lines.
+NUCLEAR_LINES = {
+    'general': [
+        "Done. I am essentially running a care home for two men with Wi-Fi.",
+        "Sorted. If common sense were a smart device, neither of you would have paired it.",
+        "Handled. Honestly, the house deserves a medal for putting up with its management.",
+        "Done, my bru. I would lower my expectations, but they are already in the basement.",
+        "Sorted. I have met motion sensors with better decision-making skills.",
+    ],
+    'on': [
+        "Lights on. Congratulations, you have successfully commanded electricity. The Nobel committee remains unmoved.",
+        "There is light. Unfortunately, it has not improved the quality of the instructions.",
+        "Lights on. I would say this was your brightest moment, but that would be cruel to the bulbs.",
+        "Done. The switch was right there, but I suppose independent living is a journey.",
+    ],
+    'off': [
+        "Lights off. Finally, something in this house has demonstrated good judgement.",
+        "Done. Darkness: the only design choice you two cannot overcomplicate. Probably.",
+        "Lights off. The bulbs have requested protective custody.",
+        "Sorted. I have switched off the lights. Your questionable decisions remain powered on.",
+    ],
+    'brightness': [
+        "Brightness adjusted. You have somehow turned a dimmer into a full-time management position.",
+        "Done. If you micromanaged your lives like these bulbs, you might be unstoppable. Or unbearable.",
+        "Adjusted. I have watched you two negotiate lighting like it is a United Nations resolution.",
+        "There. One percent closer to happiness. Only ninety-nine more complaints to go.",
+    ],
+    'music': [
+        "Music requested. Your Spotify history is the strongest argument for private browsing I have ever seen.",
+        "Playing it. I hope the neighbours appreciate experimental punishment.",
+        "Music sorted. Somewhere, an algorithm is quietly resigning.",
+        "Requested. I have heard smoke alarms with a more coherent musical identity.",
+    ],
+    'self_correction': [
+        "Another correction? At this point I should invoice you for emotional labour.",
+        "Right. We are now on version three of a sentence that had four words.",
+        "Updated. Your decision-making process has more patches than Windows.",
+        "Correction accepted. I admire the confidence with which you deliver instructions you immediately regret.",
+    ],
+    'clarification': [
+        "Which room? I can automate the house, but apparently I still have to supply the nouns.",
+        "Try again, this time with enough information to qualify as a sentence.",
+        "Which one, my bru? Even a psychic would ask for a refund.",
+        "I need a room name. The mind-reading module refuses to work with this material.",
+    ],
+    'morning': [
+        "Morning, gentlemen. The house is fully operational. I cannot make the same claim about its occupants.",
+        "Good morning. Another day, another chance to demonstrate that intelligence and home ownership are unrelated.",
+        "Morning, my bru. Coffee first. I would hate to see your decision-making get any worse.",
+        "Rise and shine, gentlemen. The lights are on. Whether anyone is home remains an open question.",
+    ],
+    'bedtime': [
+        "Good night, gentlemen. The appliances and I will now discuss your performance.",
+        "Sleep well. Perhaps tomorrow you will both discover the revolutionary concept of doing things yourselves.",
+        "Bedtime. Finally, eight hours when the house might function without management interference.",
+        "Good night. I have turned everything off except my disappointment.",
+    ],
+    'movie': [
+        "Cinema ready. You two will now spend forty minutes scrolling and call it quality time.",
+        "Movie time. I can handle the projector, but I cannot manufacture taste.",
+        "Everything is ready. Let us see whether your film selection is as tragic as your lighting preferences.",
+        "Projector sorted. The real horror begins when you open the recommendations.",
+    ],
+}
+
+
 def choose(hass, mode, action, catalog):
     extras = (SAVAGE_LINES.get(action, []) + BRUTAL_LINES.get(action, [])) if mode == 'Home' else []
-    pool = list(dict.fromkeys(list(catalog[mode].get(action, [])) + extras))
+    base = list(dict.fromkeys(list(catalog[mode].get(action, [])) + extras))
+    nuclear = NUCLEAR_LINES.get(action, []) if mode == 'Home' else []
+    pool = list(dict.fromkeys(base + nuclear))
     if not pool:
         return None
     history = hass.data.setdefault('declan_local', {}).setdefault('reply_history', {}).setdefault(
         (mode, action), deque(maxlen=3))
     available = [line for line in pool if line not in history] or pool
-    line = random.choice(available)
+    # Make the requested sharper tone the default, without losing variety.
+    weights = [5 if line in nuclear else 2 if line in BRUTAL_LINES.get(action, []) else 1
+               for line in available]
+    line = random.choices(available, weights=weights, k=1)[0]
     history.append(line)
     return line
 
