@@ -1,7 +1,7 @@
 """Brutal Home personality must not leak into Guest responses."""
 from collections import deque
 from types import SimpleNamespace
-from custom_components.declan_local.personality import BRUTAL_LINES, choose
+from custom_components.declan_local.personality import BRUTAL_LINES, NUCLEAR_LINES, choose
 
 
 def test_brutal_catalogue_covers_routine_actions():
@@ -21,3 +21,16 @@ def test_home_includes_brutal_pool():
     hass = SimpleNamespace(data={})
     catalog = {"Home": {"on": []}, "Guest": {"on": []}}
     assert choose(hass, "Home", "on", catalog) in BRUTAL_LINES["on"]
+
+
+def test_nuclear_lines_are_available_for_home():
+    hass = SimpleNamespace(data={})
+    catalog = {"Home": {"general": []}, "Guest": {"general": []}}
+    seen = {choose(hass, "Home", "general", catalog) for _ in range(100)}
+    assert seen.intersection(NUCLEAR_LINES["general"])
+
+
+def test_nuclear_lines_are_never_selected_for_guest():
+    hass = SimpleNamespace(data={})
+    catalog = {"Home": {"general": []}, "Guest": {"general": ["Certainly."]}}
+    assert {choose(hass, "Guest", "general", catalog) for _ in range(30)} == {"Certainly."}
