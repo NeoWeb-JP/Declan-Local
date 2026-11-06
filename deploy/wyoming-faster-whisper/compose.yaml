@@ -1,0 +1,21 @@
+# Optional local STT service. Do not deploy without explicit approval.
+# Bind to the Home Assistant reachable LAN IP, not 0.0.0.0.
+services:
+  wyoming-whisper:
+    image: rhasspy/wyoming-whisper:latest
+    restart: unless-stopped
+    command:
+      - --model
+      - ${WHISPER_MODEL:-small-int8}
+      - --language
+      - en
+      - --uri
+      - tcp://0.0.0.0:10300
+      - --data-dir
+      - /data
+    ports:
+      - "${WYOMING_BIND_IP:?Set WYOMING_BIND_IP to a private LAN IP}:10300:10300"
+    volumes:
+      - whisper-models:/data
+volumes:
+  whisper-models:
