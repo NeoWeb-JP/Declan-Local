@@ -80,7 +80,10 @@ class InstalledVersion(unittest.TestCase):
                 async_add_executor_job=executor,
                 config=types.SimpleNamespace(path=lambda name: str(folder / name)),
                 config_entries=types.SimpleNamespace(async_forward_entry_setups=AsyncMock()))
-            entry = types.SimpleNamespace(\n                async_on_unload=lambda callback: None,\n                add_update_listener=lambda callback: lambda: None,\n            )\n            setup = function(ROOT / '__init__.py', 'async_setup_entry', {
+            entry = types.SimpleNamespace(
+                async_on_unload=lambda callback: None,
+                add_update_listener=lambda callback: lambda: None,\n            )
+            setup = function(ROOT / '__init__.py', 'async_setup_entry', {
                 '__package__': 'version_test_pkg', 'DOMAIN': 'jarvis_local',
                 'Path': Path, 'quote': quote, 'read_version': version.read_version,
                 'panel_custom': types.SimpleNamespace(async_register_panel=registration)})
