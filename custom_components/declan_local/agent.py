@@ -414,6 +414,16 @@ class JarvisAgent(conversation.ConversationEntity):
                                     raise ValueError('Guest handover controller is unavailable')
                                 replies.append(await controller.command(step['data'],user_input.context))
                                 continue
+                            if step['kind'] == 'music_blacklist':
+                                manager = self.hass.data['declan_local'].get('music_blacklist')
+                                if manager is None:
+                                    raise ValueError('Music blacklist is unavailable. Nothing was changed.')
+                                track = await manager.change(step['entity_id'], step['operation'], user_input.context)
+                                if step['operation'] == 'ban':
+                                    replies.append('Banned ' + track['title'] + ' by ' + track['artist'] + ' for the whole household.')
+                                else:
+                                    replies.append('Removed ' + track['title'] + ' by ' + track['artist'] + ' from the household blacklist.')
+                                continue
                             if step['kind'] == 'media_control':
                                 await self.hass.services.async_call('media_player',step['name'],step['data'],blocking=True,context=user_input.context)
                                 replies.append(contextual_reply(self.hass,

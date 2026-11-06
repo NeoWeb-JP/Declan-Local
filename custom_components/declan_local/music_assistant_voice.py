@@ -156,3 +156,20 @@ def plan_music_status(hass,text,area=None):
         response='Home Assistant reports '+title[:150]+(' by '+artist[:150] if isinstance(artist,str) and artist.strip() else '')+' '+state.state+' in '+room+'.'
     return {'kind':'text','response':response,'label':'check music in '+room}
 
+
+def plan_music_blacklist(hass, text, area=None):
+    """Plan a household ban without changing playback during preflight."""
+    raw = text.strip().lower().rstrip(" .!?")
+    ban = {"never play this song again", "never play this again",
+           "don't play this song again", "do not play this song again",
+           "i hate this song", "ban this song", "blacklist this song"}
+    unban = {"unblock this song", "unban this song", "remove this song from the blacklist"}
+    if raw not in ban | unban:
+        return None
+    room, entity, state = _player(hass, None, area)
+    from .music_blacklist import track_details
+    if track_details(state) is None:
+        raise ValueError("I cannot identify the current song and artist. Nothing was changed.")
+    operation = "ban" if raw in ban else "unban"
+    return {"kind": "music_blacklist", "operation": operation, "entity_id": entity,
+            "label": operation + " the current song for the household"}

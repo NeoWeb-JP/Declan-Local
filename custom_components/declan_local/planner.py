@@ -1,7 +1,7 @@
 """Validate complete requests before any household action."""
 import re
 from .settings import get
-from .music_assistant_voice import plan_music, plan_stop_music, plan_music_transport, plan_music_volume, plan_music_status
+from .music_assistant_voice import plan_music, plan_stop_music, plan_music_transport, plan_music_volume, plan_music_status, plan_music_blacklist
 from .room_brightness import room_brightness
 from .lighting_preferences import preference_request
 from .media import media_plan
@@ -64,7 +64,7 @@ def plan(hass, text, area=None):
     brightness_step = room_brightness(hass, text, area)
     if brightness_step is not None:
         return [brightness_step], preview
-    for music_planner in (plan_music_status, plan_music_volume):
+    for music_planner in (plan_music_blacklist, plan_music_status, plan_music_volume):
         music_step=music_planner(hass,text,area)
         if music_step is not None:
             return [music_step],preview
