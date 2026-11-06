@@ -80,7 +80,7 @@ class InstalledVersion(unittest.TestCase):
                 async_add_executor_job=executor,
                 config=types.SimpleNamespace(path=lambda name: str(folder / name)),
                 config_entries=types.SimpleNamespace(async_forward_entry_setups=AsyncMock()))
-            setup = function(ROOT / '__init__.py', 'async_setup_entry', {
+            entry = types.SimpleNamespace(\n                async_on_unload=lambda callback: None,\n                add_update_listener=lambda callback: lambda: None,\n            )\n            setup = function(ROOT / '__init__.py', 'async_setup_entry', {
                 '__package__': 'version_test_pkg', 'DOMAIN': 'jarvis_local',
                 'Path': Path, 'quote': quote, 'read_version': version.read_version,
                 'panel_custom': types.SimpleNamespace(async_register_panel=registration)})
@@ -93,7 +93,7 @@ class InstalledVersion(unittest.TestCase):
             with patch.dict(sys.modules, modules), patch.object(version, '__file__', str(folder / 'version.py')):
                 for installed in ('1.2.3', '1.2.4'):
                     manifest_path.write_text(json.dumps({'version': installed}), encoding='utf-8')
-                    self.assertTrue(complete(setup(hass, object())))
+                    self.assertTrue(complete(setup(hass, entry)))
                     self.assertEqual(data['version'], installed)
                     self.assertEqual(registration.call_args.kwargs['module_url'],
                                      '/jarvis_local/panel.js?v=' + installed)
