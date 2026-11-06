@@ -34,6 +34,23 @@ class ConversationTriggerFallback(Dialogue):
                     self.assertEqual(kwargs["language"], "en")
                     self.assertEqual(self.hass.services.calls, [])
 
+    async def test_stt_rewrite_does_not_change_native_automation_phrase(self):
+        native = types.SimpleNamespace(
+            response=types.SimpleNamespace(response_type="action_done"),
+            conversation_id="one", continue_conversation=False,
+        )
+        with patch.object(module, "correct", return_value=("house status", ["stt rewrite"])):
+            with patch.object(module.conversation, "async_converse", new_callable=AsyncMock, create=True) as converse:
+                converse.return_value = native
+                reply = await self.agent.async_handle(UserInput("give me a house status"))
+                self.assertIs(reply, native)
+                self.assertEqual(converse.await_args.args[1], "give me a house status")
+
+    async def test_mixed_compound_cannot_delegate(self):
+        with patch.object(module.conversation, "async_converse", new_callable=AsyncMock, create=True) as converse:
+            await self.agent.async_handle(UserInput("turn office off; give me a house status"))
+            converse.assert_not_awaited()
+
     async def test_unmatched_native_agent_does_not_override_declan_error(self):
         native = types.SimpleNamespace(response=types.SimpleNamespace(response_type="error"))
         with patch.object(module.conversation, "async_converse", new_callable=AsyncMock, create=True) as converse:
