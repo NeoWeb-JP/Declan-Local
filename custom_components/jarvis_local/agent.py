@@ -283,6 +283,9 @@ class JarvisAgent(conversation.ConversationEntity):
                 and not request_preview
                 and not self_corrected
                 and not cross_corrected
+                and not __import__('re').search(
+                    r'\\s+(?:and then|then|and)\\s+|;', command_text, __import__('re').I
+                )
                 and str(err).startswith('I did not understand "')
                 and str(err).endswith('Try "help" for supported requests.')
             ):
