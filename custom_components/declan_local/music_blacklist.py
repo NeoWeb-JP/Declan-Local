@@ -1,6 +1,7 @@
 """Persistent household track exclusions with conservative playback enforcement."""
 import asyncio
 import re
+from time import monotonic
 
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event
@@ -46,6 +47,7 @@ class MusicBlacklist:
         self.lock = asyncio.Lock()
         self.unsubscribe = None
         self.inflight = set()
+        self.recent_skips = {}
 
     async def start(self):
         saved = await self.store.async_load()
@@ -78,8 +80,10 @@ class MusicBlacklist:
         return track
 
     async def _skip(self, entity_id, context=None):
-        if entity_id in self.inflight:
+        now = monotonic()
+        if entity_id in self.inflight or now - self.recent_skips.get(entity_id, -100) < 5:
             return
+        self.recent_skips[entity_id] = now
         self.inflight.add(entity_id)
         try:
             await self.hass.services.async_call("media_player", "media_next_track",
