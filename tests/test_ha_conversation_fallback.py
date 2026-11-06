@@ -90,6 +90,15 @@ class ConversationTriggerFallback(Dialogue):
             converse.assert_not_awaited()
             self.assertEqual(self.hass.services.calls, [])
 
+    async def test_unrecognised_automation_preview_explains_no_execution(self):
+        with patch.object(module.conversation, "async_converse", new_callable=AsyncMock, create=True) as converse:
+            reply = await self.agent.async_handle(UserInput("preview morning operations briefing"))
+            converse.assert_not_awaited()
+            self.assertIn("cannot safely preview", reply.response.speech)
+            self.assertIn("morning operations briefing", reply.response.speech)
+            self.assertIn("Nothing was run", reply.response.speech)
+            self.assertEqual(self.hass.services.calls, [])
+
     async def test_preview_never_delegates(self):
         with patch.object(module.conversation, "async_converse", new_callable=AsyncMock, create=True) as converse:
             await self.agent.async_handle(UserInput("preview give me a house status"))

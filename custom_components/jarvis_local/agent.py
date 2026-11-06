@@ -275,6 +275,27 @@ class JarvisAgent(conversation.ConversationEntity):
                         if extra:
                             followup_used=True
         except ValueError as err:
+            # Previewing an unmatched native conversation automation is unsafe:
+            # invoking the native agent would execute its trigger, not simulate it.
+            # Do not imply the phrase is a registered automation.
+            if (
+                request_preview
+                and correction_error is None
+                and str(err).startswith('I did not understand "')
+                and str(err).endswith('Try "help" for supported requests.')
+            ):
+                candidate = command_text.strip()
+                for prefix in ('preview ', 'dry run ', 'what would you do if i said '):
+                    if candidate.lower().startswith(prefix):
+                        candidate = candidate[len(prefix):].strip()
+                        break
+                speech = ('I cannot safely preview an unrecognised request or a Home Assistant '
+                          'conversation automation. To try it, send "' + candidate +
+                          '" without preview. Nothing was run.')
+                failure = speech
+            else:
+                speech = str(err)
+                failure = str(err)
             # Only a genuinely unrecognised single request may be delegated.
             # Never retry validation, correction, clarification or compound failures:
             # doing so could execute an action that Declan deliberately rejected.
@@ -298,8 +319,6 @@ class JarvisAgent(conversation.ConversationEntity):
                 # Retry with the same context; never infer voice recovery from chat.
                 from dataclasses import replace
                 return await self.async_handle(replace(user_input, text=recovered),area_override)
-            speech = str(err)
-            failure=str(err)
         else:
             if preview:
                 outcome='preview'
