@@ -34,3 +34,14 @@ def test_nuclear_lines_are_never_selected_for_guest():
     hass = SimpleNamespace(data={})
     catalog = {"Home": {"general": []}, "Guest": {"general": ["Certainly."]}}
     assert {choose(hass, "Guest", "general", catalog) for _ in range(30)} == {"Certainly."}
+
+
+def test_savage_default_morning_greeting():
+    from custom_components.declan_local.morning import morning_reply
+    assert any(word in morning_reply("Jaco", {}, {}) for word in ("Jaco",))
+
+
+def test_custom_morning_profile_is_respected():
+    from custom_components.declan_local.morning import morning_reply
+    profiles = {"one": {"name": "Edd", "morning_responses": ["Good morning, {name}."]}}
+    assert morning_reply("Edd", profiles, {}) == "Good morning, Edd."
