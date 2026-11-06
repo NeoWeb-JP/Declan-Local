@@ -34,6 +34,18 @@ class ConversationTriggerFallback(Dialogue):
                     self.assertEqual(kwargs["language"], "en")
                     self.assertEqual(self.hass.services.calls, [])
 
+    async def test_native_agent_uses_home_assistant_locale(self):
+        self.hass.config.language = "en-GB"
+        native = types.SimpleNamespace(
+            response=types.SimpleNamespace(response_type="action_done"),
+            conversation_id="one", continue_conversation=False,
+        )
+        with patch.object(module.conversation, "async_converse", new_callable=AsyncMock, create=True) as converse:
+            converse.return_value = native
+            reply = await self.agent.async_handle(UserInput("give me a house status"))
+            self.assertIs(reply, native)
+            self.assertEqual(converse.await_args.kwargs["language"], "en-GB")
+
     async def test_stt_rewrite_does_not_change_native_automation_phrase(self):
         native = types.SimpleNamespace(
             response=types.SimpleNamespace(response_type="action_done"),
