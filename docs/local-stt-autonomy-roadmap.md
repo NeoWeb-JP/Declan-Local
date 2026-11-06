@@ -1,6 +1,6 @@
 # Declan local STT autonomy (long-term project)
 
-Status: **planning only**. This branch is intentionally isolated from the Home Assistant conversation-trigger fix in PR #29. Do not deploy or merge as part of that fix.
+Status: **early implementation on the isolated draft branch**. Preview guidance and an offline STT transcript evaluation tool are implemented; local inference and production rollout are not. This branch is intentionally isolated from the Home Assistant conversation-trigger fix in PR #29. Do not deploy or merge as part of that fix.
 
 ## Goal
 Make local speech recognition the default for Declan, while retaining optional OpenAI transcription as a reference and fallback. Improve accuracy for household names, devices, accents and microphones without uploading recordings by default.
@@ -29,5 +29,10 @@ Make local speech recognition the default for Declan, while retaining optional O
 - Candidate model is benchmarked and can be rolled back.
 - Existing pipeline remains unchanged until separately approved.
 
-## Immediate priority
-Finish, test and merge **PR #29**, which restores Home Assistant conversation-trigger automation routing. Keep this roadmap branch separate.
+## Current development milestone
+- Run offline baseline: `python tools/stt_baseline.py path/to/reviewed-transcripts.json`.
+- Input JSON is an array of objects: `{"reference":"turn on fairy lights","hypothesis":"turn on ferry lights","room":"kitchen","command_success":false}`.
+- Metrics report per-room and overall word error rate (WER), plus separately measured command success rate.
+- Only use consented, reviewed transcript pairs; do not collect audio automatically.
+- Next: identify and benchmark a Wyoming faster-whisper host, then implement opt-in correction review and local vocabulary.
+- Keep the existing STT pipeline and Home Assistant deployment unchanged until explicit approval.
