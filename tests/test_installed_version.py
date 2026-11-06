@@ -57,6 +57,8 @@ class InstalledVersion(unittest.TestCase):
             guest_controller.create = AsyncMock(return_value=types.SimpleNamespace(stop=AsyncMock()))
             learning_module = types.ModuleType('version_test_pkg.learning')
             learning_module.load_evidence = AsyncMock()
+            music_controller = types.ModuleType('version_test_pkg.music_controller')
+            music_controller.async_register = AsyncMock()
             storage_module = types.ModuleType('homeassistant.helpers.storage')
             class Store:
                 def __init__(self, *args): pass
@@ -65,6 +67,7 @@ class InstalledVersion(unittest.TestCase):
             package = types.ModuleType('version_test_pkg')
             package.__path__ = []
             modules = {'version_test_pkg': package,
+                       'version_test_pkg.music_controller': music_controller,
                        'version_test_pkg.media_search_config': media_config,
                        'version_test_pkg.timers': timers_module,
                        'version_test_pkg.settings': settings_module,
