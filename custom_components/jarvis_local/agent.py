@@ -285,9 +285,12 @@ class JarvisAgent(conversation.ConversationEntity):
                 and not cross_corrected
                 and str(err).startswith('I did not understand "')
                 and str(err).endswith('Try "help" for supported requests.')
+                and not re.search(r'\\s+(?:and then|then|and)\\s+|;', original_text, re.I)
             ):
                 from .ha_conversation_fallback import delegate_unmatched
-                delegated = await delegate_unmatched(self.hass, user_input, command_text)
+                # STT corrections and planner normalisation must not alter the
+                # phrase used by Home Assistant's conversation trigger.
+                delegated = await delegate_unmatched(self.hass, user_input, original_text)
                 if delegated is not None:
                     return delegated
             recovered = recover_off(self.hass, command_text) if correction_error is None and (getattr(user_input, 'device_id', None) or getattr(user_input, 'satellite_id', None)) else None
