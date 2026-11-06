@@ -424,6 +424,13 @@ class JarvisAgent(conversation.ConversationEntity):
                                 else:
                                     replies.append('Removed ' + track['title'] + ' by ' + track['artist'] + ' from the household blacklist.')
                                 continue
+                            if step['kind'] == 'playlist_preference':
+                                await self.hass.services.async_call(
+                                    'declan_local', 'rate_music_playlist',
+                                    {'playlist': step['playlist'], 'operation': step['operation']},
+                                    blocking=True, context=user_input.context)
+                                replies.append('Updated the household playlist preference.')
+                                continue
                             if step['kind'] == 'media_control':
                                 await self.hass.services.async_call('media_player',step['name'],step['data'],blocking=True,context=user_input.context)
                                 replies.append(contextual_reply(self.hass,

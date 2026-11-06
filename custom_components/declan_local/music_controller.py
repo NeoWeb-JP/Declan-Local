@@ -21,6 +21,7 @@ DOMAIN = "declan_local"
 async def async_register(hass):
     catalogue_store = Store(hass, 1, "jarvis_local.spotify_categories")
     history_store = Store(hass, 1, "jarvis_local.music_history")
+    preference_store = Store(hass, 1, "declan_local.music_preferences")
     lock = asyncio.Lock()
 
     async def load():
@@ -74,6 +75,22 @@ async def async_register(hass):
                                  if x not in item["excluded"]]
             await catalogue_store.async_save(catalogue)
 
+    async def prefer(call):
+        playlist = uri(call.data["playlist"])
+        if not playlist:
+            raise HomeAssistantError("A valid Spotify playlist URI is required")
+        operation = call.data["operation"]
+        async with lock:
+            saved = await preference_store.async_load() or {}
+            weights = saved.get("playlists", {})
+            if not isinstance(weights, dict):
+                weights = {}
+            current = max(1, min(5, int(weights.get(playlist, 1))))
+            weights[playlist] = (min(5, current + 1) if operation == "like"
+                                 else max(1, current - 1) if operation == "dislike"
+                                 else 1)
+            await preference_store.async_save({"playlists": weights})
+
     async def play(call):
         category = call.data["category"].lower().strip().replace(" ", "_")
         room = call.data["room"]
@@ -87,8 +104,10 @@ async def async_register(hass):
             catalogue = await load()
             pool = {name: item["playlists"] for name, item in catalogue.items()}
             history = await history_store.async_load() or {}
+            saved_preferences = await preference_store.async_load() or {}
+            weights = saved_preferences.get("playlists", {})
             try:
-                selected = choose_playlist(category, pool, history)
+                selected = choose_playlist(category, pool, history, weights=weights)
             except ValueError as exc:
                 raise HomeAssistantError(str(exc)) from exc
             await hass.services.async_call(
@@ -101,6 +120,9 @@ async def async_register(hass):
         schema=vol.Schema({vol.Required("category"): str,
                            vol.Optional("room", default="everywhere"): vol.In(sorted(ROOMS))}))
     hass.services.async_register(DOMAIN, "refresh_music_categories", refresh)
+    hass.services.async_register(DOMAIN, "rate_music_playlist", prefer,
+        schema=vol.Schema({vol.Required("playlist"): str,
+                           vol.Required("operation"): vol.In(("like", "dislike", "reset"))}))
     hass.services.async_register(DOMAIN, "manage_music_playlist", edit,
         schema=vol.Schema({vol.Required("category"): str,
                            vol.Required("playlist"): str,
@@ -116,5 +138,5 @@ def async_unregister(hass):
     cancel = hass.data.get(DOMAIN, {}).pop("music_refresh_unsub", None)
     if cancel:
         cancel()
-    for service in ("play_music_category", "refresh_music_categories", "manage_music_playlist"):
+    for service in ("play_music_category", "refresh_music_categories", "manage_music_playlist", "rate_music_playlist"):
         hass.services.async_remove(DOMAIN, service)

@@ -16,6 +16,7 @@ def choose_playlist(
     *,
     avoid_last: int = 3,
     rng: random.Random | None = None,
+    weights: Mapping[str, int] | None = None,
 ) -> str:
     """Choose a configured playlist, avoiding recent selections where possible.
 
@@ -39,7 +40,11 @@ def choose_playlist(
         excluded_count -= 1
     else:
         available = candidates
-    return (rng or random.SystemRandom()).choice(available)
+    chooser = rng or random.SystemRandom()
+    if not weights:
+        return chooser.choice(available)
+    chances = [max(1, min(5, int(weights.get(item, 1)))) for item in available]
+    return chooser.choices(available, weights=chances, k=1)[0]
 
 
 def updated_history(
