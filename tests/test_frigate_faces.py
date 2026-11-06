@@ -1,5 +1,5 @@
 """Pure Frigate response parsing tests; no Frigate service required."""
-from custom_components.jarvis_local.frigate_faces import FaceResult, parse_result
+from custom_components.declan_local.frigate_faces import FaceResult, parse_result
 
 
 def test_known_faces_above_threshold():
@@ -24,7 +24,7 @@ def test_module_import_and_parser_without_aiohttp():
     import subprocess
     import sys
 
-    module_path = Path(__file__).resolve().parents[1] / "custom_components" / "jarvis_local" / "frigate_faces.py"
+    module_path = Path(__file__).resolve().parents[1] / "custom_components" / "declan_local" / "frigate_faces.py"
     script = """
 import builtins
 import importlib.util

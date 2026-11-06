@@ -1,7 +1,7 @@
 """Diagnostics exercise the actual stop handler and debug-toggle implementation."""
-from custom_components.jarvis_local.conversation_memory import context_key
-from custom_components.jarvis_local.cross_corrections import corrected_followup
-from custom_components.jarvis_local.learning import resolve_alias
+from custom_components.declan_local.conversation_memory import context_key
+from custom_components.declan_local.cross_corrections import corrected_followup
+from custom_components.declan_local.learning import resolve_alias
 import ast
 import asyncio
 from datetime import datetime, timezone
@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import AsyncMock
 from test_satellite_stop import stop, immediate, errors, understanding, corrections
 
-ROOT = Path(__file__).resolve().parents[1] / 'custom_components' / 'jarvis_local'
+ROOT = Path(__file__).resolve().parents[1] / 'custom_components' / 'declan_local'
 SATELLITE = 'assist_satellite.bedroom'
 PLAYER = 'media_player.bedroom'
 
@@ -48,7 +48,7 @@ class StopDiagnostics(unittest.TestCase):
         self.call = AsyncMock()
         self.data = {'settings': {'satellite_media_players': {SATELLITE: PLAYER}}, 'debug_enabled': True}
         self.hass = types.SimpleNamespace(
-            data={'jarvis_local': self.data}, services=types.SimpleNamespace(async_call=self.call))
+            data={'declan_local': self.data}, services=types.SimpleNamespace(async_call=self.call))
         self.agent = types.SimpleNamespace(
             hass=self.hass, _lock=asyncio.Lock(), _recent_lights={},
             _previous_failed={}, _pending_clarifications={}, _voice_markers={})
@@ -60,7 +60,7 @@ class StopDiagnostics(unittest.TestCase):
         result = await self.process(self.agent, user)
         self.assertEqual(result.response.speech, '')
         self.assertFalse(result.continue_conversation)
-        self.assertFalse(result.response.extra_data['jarvis_local']['trackable'])
+        self.assertFalse(result.response.extra_data['declan_local']['trackable'])
         return (self.data.get('diagnostics') or [None])[-1]
 
     @immediate

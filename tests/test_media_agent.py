@@ -27,8 +27,8 @@ class MediaAgent(unittest.TestCase):
 
     @immediate
     async def test_compound_movie_request_is_one_search_with_no_routine_or_playback(self):
-        self.hass.states.values["script.jarvis_local_movie"] = fixtures.fixtures.State(
-            "script.jarvis_local_movie", "Movie routine", "off")
+        self.hass.states.values["script.declan_local_movie"] = fixtures.fixtures.State(
+            "script.declan_local_movie", "Movie routine", "off")
         reply = await self.agent.async_handle(fixtures.UserInput(
             "Hey Declan, could you please start movie time and play Desperate house wives"))
         self.search.assert_awaited_once()
@@ -36,8 +36,8 @@ class MediaAgent(unittest.TestCase):
         self.assertEqual(request["query"], "Desperate house wives")
         self.assertEqual(self.hass.services.calls, [])
         self.assertIn("Search only", reply.response.speech)
-        self.assertEqual(reply.response.extra_data["jarvis_local"]["media_search"], self.report)
-        self.assertFalse(reply.response.extra_data["jarvis_local"]["trackable"])
+        self.assertEqual(reply.response.extra_data["declan_local"]["media_search"], self.report)
+        self.assertFalse(reply.response.extra_data["declan_local"]["trackable"])
 
     @immediate
     async def test_preview_does_not_search_or_run_any_actions(self):
@@ -72,7 +72,7 @@ class MediaAgent(unittest.TestCase):
 
     @immediate
     async def test_music_requests_never_fall_back_to_retired_script(self):
-        self.hass.data = {"jarvis_local": {"settings": {"music_script": "script.music"}}}
+        self.hass.data = {"declan_local": {"settings": {"music_script": "script.music"}}}
         self.hass.states.values["script.music"] = fixtures.fixtures.State("script.music", "Music", "off")
         await self.agent.async_handle(fixtures.UserInput("play country music in kitchen"))
         self.search.assert_not_awaited()
@@ -80,7 +80,7 @@ class MediaAgent(unittest.TestCase):
 
     @immediate
     async def test_weather_question_is_understood_without_household_actions(self):
-        self.hass.data = {"jarvis_local": {"settings": {"weather": "weather.home"}}}
+        self.hass.data = {"declan_local": {"settings": {"weather": "weather.home"}}}
         weather = fixtures.fixtures.State("weather.home", "Weather", "partlycloudy")
         weather.attributes = {"temperature": 15, "temperature_unit": "C"}
         self.hass.states.values["weather.home"] = weather
@@ -92,13 +92,13 @@ class MediaAgent(unittest.TestCase):
     @immediate
     async def test_search_metadata_never_enables_replay_as_device_command(self):
         reply = await self.agent.async_handle(fixtures.UserInput("find Pride and Prejudice"))
-        self.assertFalse(reply.response.extra_data["jarvis_local"]["trackable"])
+        self.assertFalse(reply.response.extra_data["declan_local"]["trackable"])
         self.assertFalse(reply.continue_conversation)
         self.assertEqual(self.hass.services.calls, [])
 
     @immediate
     async def test_polite_declan_stop_remains_silent_and_satellite_scoped(self):
-        self.hass.data={"jarvis_local":{"settings":{"satellite_media_players":{
+        self.hass.data={"declan_local":{"settings":{"satellite_media_players":{
             "assist_satellite.bedroom":"media_player.bedroom"}}}}
         user=fixtures.UserInput("Declan, could you be quiet please")
         user.satellite_id="assist_satellite.bedroom"

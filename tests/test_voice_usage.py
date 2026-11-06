@@ -2,7 +2,7 @@
 import importlib.util
 from pathlib import Path
 
-path = Path(__file__).resolve().parents[1] / "custom_components" / "jarvis_local" / "voice_usage.py"
+path = Path(__file__).resolve().parents[1] / "custom_components" / "declan_local" / "voice_usage.py"
 spec = importlib.util.spec_from_file_location("voice_usage", path)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)

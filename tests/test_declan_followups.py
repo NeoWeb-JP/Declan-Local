@@ -1,5 +1,5 @@
 """Bounded, safe follow-up parsing tests."""
-from custom_components.jarvis_local.followup import followup, additional_room
+from custom_components.declan_local.followup import followup, additional_room
 
 
 def test_demonstrative_followups():

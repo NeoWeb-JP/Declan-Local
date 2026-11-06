@@ -6,7 +6,7 @@ class Element {
   append(node){this.children.push(node);}
   set innerHTML(_){throw Error('Catalogue text must not use HTML');}
 }
-vm.runInNewContext(fs.readFileSync('custom_components/jarvis_local/panel.js','utf8'),{
+vm.runInNewContext(fs.readFileSync('custom_components/declan_local/panel.js','utf8'),{
   HTMLElement:class{},customElements:{get:()=>false,define:(_,cls)=>Panel=cls},
   document:{createElement:()=>new Element()},console
 });
@@ -23,8 +23,8 @@ function setup(){
   const calls=[];
   panel._hass={callWS:async request=>{
     calls.push(request);
-    if(request.type==='jarvis_local/review_voice_catalogue')return plan;
-    if(request.type==='jarvis_local/prepare_voice_catalogue')return {saved:true};
+    if(request.type==='declan_local/review_voice_catalogue')return plan;
+    if(request.type==='declan_local/prepare_voice_catalogue')return {saved:true};
     throw Error('Unexpected request');
   }};
   return {panel,elements,plan,calls};
@@ -39,7 +39,7 @@ function setup(){
     elements['.catalogue-approved'].checked=true;panel.updateCatalogueControls();
     assert.equal(elements['.prepare-catalogue'].disabled,false);
     await panel.prepareCatalogue();
-    const requests=calls.filter(x=>x.type==='jarvis_local/prepare_voice_catalogue');
+    const requests=calls.filter(x=>x.type==='declan_local/prepare_voice_catalogue');
     assert.deepEqual(requests.map(x=>x.line_id),['one','two']);
     assert(requests.every(x=>x.approved===true));
     assert.equal(elements['.prepare-catalogue'].disabled,true,'A fresh review is required after a run');
@@ -62,7 +62,7 @@ function setup(){
     const running=panel.prepareCatalogue();
     panel.catalogueStop=true;release({saved:true});
     await running;
-    assert.equal(calls.filter(x=>x.type==='jarvis_local/prepare_voice_catalogue').length,1);
+    assert.equal(calls.filter(x=>x.type==='declan_local/prepare_voice_catalogue').length,1);
     assert.match(elements['.catalogue-status'].textContent,/Stopped/);
   }
   {

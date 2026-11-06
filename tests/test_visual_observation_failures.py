@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 
 def load_observation():
-    root = Path(__file__).resolve().parents[1] / "custom_components" / "jarvis_local"
+    root = Path(__file__).resolve().parents[1] / "custom_components" / "declan_local"
     package = "_visual_test"
     modules = {
         package: types.ModuleType(package),

@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import AsyncMock, patch
 from urllib.parse import quote
 
-ROOT = Path(__file__).resolve().parents[1] / 'custom_components' / 'jarvis_local'
+ROOT = Path(__file__).resolve().parents[1] / 'custom_components' / 'declan_local'
 spec = importlib.util.spec_from_file_location('installed_version_under_test', ROOT / 'version.py')
 version = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(version)
@@ -79,7 +79,7 @@ class InstalledVersion(unittest.TestCase):
             async def executor(call, *args):
                 return call(*args)
             hass = types.SimpleNamespace(
-                data={'jarvis_local': data},
+                data={'declan_local': data},
                 async_add_executor_job=executor,
                 config=types.SimpleNamespace(path=lambda name: str(folder / name)),
                 config_entries=types.SimpleNamespace(async_forward_entry_setups=AsyncMock()))
@@ -88,7 +88,7 @@ class InstalledVersion(unittest.TestCase):
                 add_update_listener=lambda callback: lambda: None,
             )
             setup = function(ROOT / '__init__.py', 'async_setup_entry', {
-                '__package__': 'version_test_pkg', 'DOMAIN': 'jarvis_local',
+                '__package__': 'version_test_pkg', 'DOMAIN': 'declan_local',
                 'Path': Path, 'quote': quote, 'read_version': version.read_version,
                 'panel_custom': types.SimpleNamespace(async_register_panel=registration)})
             info = function(ROOT / 'websocket.py', 'info', {
@@ -103,7 +103,7 @@ class InstalledVersion(unittest.TestCase):
                     self.assertTrue(complete(setup(hass, entry)))
                     self.assertEqual(data['version'], installed)
                     self.assertEqual(registration.call_args.kwargs['module_url'],
-                                     '/jarvis_local/panel.js?v=' + installed)
+                                     '/declan_local/panel.js?v=' + installed)
                     info(hass, connection, {'id': 1})
                     self.assertEqual(replies[-1]['version'], installed)
             self.assertEqual(registration.await_count, 2)

@@ -5,7 +5,7 @@ class Element{
  replaceChildren(){this.children=[];this.textContent='';}
  setAttribute(){} setCustomValidity(){} reportValidity(){} focus(){}
 }
-vm.runInNewContext(fs.readFileSync('custom_components/jarvis_local/panel.js','utf8'),{
+vm.runInNewContext(fs.readFileSync('custom_components/declan_local/panel.js','utf8'),{
  HTMLElement:class{},customElements:{get:()=>false,define:(_,cls)=>Panel=cls},
  document:{createElement:tag=>new Element(tag)},console});
 (async()=>{
@@ -46,7 +46,7 @@ vm.runInNewContext(fs.readFileSync('custom_components/jarvis_local/panel.js','ut
  let previewRequest;
  panel._hass.callWS=async request=>{previewRequest=request;return {summary:'Preview only. No actions were run.'};};
  await panel.testLearning('lanp off','turn off fairy lights');
- assert.equal(previewRequest.type,'jarvis_local/learning_test');
+ assert.equal(previewRequest.type,'declan_local/learning_test');
  assert.equal(els['.learning-status'].textContent,'Preview only. No actions were run.');
  els['.learning-search']=new Element('input');
  const searchable={textContent:'lanp off',querySelectorAll:()=>[{value:'turn off fairy lights'}]};

@@ -1,5 +1,7 @@
 # Home Voice Assistant: Declan character and generic software branding
 
+The domain compatibility statements below describe the original branding release. See [domain migration](declan-local-migration.md) for upgrading to `declan_local`.
+
 ## Branding (approved)
 
 - **Software / integration:** Home Voice Assistant (generic, reusable).

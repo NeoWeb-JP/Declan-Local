@@ -1,7 +1,7 @@
 """Stop regressions runnable without a Home Assistant installation."""
-from custom_components.jarvis_local.conversation_memory import context_key
-from custom_components.jarvis_local.cross_corrections import corrected_followup
-from custom_components.jarvis_local.learning import resolve_alias
+from custom_components.declan_local.conversation_memory import context_key
+from custom_components.declan_local.cross_corrections import corrected_followup
+from custom_components.declan_local.learning import resolve_alias
 import ast
 import asyncio
 import importlib.util
@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import AsyncMock
 from time import monotonic, perf_counter
 
-ROOT=Path(__file__).resolve().parents[1]/'custom_components'/'jarvis_local'
+ROOT=Path(__file__).resolve().parents[1]/'custom_components'/'declan_local'
 errors=types.ModuleType('homeassistant.exceptions')
 errors.HomeAssistantError=type('HomeAssistantError',(Exception,),{})
 errors=sys.modules.setdefault('homeassistant.exceptions',errors)
@@ -46,7 +46,7 @@ class Stops(unittest.TestCase):
         for phrase in ('stop music in kitchen','stop kitchen timer','preview stop','cancel'):
             self.assertFalse(stop.is_spoken_stop(phrase))
         call=AsyncMock()
-        hass=types.SimpleNamespace(data={'jarvis_local':{'settings':{
+        hass=types.SimpleNamespace(data={'declan_local':{'settings':{
             'satellite_media_players':{'assist_satellite.bedroom':'media_player.bedroom',
                                       'assist_satellite.kitchen':'media_player.kitchen'}}}},
             services=types.SimpleNamespace(async_call=call))
@@ -59,7 +59,7 @@ class Stops(unittest.TestCase):
                     {'entity_id':'media_player.'+satellite.split('.')[1]},blocking=True,context=context)
             else:
                 call.assert_not_awaited()
-        hass.data['jarvis_local']['settings']['satellite_media_players']['assist_satellite.bedroom']='all'
+        hass.data['declan_local']['settings']['satellite_media_players']['assist_satellite.bedroom']='all'
         await stop.stop_player(hass,types.SimpleNamespace(satellite_id='assist_satellite.bedroom',context=context))
         call.assert_not_awaited()
 
@@ -89,7 +89,7 @@ class Stops(unittest.TestCase):
         for phrase in ('Stop','Be quiet','Shut up'):
             for fail in (False,True):
                 call=AsyncMock(side_effect=errors.HomeAssistantError() if fail else None)
-                hass=types.SimpleNamespace(data={'jarvis_local':{'settings':{
+                hass=types.SimpleNamespace(data={'declan_local':{'settings':{
                     'satellite_media_players':{satellite:'media_player.bedroom'}}}},
                     services=types.SimpleNamespace(async_call=call))
                 agent=types.SimpleNamespace(hass=hass,_lock=asyncio.Lock(),

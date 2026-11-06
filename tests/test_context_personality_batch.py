@@ -47,7 +47,7 @@ def test_full_three_turn_sequence_and_preview():
 
 
 def home():
-    hass=fixtures.Hass();hass.data={'jarvis_local':{'settings':{
+    hass=fixtures.Hass();hass.data={'declan_local':{'settings':{
         'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority',
         'quiet_hours':'input_boolean.quiet'}}}
     for key in ('visitors','authority','quiet'):

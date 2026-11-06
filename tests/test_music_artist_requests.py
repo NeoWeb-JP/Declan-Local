@@ -1,6 +1,6 @@
 """Artist and category music request parsing with a lightweight HA state stub."""
 from types import SimpleNamespace
-from custom_components.jarvis_local.music_assistant_voice import plan_music
+from custom_components.declan_local.music_assistant_voice import plan_music
 
 
 class States:

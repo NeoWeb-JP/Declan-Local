@@ -1,5 +1,5 @@
 """Spotify discovery catalogue tests."""
-from custom_components.jarvis_local.spotify_discovery import QUERIES, curate, uri
+from custom_components.declan_local.spotify_discovery import QUERIES, curate, uri
 
 A = "spotify://playlist/" + "A" * 22
 B = "spotify://playlist/" + "B" * 22

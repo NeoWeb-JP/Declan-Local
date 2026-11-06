@@ -1,7 +1,7 @@
 """Music Assistant command routing regressions (no playback side effects)."""
 from types import SimpleNamespace
 import pytest
-from custom_components.jarvis_local.music_assistant_voice import plan_music
+from custom_components.declan_local.music_assistant_voice import plan_music
 
 
 class States:

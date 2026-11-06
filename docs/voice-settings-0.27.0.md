@@ -8,7 +8,7 @@
 - Enable/disable persistent audio caching and same-category cached alternatives.
 - Cache revision string, default `v1`; change if provider settings change without an identifiable voice ID/model revision.
 - Voice chosen through Options is passed to ElevenLabs as the `voice` TTS option and included in Declan's cache identity.
-- Legacy `jarvis_local` domain and existing entity IDs remain unchanged for compatibility.
+- Legacy `declan_local` domain and existing entity IDs remain unchanged for compatibility.
 
 ## Configure
 After installing updated files and restarting Home Assistant:

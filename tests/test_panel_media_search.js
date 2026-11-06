@@ -8,7 +8,7 @@ class Element{
 }
 const context={HTMLElement:class{},customElements:{get:()=>false,define:(_,cls)=>Panel=cls},
  document:{createElement:()=>new Element()},URL,console};
-vm.runInNewContext(fs.readFileSync('custom_components/jarvis_local/panel.js','utf8'),context);
+vm.runInNewContext(fs.readFileSync('custom_components/declan_local/panel.js','utf8'),context);
 function fixture(){
  const panel=new Panel(),els={};
  for(const key of ['.tmdb-token','.clear-tmdb-token','.tmdb-token-status','.media-settings-message','.save-settings','.media-query','.search-media','.media-search-results','.media-search-status','.media-search-section'])els[key]=new Element();
@@ -33,7 +33,7 @@ function fixture(){
  panel._hass={callWS:async request=>{calls.push(request);return {region:'GB',subscriptions:['disney'],catalogue_configured:true};}};
  await panel.saveMediaSearchSettings();
  assert(!Object.hasOwn(calls[0].config,'tmdb_token'));
- assert.equal(calls[0].type,'jarvis_local/save_media_search');
+ assert.equal(calls[0].type,'declan_local/save_media_search');
  els['.tmdb-token'].value='private_test_token_1234567890';
  await panel.saveMediaSearchSettings();
  assert.equal(calls[1].config.tmdb_token,'private_test_token_1234567890');
@@ -60,7 +60,7 @@ function fixture(){
  panel._hass.callWS=async request=>{calls.push(request);return report;};
  els['.media-query'].value='Desperate Housewives';
  await panel.searchMedia();
- assert.equal(calls.at(-1).type,'jarvis_local/search_media');
+ assert.equal(calls.at(-1).type,'declan_local/search_media');
  assert.equal(calls.at(-1).query,'Desperate Housewives');
  assert.equal(els['.media-search-section'].open,true);
  assert.equal(els['.media-search-status'].textContent,report.response);
@@ -115,7 +115,7 @@ function fixture(){
  panel.line=()=>{};panel.trackCommand=()=>{throw Error('Search must not be tracked as an action');};
  panel.voiceEvent({ended:false,transcript:'start movie time and play Desperate Housewives'},{
   type:'intent-end',data:{processed_locally:false,intent_output:{conversation_id:'media',
-   response:{speech:{plain:{speech:'Search only.',extra_data:{jarvis_local:{trackable:false,media_search:report}}}}}}}});
+   response:{speech:{plain:{speech:'Search only.',extra_data:{declan_local:{trackable:false,media_search:report}}}}}}}});
  assert.equal(received[0],report);
  // Errors clear old results and restore the button for another search.
  panel._hass.callWS=async()=>{throw Error('Unavailable');};

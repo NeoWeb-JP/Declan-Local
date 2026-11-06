@@ -7,7 +7,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-ROOT=Path(__file__).resolve().parents[1]/'custom_components'/'jarvis_local'
+ROOT=Path(__file__).resolve().parents[1]/'custom_components'/'declan_local'
 core=types.ModuleType('homeassistant.core')
 core.callback=lambda fn:fn
 errors=types.ModuleType('homeassistant.exceptions')
@@ -40,7 +40,7 @@ class AuthorityTests(unittest.IsolatedAsyncioTestCase):
         self.calls=[]
         self.fail_entity=None
         self.hook=None
-        self.hass=types.SimpleNamespace(data={'jarvis_local':{'settings':config}},
+        self.hass=types.SimpleNamespace(data={'declan_local':{'settings':config}},
             states=types.SimpleNamespace(get=lambda entity:self.values.get(entity)),
             async_create_task=lambda coro:coro.close())
         self.controller=module.GuestAuthority(self.hass,self.store,types.SimpleNamespace(id='own'),clock=lambda:self.now)

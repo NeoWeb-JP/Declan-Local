@@ -8,7 +8,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[1] / 'custom_components' / 'jarvis_local'
+ROOT = Path(__file__).resolve().parents[1] / 'custom_components' / 'declan_local'
 storage = types.ModuleType('homeassistant.helpers.storage')
 storage.Store = object
 spec = importlib.util.spec_from_file_location('mapping_settings_under_test', ROOT / 'settings.py')
@@ -47,7 +47,7 @@ class Settings(unittest.TestCase):
         self.path = path
         self.entities = {BED, PLAYER, 'assist_satellite.kitchen', 'media_player.kitchen'}
         self.hass = types.SimpleNamespace(
-            data={'jarvis_local': {'settings': {}}},
+            data={'declan_local': {'settings': {}}},
             states=types.SimpleNamespace(get=lambda entity: object() if entity in self.entities else None))
 
     def save(self, data):
@@ -57,7 +57,7 @@ class Settings(unittest.TestCase):
         self.save({'satellite_media_players': {BED: PLAYER}})
         self.assertEqual(complete(settings.load(self.hass))['satellite_media_players'], {BED: PLAYER})
         self.save({'satellite_media_players': {BED: 'media_player.kitchen'}})
-        self.assertEqual(self.hass.data['jarvis_local']['settings']['satellite_media_players'][BED], 'media_player.kitchen')
+        self.assertEqual(self.hass.data['declan_local']['settings']['satellite_media_players'][BED], 'media_player.kitchen')
         self.save({'satellite_media_players': {}})
         self.assertEqual(complete(settings.load(self.hass))['satellite_media_players'], {})
 
@@ -110,7 +110,7 @@ class Settings(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.save({'satellite_media_players': mappings})
                 self.assertEqual(self.path.read_text(), before)
-                self.assertEqual(self.hass.data['jarvis_local']['settings']['satellite_media_players'], {BED: PLAYER})
+                self.assertEqual(self.hass.data['declan_local']['settings']['satellite_media_players'], {BED: PLAYER})
 
     def test_two_satellites_and_shared_player_are_explicit(self):
         # Shared physical speakers are permitted only through explicit selections.

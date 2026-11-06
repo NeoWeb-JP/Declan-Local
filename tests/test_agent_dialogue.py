@@ -41,26 +41,26 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.hass.services.calls[1][0][1],'turn_off')
     async def test_frequency_metadata_requires_success(self):
         rejected=await self.agent.async_handle(UserInput('offers life on'))
-        self.assertFalse(rejected.response.extra_data['jarvis_local']['trackable'])
+        self.assertFalse(rejected.response.extra_data['declan_local']['trackable'])
         clarification=await self.agent.async_handle(UserInput('lamp on'))
-        self.assertFalse(clarification.response.extra_data['jarvis_local']['trackable'])
+        self.assertFalse(clarification.response.extra_data['declan_local']['trackable'])
         completed=await self.agent.async_handle(UserInput('bedroom'))
-        self.assertTrue(completed.response.extra_data['jarvis_local']['trackable'])
+        self.assertTrue(completed.response.extra_data['declan_local']['trackable'])
         preview=await self.agent.async_handle(UserInput('preview turn bedroom light on'))
-        self.assertFalse(preview.response.extra_data['jarvis_local']['trackable'])
+        self.assertFalse(preview.response.extra_data['declan_local']['trackable'])
     async def test_debug_history_disabled_by_default(self):
         await self.agent.async_handle(UserInput('lamp on'))
-        self.assertFalse(self.hass.data['jarvis_local'].get('diagnostics'))
-        self.hass.data['jarvis_local']['debug_enabled']=True
+        self.assertFalse(self.hass.data['declan_local'].get('diagnostics'))
+        self.hass.data['declan_local']['debug_enabled']=True
         await self.agent.async_handle(UserInput('cancel'))
-        self.assertEqual(len(self.hass.data['jarvis_local']['diagnostics']),1)
+        self.assertEqual(len(self.hass.data['declan_local']['diagnostics']),1)
     async def test_social_reply_unknown_and_matched(self):
         neutral=await self.agent.async_handle(UserInput('thank you'))
         self.assertNotIn('Jaco',neutral.response.speech)
         original=module.bridge_profile
         try:
             module.bridge_profile=lambda text,profiles:'Jaco'
-            self.hass.data={'jarvis_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'}}}
+            self.hass.data={'declan_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'}}}
             self.hass.states.values['input_boolean.visitors']=fixtures.State('input_boolean.visitors','Visitors','off')
             self.hass.states.values['input_boolean.authority']=fixtures.State('input_boolean.authority','Authority','off')
             named=await self.agent.async_handle(UserInput('hello'))
@@ -81,11 +81,11 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         self.assertEqual({entity for call in followup_calls for entity in call[0][2]['entity_id']},{'light.office','light.bedroom'})
 
     async def test_visitors_suppress_private_morning_without_changing_authority(self):
-        self.hass.data={'jarvis_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'},
+        self.hass.data={'declan_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'},
             'voice_id_config':{'profiles':{'jaco':{'name':'Jaco','morning_responses':['PRIVATE_INTIMATE_GREETING']}}}}}
         self.hass.states.values['input_boolean.visitors']=fixtures.State('input_boolean.visitors','Visitors','off')
         self.hass.states.values['input_boolean.authority']=fixtures.State('input_boolean.authority','Authority','off')
-        self.hass.states.values['script.jarvis_local_good_morning']=fixtures.State('script.jarvis_local_good_morning','Morning','off')
+        self.hass.states.values['script.declan_local_good_morning']=fixtures.State('script.declan_local_good_morning','Morning','off')
         async def routine(*args, **kwargs):
             self.hass.services.calls.append((args, kwargs))
             return {'response':'PRIVATE_SCRIPT_GREETING'}
@@ -97,7 +97,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
                 guest=await self.agent.async_handle(UserInput('good morning'))
                 self.assertNotIn('PRIVATE',guest.response.speech)
                 self.assertNotIn('Jaco',guest.response.speech)
-        self.assertTrue(all(call[0][:2] == ('script','jarvis_local_good_morning') for call in self.hass.services.calls))
+        self.assertTrue(all(call[0][:2] == ('script','declan_local_good_morning') for call in self.hass.services.calls))
         self.assertEqual(self.hass.states.values['input_boolean.authority'].state,'off')
 
     async def test_staying_declaration_preview_and_dispatch_without_embedded_actions(self):
@@ -105,7 +105,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
              'visitors_present':'input_boolean.visitors','guests_staying':'input_boolean.staying',
              'guest_staying_names':'input_text.staying_names'}
         controller=types.SimpleNamespace(command=AsyncMock(return_value='Staying declaration recorded.'))
-        self.hass.data={'jarvis_local':{'settings':ids,'guest_authority':controller}}
+        self.hass.data={'declan_local':{'settings':ids,'guest_authority':controller}}
         for entity in ids.values():
             self.hass.states.values[entity]=fixtures.State(entity,'Guest helper','off' if entity.startswith('input_boolean.') else '')
         preview=await self.agent.async_handle(UserInput('preview Mike and Kathy are staying with us'))
@@ -120,7 +120,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         self.assertIn('Nothing was changed',rejected.response.speech)
         self.assertEqual(self.hass.services.calls,[])
     async def test_switch_backed_compound_followup(self):
-        self.hass.data={'jarvis_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
+        self.hass.data={'declan_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
         self.hass.states.values['switch.queen']=fixtures.State('switch.queen','Queen Lamp')
         await self.agent.async_handle(UserInput('turn office and queen lamp off'))
         self.assertEqual(len(self.hass.services.calls),2)
@@ -129,7 +129,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.hass.services.calls[-1][0][:2],('switch','turn_on'))
         self.assertEqual(self.hass.services.calls[-1][0][2]['entity_id'],['switch.queen'])
     async def test_combined_response_once_and_again_followup(self):
-        self.hass.data={'jarvis_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
+        self.hass.data={'declan_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
         self.hass.states.values['switch.queen']=fixtures.State('switch.queen','Queen Lamp')
         first=await self.agent.async_handle(UserInput('office and queen lamp off'))
         self.assertEqual(first.response.speech,'Turning off the lights.')
@@ -138,7 +138,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.hass.services.calls),6)
         self.assertEqual(final.response.speech,'Turning off the lights.')
     async def test_missing_switch_followup_has_no_partial_action(self):
-        self.hass.data={'jarvis_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
+        self.hass.data={'declan_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
         self.hass.states.values['switch.queen']=fixtures.State('switch.queen','Queen Lamp')
         await self.agent.async_handle(UserInput('turn office and queen lamp off'))
         self.hass.hidden.add('switch.queen')
@@ -154,12 +154,12 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         await self.agent.async_handle(UserInput('turn office and missing light on'))
         self.assertEqual(self.hass.services.calls,[])
     async def test_in_sentence_correction_runs_only_final_command(self):
-        self.hass.states.values['script.jarvis_local_movie']=fixtures.State(
-            'script.jarvis_local_movie','Movie Mode','off')
+        self.hass.states.values['script.declan_local_movie']=fixtures.State(
+            'script.declan_local_movie','Movie Mode','off')
         result=await self.agent.async_handle(
             UserInput('Dinner on, no I mean movie time'))
         self.assertEqual(len(self.hass.services.calls),1)
-        self.assertEqual(self.hass.services.calls[0][0][:2],('script','jarvis_local_movie'))
+        self.assertEqual(self.hass.services.calls[0][0][:2],('script','declan_local_movie'))
         from jarvis_test.personality import CONTEXT_LINES
         self.assertTrue(any(line in result.response.speech for line in CONTEXT_LINES['Guest']['self_correction']))
         self.assertIn('Routine request sent.',result.response.speech)

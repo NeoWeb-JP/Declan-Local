@@ -68,7 +68,7 @@ def _validated_history(value):
 def test_correction(hass, heard, target=None):
     """Plan only: no agent, services, approval, history or conversation mutation."""
     key=normalize_alias(heard)
-    data=hass.data.get('jarvis_local',{})
+    data=hass.data.get('declan_local',{})
     observed=any(' '.join(str(item.get('heard') or '').casefold().split())==key
                  for item in data.get('learning_evidence',[]))
     if key not in data.get('approved_aliases',{}) and not observed:
@@ -90,7 +90,7 @@ def _snapshot(data):
 def track_usage(hass, record):
     if record.get('preview') or 'voice correction' in (record.get('transcript_corrections') or []):
         return
-    data = hass.data.setdefault('jarvis_local', {})
+    data = hass.data.setdefault('declan_local', {})
     try:
         key = normalize_alias(record.get('received_text'))
     except ValueError:
@@ -119,7 +119,7 @@ def track_usage(hass, record):
 async def load_evidence(hass):
     """Restore examples without approving aliases or executing actions."""
     from homeassistant.helpers.storage import Store
-    data = hass.data.setdefault('jarvis_local', {})
+    data = hass.data.setdefault('declan_local', {})
     store = Store(hass, 1, 'jarvis_local.learning_evidence')
     data['learning_evidence_store'] = store
     try:
@@ -143,7 +143,7 @@ def _save_evidence(data):
 
 async def flush_evidence(hass):
     """Finish pending writes before unloading."""
-    data = hass.data.get('jarvis_local', {})
+    data = hass.data.get('declan_local', {})
     store = data.get('learning_evidence_store')
     if store is not None:
         await store.async_save(_snapshot(data))
@@ -151,7 +151,7 @@ async def flush_evidence(hass):
 
 def observe(hass, record):
     track_usage(hass, record)
-    data = hass.data.setdefault('jarvis_local', {})
+    data = hass.data.setdefault('declan_local', {})
     if not data.get('debug_enabled', False) or record.get('preview'):
         return
     outcome = record.get('outcome')
@@ -173,7 +173,7 @@ def observe(hass, record):
 
 
 def summary(hass):
-    evidence = hass.data.get('jarvis_local', {}).get('learning_evidence', [])
+    evidence = hass.data.get('declan_local', {}).get('learning_evidence', [])
     return {'total': len(evidence),
             'outcomes': dict(Counter(item['outcome'] for item in evidence)),
             'correction_samples': sum(bool(item['corrections']) for item in evidence)}
@@ -210,7 +210,7 @@ def suggestions(hass, minimum_occurrences=1):
     Never install aliases, infer devices or run actions from observations.
     """
     import re
-    evidence = hass.data.get('jarvis_local', {}).get('learning_evidence', [])
+    evidence = hass.data.get('declan_local', {}).get('learning_evidence', [])
     groups = {}
     for item in evidence:
         heard = ' '.join(str(item.get('heard') or '').casefold().split())
@@ -238,8 +238,8 @@ def suggestions(hass, minimum_occurrences=1):
         if group.get('source') == 'voice':
             groups.pop(('failed', group['heard']), None)
     threshold = max(1, int(minimum_occurrences))
-    rejected = set(hass.data.get('jarvis_local', {}).get('rejected_aliases', []))
-    approved = hass.data.get('jarvis_local', {}).get('approved_aliases', {})
+    rejected = set(hass.data.get('declan_local', {}).get('rejected_aliases', []))
+    approved = hass.data.get('declan_local', {}).get('approved_aliases', {})
     pending = [group for group in groups.values() if group['count'] >= (max(2, threshold) if group['type'] == 'correction_candidate' and group.get('source') != 'voice' else threshold)
                and group['heard'] not in rejected and group['heard'] not in approved]
     for group in pending:
@@ -338,7 +338,7 @@ def resolve_alias(hass, text):
         key = normalize_alias(text)
     except ValueError:
         return text
-    return hass.data.get('jarvis_local', {}).get('approved_aliases', {}).get(key, text)
+    return hass.data.get('declan_local', {}).get('approved_aliases', {}).get(key, text)
 
 
 async def review(hass, heard, decision, suggested=None):
@@ -347,7 +347,7 @@ async def review(hass, heard, decision, suggested=None):
     key = normalize_alias(heard)
     if decision not in {'approve', 'approve_manual', 'edit', 'reject', 'remove'}:
         raise ValueError('Unknown review decision')
-    data = hass.data.setdefault('jarvis_local', {})
+    data = hass.data.setdefault('declan_local', {})
     aliases = dict(data.get('approved_aliases', {}))
     previous_target=aliases.get(key,'')
     rejected = set(data.get('rejected_aliases', []))

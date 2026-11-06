@@ -2,8 +2,8 @@
 from types import SimpleNamespace
 import pytest
 
-from custom_components.jarvis_local.cross_corrections import corrected_followup
-from custom_components.jarvis_local.music_assistant_voice import plan_music_transport, plan_stop_music
+from custom_components.declan_local.cross_corrections import corrected_followup
+from custom_components.declan_local.music_assistant_voice import plan_music_transport, plan_stop_music
 
 
 def test_correction_only_after_failure_and_explicit_full_request():

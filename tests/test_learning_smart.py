@@ -3,7 +3,7 @@ import sys
 from types import SimpleNamespace, ModuleType
 import pytest
 import test_commands as fixtures
-from custom_components.jarvis_local import learning
+from custom_components.declan_local import learning
 
 
 def complete(coroutine):
@@ -18,7 +18,7 @@ def complete(coroutine):
 
 def test_inventory_choices_never_execute_or_include_hidden_lights():
     hass = fixtures.Hass()
-    hass.data = {'jarvis_local': {'debug_enabled': True}}
+    hass.data = {'declan_local': {'debug_enabled': True}}
     learning.observe(hass, {'outcome': 'rejected', 'received_text': 'kitchen lanp off'})
     options = learning.suggestions(hass)[0]['options']
     assert options[0]['command'] == 'turn off kitchen lamp'
@@ -28,7 +28,7 @@ def test_inventory_choices_never_execute_or_include_hidden_lights():
 
 
 def test_voice_pair_is_reviewable_after_one_success_and_keeps_original_phrase():
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     learning.observe(hass, {'outcome': 'rejected', 'received_text': 'very lights off'})
     learning.observe(hass, {'outcome': 'completed', 'received_text': 'very lights off',
         'resolved_text': 'turn off fairy lights', 'transcript_corrections': ['voice correction']})
@@ -40,7 +40,7 @@ def test_voice_pair_is_reviewable_after_one_success_and_keeps_original_phrase():
 
 
 def test_natural_spoken_correction_requires_explicit_action():
-    from custom_components.jarvis_local.cross_corrections import corrected_followup
+    from custom_components.declan_local.cross_corrections import corrected_followup
     previous = {'outcome': 'rejected'}
     assert corrected_followup('no I meant fairy lights off', previous) == 'turn off fairy lights'
     with pytest.raises(ValueError):
@@ -50,7 +50,7 @@ def test_natural_spoken_correction_requires_explicit_action():
 
 def test_edited_known_light_can_be_taught_but_unsafe_targets_cannot(monkeypatch):
     hass = fixtures.Hass()
-    hass.data = {'jarvis_local': {'debug_enabled': True}}
+    hass.data = {'declan_local': {'debug_enabled': True}}
     learning.observe(hass, {'outcome': 'rejected', 'received_text': 'kitchen lanp off'})
     saved = []
     module = ModuleType('homeassistant.helpers.storage')
@@ -73,13 +73,13 @@ def test_agent_links_voice_correction_only_in_same_conversation():
     case = dialogue.Dialogue('test_other_conversation_cannot_answer')
     case.setUp()
     try:
-        case.hass.data = {'jarvis_local': {'debug_enabled': True}}
+        case.hass.data = {'declan_local': {'debug_enabled': True}}
         complete(case.agent.async_handle(dialogue.UserInput('kitchen lanp off', 'voice')))
         complete(case.agent.async_handle(dialogue.UserInput('no I meant turn off kitchen lamp', 'voice')))
         from jarvis_test.learning import suggestions
         pending = suggestions(case.hass)
         assert any(item.get('source') == 'voice' and item['heard'] == 'kitchen lanp off' for item in pending)
-        assert not case.hass.data['jarvis_local'].get('approved_aliases')
+        assert not case.hass.data['declan_local'].get('approved_aliases')
         complete(case.agent.async_handle(dialogue.UserInput('another garbled command', 'first')))
         complete(case.agent.async_handle(dialogue.UserInput('no I meant turn off kitchen lamp', 'second')))
         assert not any(item.get('source') == 'voice' and item['heard'] == 'another garbled command'
@@ -90,7 +90,7 @@ def test_agent_links_voice_correction_only_in_same_conversation():
 
 def test_dinner_time_can_be_taught_and_previewed_without_services():
     hass = fixtures.Hass()
-    hass.data = {'jarvis_local': {'debug_enabled': True}}
+    hass.data = {'declan_local': {'debug_enabled': True}}
     original_get = hass.states.get
     hass.states.get = lambda entity_id: (
         SimpleNamespace(state='off') if entity_id == 'script.dinner_time' else original_get(entity_id)

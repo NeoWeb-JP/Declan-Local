@@ -15,7 +15,7 @@ from .music_variety import choose_playlist, updated_history
 from .spotify_discovery import QUERIES, curate, credentials, search, uri
 
 _LOGGER = logging.getLogger(__name__)
-DOMAIN = "jarvis_local"
+DOMAIN = "declan_local"
 
 
 async def async_register(hass):

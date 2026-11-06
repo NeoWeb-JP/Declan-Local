@@ -7,7 +7,7 @@ DEFAULTS = {"region": "GB", "subscriptions": list(SUBSCRIPTIONS), "tmdb_token": 
 
 
 def current(hass):
-    return hass.data.get("jarvis_local", {}).get("media_search_config", DEFAULTS)
+    return hass.data.get("declan_local", {}).get("media_search_config", DEFAULTS)
 
 
 def public_config(hass):
@@ -49,5 +49,5 @@ async def save(hass, data):
     from homeassistant.helpers.storage import Store
     config = validate(data, current(hass))
     await Store(hass, 1, KEY).async_save(config)
-    hass.data.setdefault("jarvis_local", {})["media_search_config"] = config
+    hass.data.setdefault("declan_local", {})["media_search_config"] = config
     return public_config(hass)

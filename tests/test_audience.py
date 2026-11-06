@@ -8,7 +8,7 @@ import types
 import unittest
 from unittest.mock import AsyncMock, patch
 
-ROOT = Path(__file__).resolve().parents[1] / 'custom_components' / 'jarvis_local'
+ROOT = Path(__file__).resolve().parents[1] / 'custom_components' / 'declan_local'
 spec = importlib.util.spec_from_file_location('audience_policy_fixture', ROOT / 'audience.py')
 audience = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(audience)
@@ -21,7 +21,7 @@ def house(visitors='off', authority='off', quiet=None):
         settings['quiet_hours'] = 'input_boolean.quiet'
         values['input_boolean.quiet'] = quiet
     return types.SimpleNamespace(
-        data={'jarvis_local': {'settings': settings}},
+        data={'declan_local': {'settings': settings}},
         states=types.SimpleNamespace(get=lambda entity: types.SimpleNamespace(state=values[entity]) if entity in values and values[entity] is not None else None),
         services=types.SimpleNamespace(async_call=AsyncMock()),
     )
@@ -43,7 +43,7 @@ class AudienceTests(unittest.TestCase):
 
     def test_staying_signal_cannot_be_overridden_by_visitors_off(self):
         hass=house()
-        hass.data['jarvis_local']['settings']['guests_staying']='input_boolean.staying'
+        hass.data['declan_local']['settings']['guests_staying']='input_boolean.staying'
         original=hass.states.get
         for state in ('on','unknown','unavailable'):
             hass.states.get=lambda entity,state=state:types.SimpleNamespace(state=state) if entity=='input_boolean.staying' else original(entity)
@@ -63,7 +63,7 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
         package = types.ModuleType('persona_fixture')
         package.__path__ = [str(ROOT)]
         settings = types.ModuleType('persona_fixture.settings')
-        settings.get = lambda hass, key: hass.data['jarvis_local']['settings'].get(key)
+        settings.get = lambda hass, key: hass.data['declan_local']['settings'].get(key)
         errors = types.ModuleType('homeassistant.exceptions')
         errors.HomeAssistantError = type('HomeAssistantError', (Exception,), {})
         self.patcher = patch.dict(sys.modules, {'persona_fixture': package, 'persona_fixture.settings': settings,
@@ -95,7 +95,7 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
         self.hass = house(quiet='on')
         self.assertEqual(await self.module.confirmation(self.hass, None, 'Lights off.', 'off'), 'Lights off.')
         self.hass = house()
-        self.hass.data['jarvis_local']['settings']['personality_script'] = 'script.legacy'
+        self.hass.data['declan_local']['settings']['personality_script'] = 'script.legacy'
         self.hass.states = types.SimpleNamespace(get=lambda entity: types.SimpleNamespace(state='on'))
         self.hass.services.async_call.return_value = {'personality': 'Night', 'response': 'PRIVATE'}
         self.assertEqual(await self.module.confirmation(self.hass, None, 'Lights off.', 'off'), 'Lights off.')
@@ -103,7 +103,7 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
     async def test_legacy_home_choice_cannot_override_visitors(self):
         self.hass = house('on')
         original = self.hass.states.get
-        self.hass.data['jarvis_local']['settings']['personality_script'] = 'script.legacy'
+        self.hass.data['declan_local']['settings']['personality_script'] = 'script.legacy'
         self.hass.states.get = lambda entity: types.SimpleNamespace(state='on') if entity == 'script.legacy' else original(entity)
         self.hass.services.async_call.return_value = {'personality': 'Savage', 'response': 'PRIVATE'}
         line = await self.module.confirmation(self.hass, None, 'Done.', 'on')
@@ -119,7 +119,7 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(set(lines)), 4)
 
     async def test_visitors_arriving_during_phonetic_script_get_plain_reply(self):
-        self.hass.data['jarvis_local']['settings']['phonetic_script'] = 'script.phonetic'
+        self.hass.data['declan_local']['settings']['phonetic_script'] = 'script.phonetic'
         original = self.hass.states.get
         self.hass.states.get = lambda entity: types.SimpleNamespace(state='on') if entity == 'script.phonetic' else original(entity)
         async def convert(*args, **kwargs):

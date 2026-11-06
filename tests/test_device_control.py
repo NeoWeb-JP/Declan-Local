@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-root = Path(__file__).resolve().parents[1] / "custom_components" / "jarvis_local"
+root = Path(__file__).resolve().parents[1] / "custom_components" / "declan_local"
 pkg = types.ModuleType("jarvis_device_test")
 pkg.__path__ = [str(root)]
 sys.modules[pkg.__name__] = pkg

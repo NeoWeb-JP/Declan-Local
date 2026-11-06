@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from unittest.mock import Mock
 
-SOURCE = Path(__file__).resolve().parents[1] / "custom_components/jarvis_local/agent.py"
+SOURCE = Path(__file__).resolve().parents[1] / "custom_components/declan_local/agent.py"
 
 
 class HomeAssistantError(Exception):
@@ -40,7 +40,7 @@ def _run_handler(error):
         "HomeAssistantError": HomeAssistantError,
         "ValueError": ValueError,
         "err": error,
-        "step": {"name": "jarvis_local_good_morning"},
+        "step": {"name": "declan_local_good_morning"},
         "_LOGGER": logger,
         "replies": replies,
     }
@@ -55,7 +55,7 @@ def test_tuya_rejection_is_warning_without_replay():
     assert scope["failure"] == "The Tuya cloud rejected the command"
     logger.warning.assert_called_once()
     logger.exception.assert_not_called()
-    assert "jarvis_local_good_morning" in str(logger.warning.call_args)
+    assert "declan_local_good_morning" in str(logger.warning.call_args)
     assert "Check the devices before trying again" in replies[0]
 
 

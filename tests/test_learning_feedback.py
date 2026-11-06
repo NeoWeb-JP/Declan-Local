@@ -2,11 +2,11 @@
 import sys
 from types import SimpleNamespace, ModuleType
 from test_learning_storage import storage, complete
-from custom_components.jarvis_local import learning
+from custom_components.declan_local import learning
 
 
 def test_verified_success_failure_and_preview_feedback_survives_restart(storage):
-    hass = SimpleNamespace(data={'jarvis_local': {'approved_aliases': {'lanp off':'turn off kitchen lamp'}}})
+    hass = SimpleNamespace(data={'declan_local': {'approved_aliases': {'lanp off':'turn off kitchen lamp'}}})
     complete(learning.load_evidence(hass))
     record = {'received_text':'lanp off','resolved_text':'turn off kitchen lamp',
               'outcome':'completed','time':'2026-11-03T13:00:00+00:00','steps':[{'kind':'light'}]}
@@ -14,13 +14,13 @@ def test_verified_success_failure_and_preview_feedback_survives_restart(storage)
     learning.observe(hass, {**record,'preview':True})
     learning.observe(hass, {**record,'steps':[{'unverified':True}]})
     learning.observe(hass, {**record,'outcome':'failed'})
-    usage = hass.data['jarvis_local']['learning_usage']['lanp off']
+    usage = hass.data['declan_local']['learning_usage']['lanp off']
     assert usage['successes'] == usage['failures'] == 1
     assert usage['needs_review'] is True
     complete(learning.flush_evidence(hass))
     fresh = SimpleNamespace(data={})
     complete(learning.load_evidence(fresh))
-    assert fresh.data['jarvis_local']['learning_usage']['lanp off'] == usage
+    assert fresh.data['declan_local']['learning_usage']['lanp off'] == usage
     learning.observe(hass, record)
     assert usage['needs_review'] is False
 
@@ -32,7 +32,7 @@ def test_edit_and_undo_do_not_run_any_command(monkeypatch):
         async def async_save(self,value): pass
     module.Store=Store
     monkeypatch.setitem(sys.modules,module.__name__,module)
-    hass=SimpleNamespace(data={'jarvis_local':{'approved_aliases':{'lanp off':'turn off kitchen lights'}}})
+    hass=SimpleNamespace(data={'declan_local':{'approved_aliases':{'lanp off':'turn off kitchen lights'}}})
     complete(learning.review(hass,'lanp off','edit','turn off fairy lights'))
     assert learning.resolve_alias(hass,'lanp off') == 'turn off fairy lights'
     complete(learning.review(hass,'lanp off','remove'))

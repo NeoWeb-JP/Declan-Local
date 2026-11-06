@@ -13,8 +13,8 @@ from jarvis_test.voice_text import spoken_text
 ROOT=Path(__file__).resolve().parents[1]
 
 class Branding(unittest.TestCase):
-    def test_public_names_agree_and_registration_stays_legacy(self):
-        folder=ROOT/'custom_components'/'jarvis_local'
+    def test_public_names_agree_and_domain_matches_package(self):
+        folder=ROOT/'custom_components'/'declan_local'
         manifest=json.loads((folder/'manifest.json').read_text())
         strings=json.loads((folder/'strings.json').read_text())
         english=json.loads((folder/'translations'/'en.json').read_text())
@@ -22,7 +22,7 @@ class Branding(unittest.TestCase):
         self.assertEqual(manifest['name'],hacs['name'])
         self.assertEqual(strings['title'],manifest['name'])
         self.assertEqual(english,strings)
-        self.assertEqual(manifest['domain'],'jarvis_local')
+        self.assertEqual(manifest['domain'],'declan_local')
         self.assertEqual(agent.JarvisAgent._attr_name,'Declan')
         self.assertEqual(agent.JarvisAgent._attr_unique_id,'jarvis_local_test')
 
@@ -41,7 +41,7 @@ class Branding(unittest.TestCase):
         self.assertEqual(spoken_text('Eddie / person.edd / edd_key'),'Eddie / person.edd / edd_key')
 
     def test_guest_catalogue_is_impersonal_and_home_bedtime_stays_downstairs(self):
-        catalogue=json.loads((ROOT/'custom_components'/'jarvis_local'/'responses.json').read_text())
+        catalogue=json.loads((ROOT/'custom_components'/'declan_local'/'responses.json').read_text())
         self.assertEqual(set(catalogue),{'Home','Guest'})
         guest=' '.join(line for pool in catalogue['Guest'].values() for line in pool).lower()
         for private in ('jaco','edd','naturist','clothing','in bed'):

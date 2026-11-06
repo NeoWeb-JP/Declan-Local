@@ -9,13 +9,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.jarvis_local.frigate_faces import FaceResult
+from custom_components.declan_local.frigate_faces import FaceResult
 
 
 @pytest.mark.parametrize("failure", [None, "snapshot", "recognition", "timeout", "cancelled"])
 def test_private_diagnostics_and_cleanup(tmp_path, monkeypatch, caplog, failure):
     # Isolate HA routing imports; exercise the real orchestration and filesystem.
-    stub = ModuleType("custom_components.jarvis_local.show_cameras")
+    stub = ModuleType("custom_components.declan_local.show_cameras")
     stub.camera_for_satellite = lambda *args: object()
     destination = None
 
@@ -29,8 +29,8 @@ def test_private_diagnostics_and_cleanup(tmp_path, monkeypatch, caplog, failure)
 
     stub.capture = capture
     monkeypatch.setitem(sys.modules, stub.__name__, stub)
-    path = Path(__file__).parents[1] / "custom_components/jarvis_local/visual_observation.py"
-    spec = importlib.util.spec_from_file_location("custom_components.jarvis_local._visual_test", path)
+    path = Path(__file__).parents[1] / "custom_components/declan_local/visual_observation.py"
+    spec = importlib.util.spec_from_file_location("custom_components.declan_local._visual_test", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     error = {"recognition": RuntimeError("secret-token"), "timeout": TimeoutError(), "cancelled": asyncio.CancelledError()}.get(failure)
@@ -57,7 +57,7 @@ def test_private_diagnostics_and_cleanup(tmp_path, monkeypatch, caplog, failure)
 
 def test_pipeline_does_not_import_identity_or_permission_modules():
     import ast
-    path = Path(__file__).parents[1] / "custom_components/jarvis_local/visual_observation.py"
+    path = Path(__file__).parents[1] / "custom_components/declan_local/visual_observation.py"
     tree = ast.parse(path.read_text())
     imports = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
     assert not imports.intersection({"speaker_identity", "conversation_memory", "guest_authority"})

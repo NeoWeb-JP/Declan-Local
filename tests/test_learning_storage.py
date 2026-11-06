@@ -3,7 +3,7 @@ import json
 import sys
 from types import SimpleNamespace, ModuleType
 import pytest
-from custom_components.jarvis_local.learning import (
+from custom_components.declan_local.learning import (
     load_evidence, flush_evidence, observe, suggestions, resolve_alias)
 
 
@@ -39,12 +39,12 @@ def storage(monkeypatch, tmp_path):
 
 
 def test_restart_restores_waiting_and_review_decisions(storage):
-    first = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    first = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     complete(load_evidence(first))
     for heard in ('waiting command', 'approved command', 'rejected command'):
         observe(first, {'outcome': 'failed', 'received_text': heard})
     complete(flush_evidence(first))
-    restarted = SimpleNamespace(data={'jarvis_local': {
+    restarted = SimpleNamespace(data={'declan_local': {
         'debug_enabled': False,
         'approved_aliases': {'approved command': 'turn off fairy lights'},
         'rejected_aliases': ['rejected command']}})
@@ -53,20 +53,20 @@ def test_restart_restores_waiting_and_review_decisions(storage):
     assert resolve_alias(restarted, 'waiting command') == 'waiting command'
     assert resolve_alias(restarted, 'approved command') == 'turn off fairy lights'
     observe(restarted, {'outcome': 'failed', 'received_text': 'not collected'})
-    assert len(restarted.data['jarvis_local']['learning_evidence']) == 3
+    assert len(restarted.data['declan_local']['learning_evidence']) == 3
 
 
 def test_delayed_callback_uses_latest_bounded_evidence(storage):
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     complete(load_evidence(hass))
     for i in range(50):
         observe(hass, {'outcome': 'rejected', 'received_text': f'command {i}'})
-    store = hass.data['jarvis_local']['learning_evidence_store']
+    store = hass.data['declan_local']['learning_evidence_store']
     complete(store.async_save(store.pending()))
     fresh = SimpleNamespace(data={})
     complete(load_evidence(fresh))
     assert len(suggestions(fresh)) == 40
-    assert fresh.data['jarvis_local']['learning_evidence'][0]['heard'] == 'command 10'
+    assert fresh.data['declan_local']['learning_evidence'][0]['heard'] == 'command 10'
 
 
 @pytest.mark.parametrize('saved', [None, [], {'examples': 'bad'},
@@ -86,10 +86,10 @@ def test_corrupt_json_does_not_prevent_startup(storage):
 
 
 def test_previews_and_disabled_collection_do_not_schedule_writes(storage):
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': False}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': False}})
     complete(load_evidence(hass))
     observe(hass, {'outcome': 'failed', 'received_text': 'private command'})
-    hass.data['jarvis_local']['debug_enabled'] = True
+    hass.data['declan_local']['debug_enabled'] = True
     observe(hass, {'outcome': 'failed', 'received_text': 'preview command', 'preview': True})
-    assert hass.data['jarvis_local']['learning_evidence_store'].pending is None
+    assert hass.data['declan_local']['learning_evidence_store'].pending is None
 

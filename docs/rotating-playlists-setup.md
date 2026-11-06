@@ -15,7 +15,7 @@ Example (replace every placeholder with a real Spotify playlist URI):
 After deploying the integration and restarting HA, test the new service:
 
 ```yaml
-action: jarvis_local.play_music_category
+action: declan_local.play_music_category
 data:
   category: country
   room: everywhere
@@ -35,7 +35,7 @@ For the existing `declan_sexy_time` Home Assistant script, replace ONLY its
 music playback action with:
 
 ```yaml
-- action: jarvis_local.play_music_category
+- action: declan_local.play_music_category
   data:
     category: sexy_time
     room: bedroom

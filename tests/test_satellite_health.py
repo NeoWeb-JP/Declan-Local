@@ -6,7 +6,7 @@ from pathlib import Path
 import types
 import unittest
 
-ROOT = Path(__file__).resolve().parents[1] / 'custom_components' / 'jarvis_local'
+ROOT = Path(__file__).resolve().parents[1] / 'custom_components' / 'declan_local'
 spec = importlib.util.spec_from_file_location('satellite_health_under_test', ROOT / 'satellite_health.py')
 health = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(health)
@@ -20,7 +20,7 @@ class MappingHealth(unittest.TestCase):
         self.settings = {'satellite_media_players': {
             'assist_satellite.bedroom': 'media_player.bedroom'}}
         self.hass = types.SimpleNamespace(
-            data={'jarvis_local': {'settings': self.settings}},
+            data={'declan_local': {'settings': self.settings}},
             states=types.SimpleNamespace(get=self.entities.get))
         # Any mutation or service call would fail: these interfaces are absent.
 

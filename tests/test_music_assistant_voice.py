@@ -1,7 +1,7 @@
 """Focused tests for explicit-room Music Assistant requests."""
 import pytest
 from types import SimpleNamespace
-from custom_components.jarvis_local.music_assistant_voice import plan_music
+from custom_components.declan_local.music_assistant_voice import plan_music
 
 class States:
     def get(self, entity_id):

@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import AsyncMock, patch
 from test_media_search import adapters, config, media, complete
 
-ROOT = Path(__file__).resolve().parents[1] / "custom_components" / "jarvis_local"
+ROOT = Path(__file__).resolve().parents[1] / "custom_components" / "declan_local"
 
 
 def load_endpoint(name, namespace):
@@ -22,7 +22,7 @@ def load_endpoint(name, namespace):
 
 class MediaAPI(unittest.TestCase):
     def setUp(self):
-        self.hass = types.SimpleNamespace(data={"jarvis_local": {}})
+        self.hass = types.SimpleNamespace(data={"declan_local": {}})
         self.results, self.errors = [], []
         self.connection = types.SimpleNamespace(
             send_result=lambda *args: self.results.append(args),
@@ -37,7 +37,7 @@ class MediaAPI(unittest.TestCase):
         request = self.run.await_args.args[1]
         self.assertEqual(request["query"], "Example")
         self.assertEqual(request["kind"], "media_search")
-        self.assertFalse(self.hass.data["jarvis_local"]["media_search_busy"])
+        self.assertFalse(self.hass.data["declan_local"]["media_search_busy"])
         self.assertEqual(self.results[0][0], 1)
 
     def test_blank_oversized_and_device_clauses_run_nothing(self):
@@ -48,15 +48,15 @@ class MediaAPI(unittest.TestCase):
         self.assertEqual(self.results, [])
 
     def test_busy_request_does_not_reset_another_search(self):
-        self.hass.data["jarvis_local"]["media_search_busy"] = True
+        self.hass.data["declan_local"]["media_search_busy"] = True
         complete(self.search(self.hass, self.connection, {"id": 1, "query": "Example"}))
         self.run.assert_not_awaited()
-        self.assertTrue(self.hass.data["jarvis_local"]["media_search_busy"])
+        self.assertTrue(self.hass.data["declan_local"]["media_search_busy"])
         self.assertEqual(self.errors[0][1], "busy")
 
     def test_public_info_contains_no_catalogue_token(self):
         token = "private_test_token_1234567890"
-        self.hass.data["jarvis_local"]["media_search_config"] = config.validate({"tmdb_token": token})
+        self.hass.data["declan_local"]["media_search_config"] = config.validate({"tmdb_token": token})
         info = load_endpoint("info", {
             "ar": types.SimpleNamespace(async_get=lambda hass: types.SimpleNamespace(async_list_areas=lambda: [])),
             "public_profiles": lambda value: {}, "public_media_search": config.public_config})

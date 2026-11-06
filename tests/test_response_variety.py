@@ -7,7 +7,7 @@ from test_context_personality_batch import home
 
 
 def test_each_catalogue_and_context_pool_has_five_unique_responses():
-    path=Path(__file__).resolve().parents[1]/'custom_components/jarvis_local/responses.json'
+    path=Path(__file__).resolve().parents[1]/'custom_components/declan_local/responses.json'
     catalog=json.loads(path.read_text(encoding='utf-8'))
     for mode,pools in catalog.items():
         for context,lines in pools.items():assert len(set(lines))>=5,(mode,context)

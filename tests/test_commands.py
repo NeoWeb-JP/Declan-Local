@@ -4,7 +4,7 @@ import types
 import unittest
 from pathlib import Path
 
-root = Path(__file__).resolve().parents[1] / 'custom_components' / 'jarvis_local'
+root = Path(__file__).resolve().parents[1] / 'custom_components' / 'declan_local'
 pkg=types.ModuleType('jarvis_test');pkg.__path__=[str(root)];sys.modules['jarvis_test']=pkg
 for name in ['homeassistant','homeassistant.helpers','homeassistant.components','homeassistant.components.homeassistant']:
     module=types.ModuleType(name);module.__path__=[];sys.modules[name]=module
@@ -72,7 +72,7 @@ class Commands(unittest.TestCase):
         with self.assertRaises(ValueError):plan(self.hass,'turn office and missing light on')
     def test_voice_comma_correction_validates_every_target(self):
         from jarvis_test.transcript import correct
-        self.hass.data={'jarvis_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
+        self.hass.data={'declan_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
         self.hass.states.values['switch.queen']=State('switch.queen','Queen Lamp')
         corrected,changes=correct(self.hass,'Queen, lamp and office off.')
         self.assertEqual(corrected,'queen lamp and office off')
@@ -83,7 +83,7 @@ class Commands(unittest.TestCase):
         self.assertEqual(followup('turn them off again.'),('turn off __previous_lights__',False))
     def test_voice_of_correction_requires_both_targets(self):
         from jarvis_test.transcript import correct
-        self.hass.data={'jarvis_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
+        self.hass.data={'declan_local':{'settings':{'switch_lights':{'queen lamp':'switch.queen'}}}}
         self.hass.states.values['switch.queen']=State('switch.queen','Queen Lamp')
         corrected,changes=correct(self.hass,'Office and Queen Lamp of.')
         self.assertEqual(corrected,'office and queen lamp off')
@@ -94,7 +94,7 @@ class Commands(unittest.TestCase):
         self.assertEqual(followup('turn them back on.'),('turn on __previous_lights__',False))
     def test_briefing_configured_and_unavailable(self):
         from jarvis_test.status import answer
-        self.hass.data={'jarvis_local':{'settings':{'weather':'weather.home','car_battery_sensor':'sensor.car'}}}
+        self.hass.data={'declan_local':{'settings':{'weather':'weather.home','car_battery_sensor':'sensor.car'}}}
         self.hass.states.values['weather.home']=State('weather.home','Weather','sunny')
         self.hass.states.values['weather.home'].attributes={'temperature':15,'temperature_unit':'°C'}
         self.hass.states.values['sensor.car']=State('sensor.car','Car','unavailable')
@@ -174,7 +174,7 @@ class Commands(unittest.TestCase):
         from jarvis_test.status import answer
         from unittest.mock import patch
         from datetime import datetime
-        self.hass.data={'jarvis_local':{'settings':{'thermostat':'climate.home','weather':'weather.home'}}}
+        self.hass.data={'declan_local':{'settings':{'thermostat':'climate.home','weather':'weather.home'}}}
         self.hass.config=types.SimpleNamespace(units=types.SimpleNamespace(temperature_unit='°C'))
         indoor=State('climate.home','Heating','heat')
         indoor.attributes={'temperature':23,'current_temperature':19.5,'temperature_unit':'°C'}
