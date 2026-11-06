@@ -82,7 +82,8 @@ class InstalledVersion(unittest.TestCase):
                 config_entries=types.SimpleNamespace(async_forward_entry_setups=AsyncMock()))
             entry = types.SimpleNamespace(
                 async_on_unload=lambda callback: None,
-                add_update_listener=lambda callback: lambda: None,\n            )
+                add_update_listener=lambda callback: lambda: None,
+            )
             setup = function(ROOT / '__init__.py', 'async_setup_entry', {
                 '__package__': 'version_test_pkg', 'DOMAIN': 'jarvis_local',
                 'Path': Path, 'quote': quote, 'read_version': version.read_version,
