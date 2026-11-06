@@ -1,5 +1,5 @@
 """Timer STT regression: exact duration-bearing mishearing only."""
-from custom_components.jarvis_local.timers import parse
+from custom_components.declan_local.timers import parse
 
 def test_time_off_timer_stt():
     assert parse('Set me a time off for 15 minutes.') == {
