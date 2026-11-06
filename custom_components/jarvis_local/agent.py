@@ -285,7 +285,7 @@ class JarvisAgent(conversation.ConversationEntity):
                 and not cross_corrected
                 and str(err).startswith('I did not understand "')
                 and str(err).endswith('Try "help" for supported requests.')
-                and not re.search(r'\\s+(?:and then|then|and)\\s+|;', original_text, re.I)
+                and not re.search(r'\s+(?:and then|then|and)\s+|;', original_text, re.I)
             ):
                 from .ha_conversation_fallback import delegate_unmatched
                 # STT corrections and planner normalisation must not alter the
