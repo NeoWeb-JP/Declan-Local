@@ -173,3 +173,26 @@ def plan_music_blacklist(hass, text, area=None):
     operation = "ban" if raw in ban else "unban"
     return {"kind": "music_blacklist", "operation": operation, "entity_id": entity,
             "label": operation + " the current song for the household"}
+
+def plan_playlist_preference(hass, text, area=None):
+    """Only rate a playlist when its actual Spotify URI is known."""
+    raw = text.lower().strip().rstrip(" .!?")
+    actions = {
+        "i like this playlist": "like",
+        "i love this playlist": "like",
+        "play this playlist more often": "like",
+        "this is my favourite playlist": "like",
+        "i don't like this playlist": "dislike",
+        "play this playlist less often": "dislike",
+        "forget my playlist preference": "reset",
+    }
+    operation = actions.get(raw)
+    if operation is None:
+        return None
+    room, entity, state = _player(hass, None, area)
+    attrs = getattr(state, "attributes", {})
+    playlist = attrs.get("media_playlist_uri") or attrs.get("playlist_uri")
+    if not isinstance(playlist, str) or not re.fullmatch(r"spotify:playlist:[A-Za-z0-9]{22}", playlist):
+        raise ValueError("I cannot identify the current Spotify playlist. Nothing was changed.")
+    return {"kind": "playlist_preference", "playlist": playlist, "operation": operation,
+            "label": operation + " household preference for " + playlist}
