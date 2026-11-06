@@ -19,13 +19,12 @@ async def delegate_unmatched(hass, user_input, text):
     the native conversation-trigger response. Do not synthesise an
     acknowledgement: the native response is authoritative.
     """
-    try:
-        result = await conversation.async_converse(
+    # Declan accepts English broadly, but HA sentence/automation intents are\n    # registered under the configured HA locale (for example en-GB).\n    native_language = getattr(getattr(hass, "config", None), "language", None) or user_input.language\n    try:\n        result = await conversation.async_converse(
             hass,
             text,
             user_input.conversation_id,
             user_input.context,
-            language=user_input.language,
+            language=native_language,
             agent_id=BUILTIN_AGENT,
             device_id=getattr(user_input, "device_id", None),
         )
@@ -38,6 +37,6 @@ async def delegate_unmatched(hass, user_input, text):
     # may represent it as a string. Only return a confirmed success.
     response_type = getattr(response, "response_type", None)
     if getattr(response_type, "value", response_type) != "action_done":
-        _LOGGER.warning("Native HA conversation did not handle automation request (response_type=%s)", response_type)
+        _LOGGER.warning("Native HA conversation did not handle automation request (response_type=%s, language=%s, error=%s)", response_type, native_language, getattr(response, "error_code", None))
         return None
     return result
