@@ -1,0 +1,45 @@
+play_music_category:
+  name: Play music category
+  description: Play a configured Spotify playlist category through Music Assistant.
+  fields:
+    category:
+      name: Category
+      description: Configured music category such as rock or afrikaans.
+      required: true
+      selector:
+        text:
+    room:
+      name: Room
+      description: Target playback room; defaults to everywhere.
+      required: false
+      selector:
+        text:
+
+refresh_music_categories:
+  name: Refresh music categories
+  description: Refresh discovered Spotify playlists for configured categories.
+
+manage_music_playlist:
+  name: Manage music playlist
+  description: Add a playlist to favourites, exclude it, or remove it from a category.
+  fields:
+    category:
+      name: Category
+      required: true
+      selector:
+        text:
+    playlist:
+      name: Playlist
+      description: Spotify playlist URI.
+      required: true
+      selector:
+        text:
+    operation:
+      name: Operation
+      required: true
+      selector:
+        select:
+          options:
+            - favourite
+            - exclude
+            - remove
