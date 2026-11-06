@@ -316,8 +316,6 @@ class JarvisAgent(conversation.ConversationEntity):
                 # Retry with the same context; never infer voice recovery from chat.
                 from dataclasses import replace
                 return await self.async_handle(replace(user_input, text=recovered),area_override)
-            speech = str(err)
-            failure=str(err)
         else:
             if preview:
                 outcome='preview'
