@@ -54,6 +54,19 @@ class ConversationTriggerFallback(Dialogue):
             converse.assert_not_awaited()
             self.assertEqual(self.hass.services.calls, [])
 
+    async def test_mixed_compound_never_delegates_or_executes(self):
+        for phrase in (
+            "turn office off then frobnicate",
+            "turn office off; give me a house status",
+            "turn office off and give me a house status",
+        ):
+            with self.subTest(phrase=phrase):
+                self.hass.services.calls.clear()
+                with patch.object(module.conversation, "async_converse", new_callable=AsyncMock, create=True) as converse:
+                    await self.agent.async_handle(UserInput(phrase))
+                    converse.assert_not_awaited()
+                    self.assertEqual(self.hass.services.calls, [])
+
     async def test_preview_never_delegates(self):
         with patch.object(module.conversation, "async_converse", new_callable=AsyncMock, create=True) as converse:
             await self.agent.async_handle(UserInput("preview give me a house status"))
