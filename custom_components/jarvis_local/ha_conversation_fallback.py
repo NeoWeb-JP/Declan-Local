@@ -38,5 +38,6 @@ async def delegate_unmatched(hass, user_input, text):
     # may represent it as a string. Only return a confirmed success.
     response_type = getattr(response, "response_type", None)
     if getattr(response_type, "value", response_type) != "action_done":
+        _LOGGER.warning("Native HA conversation did not handle automation request (response_type=%s)", response_type)
         return None
     return result
