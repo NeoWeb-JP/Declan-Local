@@ -34,5 +34,7 @@ Make local speech recognition the default for Declan, while retaining optional O
 - Input JSON is an array of objects: `{"reference":"turn on fairy lights","hypothesis":"turn on ferry lights","room":"kitchen","command_success":false}`.
 - Metrics report per-room and overall word error rate (WER), plus separately measured command success rate.
 - Only use consented, reviewed transcript pairs; do not collect audio automatically.
-- Next: identify and benchmark a Wyoming faster-whisper host, then implement opt-in correction review and local vocabulary.
+- Added optional Wyoming faster-whisper Docker Compose template and isolated test-pipeline setup notes under `deploy/wyoming-faster-whisper/` (not deployed or benchmarked).
+- Added offline opt-in correction review: `python tools/stt_review.py reviewed.jsonl approved.json`; each JSONL record requires `reference`, `hypothesis`, `reviewed` and `consent`. Only explicitly consented and reviewed pairs are exported.
+- Next: benchmark a dedicated Wyoming host, add reviewed HA-friendly-name vocabulary and correction UI, and test end-to-end latency.
 - Keep the existing STT pipeline and Home Assistant deployment unchanged until explicit approval.
