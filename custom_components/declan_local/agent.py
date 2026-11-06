@@ -86,10 +86,10 @@ class JarvisAgent(conversation.ConversationEntity):
         corrections=[]
         self_corrected=False
         command_text=user_input.text
-        cfg=self.hass.data.get('jarvis_local',{}).get('voice_id_config',{})
+        cfg=self.hass.data.get('declan_local',{}).get('voice_id_config',{})
         voice_profile=bridge_profile(command_text,cfg.get('profiles',{}))
         if command_text.startswith('JVS1.'):
-            cfg=self.hass.data.get('jarvis_local',{}).get('voice_id_config',{})
+            cfg=self.hass.data.get('declan_local',{}).get('voice_id_config',{})
             command_text,voice_profile=unwrap(command_text,cfg.get('secret'),cfg.get('profiles',{}),self._voice_markers)
             if not command_text:command_text=''
         memory_key=context_key(user_input,conversation_id,voice_profile,area_override)
@@ -104,7 +104,7 @@ class JarvisAgent(conversation.ConversationEntity):
                 speech = 'I heard: ' + previous['heard'] + '. I understood: ' + (previous['resolved'] or 'no supported command') + '. Result: ' + previous['outcome'] + '.'
             else:
                 speech = 'I do not have a recent request in this conversation to repeat.'
-            result.async_set_speech(speech, extra_data={'jarvis_local': {'trackable': False}})
+            result.async_set_speech(speech, extra_data={'declan_local': {'trackable': False}})
             return conversation.ConversationResult(response=result, conversation_id=conversation_id, continue_conversation=False)
         self._repair_turns={k:v for k,v in getattr(self,'_repair_turns',{}).items() if now-v['at']<90}
         repair_used=self._repair_turns.pop(memory_key,None)
@@ -153,7 +153,7 @@ class JarvisAgent(conversation.ConversationEntity):
             stop_report = await stop_player(self.hass, user_input)
             # Match the existing opt-in, bounded diagnostics history. Never speak
             # routing failures or claim that playback or barge-in was verified.
-            if self.hass.data.get('jarvis_local', {}).get('debug_enabled', False):
+            if self.hass.data.get('declan_local', {}).get('debug_enabled', False):
                 record = {
                     'time': datetime.now(timezone.utc).isoformat(),
                     'received_text': original_text, 'resolved_text': command_text,
@@ -169,12 +169,12 @@ class JarvisAgent(conversation.ConversationEntity):
                     'stop': stop_report, 'response': '',
                     'elapsed_ms': round((perf_counter() - start) * 1000),
                 }
-                history = self.hass.data['jarvis_local'].setdefault('diagnostics', [])
+                history = self.hass.data['declan_local'].setdefault('diagnostics', [])
                 history.append(record)
                 del history[:-20]
             self._last_requests[memory_key] = {'at': monotonic(), 'heard': original_text[:200],
                 'resolved': 'stop satellite audio', 'outcome': stop_report['outcome']}
-            result.async_set_speech('', extra_data={'jarvis_local': {'trackable': False}})
+            result.async_set_speech('', extra_data={'declan_local': {'trackable': False}})
             return conversation.ConversationResult(
                 response=result, conversation_id=conversation_id,
                 continue_conversation=False)
@@ -195,7 +195,7 @@ class JarvisAgent(conversation.ConversationEntity):
             timer_request=None if stop_requested else parse_timer(command_text)
             pending=self._pending_clarifications.get(memory_key) if not request_preview else None
             resolution,entity_id=clarification_resolve(pending,command_text) if pending else (None,None)
-            social = social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data.setdefault('jarvis_local',{}).setdefault('social_history',{})) if not pending else None
+            social = social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data.setdefault('declan_local',{}).setdefault('social_history',{})) if not pending else None
             if information_request is not None:
                 if not request_preview:
                     self._pending_clarifications.pop(memory_key,None)
@@ -346,11 +346,11 @@ class JarvisAgent(conversation.ConversationEntity):
                                 replies.append(media_report['response'])
                                 continue
                             if step['kind'] == 'timer':
-                                replies.append(await self.hass.data['jarvis_local']['timers'].handle(getattr(user_input,'satellite_id',None),step['data']))
+                                replies.append(await self.hass.data['declan_local']['timers'].handle(getattr(user_input,'satellite_id',None),step['data']))
                                 continue
                             if step['kind'] == 'text':
                                 if step.get('label') == 'answer greeting':
-                                    replies.append(social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data['jarvis_local']['social_history']))
+                                    replies.append(social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data['declan_local']['social_history']))
                                 else:
                                     replies.append(step['response'])
                                 continue
@@ -409,7 +409,7 @@ class JarvisAgent(conversation.ConversationEntity):
                                         self.hass, user_input.context, fallback, action=action))
                                 continue
                             if step['kind'] == 'guest':
-                                controller=self.hass.data['jarvis_local'].get('guest_authority')
+                                controller=self.hass.data['declan_local'].get('guest_authority')
                                 if controller is None:
                                     raise ValueError('Guest handover controller is unavailable')
                                 replies.append(await controller.command(step['data'],user_input.context))
@@ -421,7 +421,7 @@ class JarvisAgent(conversation.ConversationEntity):
                                 continue
                             if step['kind'] == 'music_category':
                                 await self.hass.services.async_call(
-                                    'jarvis_local', 'play_music_category',
+                                    'declan_local', 'play_music_category',
                                     {'category': step['category'], 'room': step['room']},
                                     blocking=True, context=user_input.context)
                                 replies.append('Playing a different ' + step['category'] + ' playlist in ' + step['room'] + '.')
@@ -457,14 +457,14 @@ class JarvisAgent(conversation.ConversationEntity):
                                 return_response=True, context=user_input.context)
                             if step.get('kind')=='action' or (reply or {}).get('response'):
                                 routine_reply=(reply or {}).get('response') or 'Routine request sent.'
-                                if step['name']!='jarvis_local_good_morning':
-                                    action='bedtime' if step['name']=='jarvis_local_good_night' else 'movie' if step['data'].get('requested_action')=='start' else 'general'
+                                if step['name']!='declan_local_good_morning':
+                                    action='bedtime' if step['name']=='declan_local_good_night' else 'movie' if step['data'].get('requested_action')=='start' else 'general'
                                     routine_reply=await confirmation(self.hass,user_input.context,'Routine request sent.',action=action)
-                                if step['name']=='jarvis_local_good_morning':
+                                if step['name']=='declan_local_good_morning':
                                     if audience_mode(self.hass) == 'Guest' or plain_responses(self.hass):
                                         routine_reply=await confirmation(self.hass,user_input.context,'Good morning. The morning routine is underway.',action='morning')
                                     else:
-                                        routine_reply=morning_reply(voice_profile, cfg.get('profiles', {}), self.hass.data.setdefault('jarvis_local', {}).setdefault('morning_history', {}))
+                                        routine_reply=morning_reply(voice_profile, cfg.get('profiles', {}), self.hass.data.setdefault('declan_local', {}).setdefault('morning_history', {}))
                                 replies.append(routine_reply)
                     except (HomeAssistantError, ValueError) as err:
                         outcome='failed'
@@ -527,8 +527,8 @@ class JarvisAgent(conversation.ConversationEntity):
             'recognition':recognition_diagnostic(original_text,resolved_text,corrections,outcome,failure,
                 getattr(user_input,'satellite_id',None)),
         }
-        if self.hass.data.setdefault('jarvis_local',{}).get('debug_enabled',False):
-            history=self.hass.data['jarvis_local'].setdefault('diagnostics',[])
+        if self.hass.data.setdefault('declan_local',{}).get('debug_enabled',False):
+            history=self.hass.data['declan_local'].setdefault('diagnostics',[])
             history.append(record)
             del history[:-20]
         self._last_requests[memory_key] = {'at': monotonic(), 'heard': original_text[:200],
@@ -539,7 +539,7 @@ class JarvisAgent(conversation.ConversationEntity):
         if cross_corrected and previous_failure and previous_failure.get('heard') and outcome == 'completed' and not preview:
             observe_learning(self.hass, {**record, 'received_text': previous_failure['heard'],
                 'resolved_text': command_text, 'transcript_corrections': ['voice correction']})
-            if self.hass.data['jarvis_local'].get('debug_enabled', False):
+            if self.hass.data['declan_local'].get('debug_enabled', False):
                 speech += ' I have saved that correction for review in Declan learning.'
         trackable = (outcome == 'completed' and not preview and not continue_conversation
                      and bool(steps) and all(step.get('kind') in {'light', 'switch_light', 'brightness', 'media_control', 'music', 'music_assistant_play', 'action', 'status', 'information'}
@@ -547,6 +547,6 @@ class JarvisAgent(conversation.ConversationEntity):
         metadata={'trackable':trackable}
         if media_report is not None:
             metadata['media_search']=media_report
-        result.async_set_speech(speech, extra_data={'jarvis_local': metadata})
+        result.async_set_speech(speech, extra_data={'declan_local': metadata})
         _LOGGER.debug('Declan local processing: %.0f ms', (perf_counter()-start)*1000)
         return conversation.ConversationResult(response=result, conversation_id=conversation_id, continue_conversation=continue_conversation)

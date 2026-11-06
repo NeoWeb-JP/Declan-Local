@@ -21,7 +21,7 @@ async def stop_player(hass, user_input):
     satellite = getattr(user_input, 'satellite_id', None)
     if not satellite:
         return report
-    mappings = hass.data.get('jarvis_local', {}).get('settings', {}).get(
+    mappings = hass.data.get('declan_local', {}).get('settings', {}).get(
         'satellite_media_players', {})
     report['reason'] = 'invalid_mapping'
     if not isinstance(mappings, dict):

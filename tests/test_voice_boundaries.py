@@ -38,7 +38,7 @@ class VoiceBoundaries(unittest.TestCase):
         self.aliases = {}
         self.hass = SimpleNamespace(states=SimpleNamespace(get=lambda entity: SimpleNamespace(name=self.ids[entity])))
         with patch.dict(sys.modules, modules):
-            spec = importlib.util.spec_from_file_location(package+'.transcript', ROOT/'custom_components/jarvis_local/transcript.py')
+            spec = importlib.util.spec_from_file_location(package+'.transcript', ROOT/'custom_components/declan_local/transcript.py')
             self.module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(self.module)
         self.modules = modules

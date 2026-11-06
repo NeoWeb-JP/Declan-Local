@@ -15,9 +15,9 @@ from .understanding import normalize_request
 from .media_search import parse_search
 
 LABELS = {
-    'jarvis_local_good_morning': 'run the morning routine',
-    'jarvis_local_good_night': 'run the bedtime routine and announce in the bedroom',
-    'jarvis_local_movie': 'request movie mode',
+    'declan_local_good_morning': 'run the morning routine',
+    'declan_local_good_night': 'run the bedtime routine and announce in the bedroom',
+    'declan_local_movie': 'request movie mode',
 }
 
 def plan(hass, text, area=None):

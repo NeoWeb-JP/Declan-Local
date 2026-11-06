@@ -35,7 +35,7 @@ class ConversationTriggerFallback(Dialogue):
                     self.assertEqual(self.hass.services.calls, [])
 
     async def test_native_agent_uses_home_assistant_locale(self):
-        self.hass.config.language = "en-GB"
+        self.hass.config = types.SimpleNamespace(language="en-GB")
         native = types.SimpleNamespace(
             response=types.SimpleNamespace(response_type="action_done"),
             conversation_id="one", continue_conversation=False,

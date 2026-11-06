@@ -42,7 +42,7 @@ def choose(hass, mode, action, catalog):
     pool = list(dict.fromkeys(list(catalog[mode].get(action, [])) + extras))
     if not pool:
         return None
-    history = hass.data.setdefault('jarvis_local', {}).setdefault('reply_history', {}).setdefault(
+    history = hass.data.setdefault('declan_local', {}).setdefault('reply_history', {}).setdefault(
         (mode, action), deque(maxlen=3))
     available = [line for line in pool if line not in history] or pool
     line = random.choice(available)
@@ -127,7 +127,7 @@ def contextual_reply(hass, reason, kind):
     pool = CONTEXT_LINES.get(mode, {}).get(kind, [])
     if not pool:
         return reason
-    history = hass.data.setdefault('jarvis_local', {}).setdefault('reply_history', {}).setdefault(
+    history = hass.data.setdefault('declan_local', {}).setdefault('reply_history', {}).setdefault(
         (mode, 'context_' + kind), deque(maxlen=1))
     line = random.choice([text for text in pool if text not in history] or pool)
     history.append(line)

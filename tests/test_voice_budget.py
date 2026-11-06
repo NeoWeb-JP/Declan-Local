@@ -5,7 +5,7 @@ import importlib.util
 from pathlib import Path
 import unittest
 
-spec=importlib.util.spec_from_file_location('voice_budget_fixture',Path(__file__).resolve().parents[1]/'custom_components'/'jarvis_local'/'voice_budget.py')
+spec=importlib.util.spec_from_file_location('voice_budget_fixture',Path(__file__).resolve().parents[1]/'custom_components'/'declan_local'/'voice_budget.py')
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 
 class Store:

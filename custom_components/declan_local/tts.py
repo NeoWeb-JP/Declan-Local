@@ -26,18 +26,18 @@ DEFAULT_FALLBACK = "tts.jarvis_xtts"
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    cache = hass.data.setdefault("jarvis_local", {}).setdefault(
+    cache = hass.data.setdefault("declan_local", {}).setdefault(
         "voice_cache", VoiceCache(hass.config.path("jarvis_voice_cache"))
     )
-    usage = hass.data["jarvis_local"].setdefault("voice_usage", VoiceUsage())
-    budget = hass.data['jarvis_local'].get('voice_budget')
+    usage = hass.data["declan_local"].setdefault("voice_usage", VoiceUsage())
+    budget = hass.data['declan_local'].get('voice_budget')
     if budget is None:
         from homeassistant.helpers.storage import Store
         budget = VoiceBudget(Store(hass, 1, 'jarvis_local.voice_usage'))
         await budget.load()
-        hass.data['jarvis_local']['voice_budget'] = budget
+        hass.data['declan_local']['voice_budget'] = budget
     manager = JarvisVoiceManager(entry, cache, usage, budget)
-    hass.data['jarvis_local']['voice_manager'] = manager
+    hass.data['declan_local']['voice_manager'] = manager
     async_add_entities([manager])
 
 

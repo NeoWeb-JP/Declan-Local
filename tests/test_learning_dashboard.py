@@ -5,11 +5,11 @@ from types import ModuleType
 import pytest
 import test_agent_dialogue as dialogue
 from test_learning_storage import complete,storage
-from custom_components.jarvis_local import learning
+from custom_components.declan_local import learning
 
 
 def test_preview_plans_without_services_or_learning_mutation():
-    value=dialogue.fixtures.Hass();value.data={'jarvis_local':{
+    value=dialogue.fixtures.Hass();value.data={'declan_local':{
         'approved_aliases':{'lanp off':'turn off kitchen lamp'}}}
     value.services=dialogue.Services()
     before=copy.deepcopy(value.data)
@@ -20,10 +20,10 @@ def test_preview_plans_without_services_or_learning_mutation():
 
 
 def test_review_history_survives_restart_with_before_and_after(storage,monkeypatch):
-    value=dialogue.fixtures.Hass();value.data={'jarvis_local':{'approved_aliases':{'lanp off':'turn off kitchen lights'}}}
+    value=dialogue.fixtures.Hass();value.data={'declan_local':{'approved_aliases':{'lanp off':'turn off kitchen lights'}}}
     complete(learning.load_evidence(value))
     # The alias-decision store is separate from the evidence/history store.
-    evidence_store=value.data['jarvis_local']['learning_evidence_store']
+    evidence_store=value.data['declan_local']['learning_evidence_store']
     module=ModuleType('homeassistant.helpers.storage')
     class Store:
         def __init__(self,*args):pass
@@ -35,7 +35,7 @@ def test_review_history_survives_restart_with_before_and_after(storage,monkeypat
     complete(learning.flush_evidence(value))
     fresh=dialogue.fixtures.Hass();fresh.data={}
     complete(learning.load_evidence(fresh))
-    event=fresh.data['jarvis_local']['learning_history'][-1]
+    event=fresh.data['declan_local']['learning_history'][-1]
     assert event['decision']=='edit' and event['before']=='turn off kitchen lights'
     assert event['after']=='turn off fairy lights' and event['time']
     assert len(learning._validated_history([event]*120))==100

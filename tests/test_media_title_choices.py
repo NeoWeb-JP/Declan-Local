@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 
 def test_title_choices():
-    source = Path("custom_components/jarvis_local/media_search_adapters.py").read_text()
+    source = Path("custom_components/declan_local/media_search_adapters.py").read_text()
     tree = ast.parse(source)
     fn = next(n for n in tree.body if isinstance(n, ast.AsyncFunctionDef) and n.name == "search_streaming")
     calls = []

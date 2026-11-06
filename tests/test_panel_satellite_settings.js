@@ -14,7 +14,7 @@ class Element {
 const context={HTMLElement:class{},customElements:{get:()=>false,define:(_,cls)=>Panel=cls},
  document:{createElement:tag=>new Element(tag),createTextNode:text=>Object.assign(new Element('text'),{textContent:text})},
  Option:class extends Element{constructor(text,value){super('option');this.textContent=text;this.value=value;}},console};
-vm.runInNewContext(fs.readFileSync('custom_components/jarvis_local/panel.js','utf8'),context);
+vm.runInNewContext(fs.readFileSync('custom_components/declan_local/panel.js','utf8'),context);
 const bedroom='assist_satellite.bedroom',kitchen='assist_satellite.kitchen';
 function fixture(){
  const panel=new Panel(),els={};
@@ -65,7 +65,7 @@ function fixture(){
  assert.equal(calls[0].settings.weather,'weather.home');
  assert.match(els['.settings-message'].textContent,/active now/);
  // Settings save calls only the settings endpoint, with no playback/service calls.
- assert.equal(calls[0].type,'jarvis_local/save_settings');
+ assert.equal(calls[0].type,'declan_local/save_settings');
  await panel.openSettings();
  assert.equal(els['.satellite-fields'].children.length,2);
  // Removing all rows sends an explicit empty dictionary.
@@ -111,7 +111,7 @@ function fixture(){
    satellite_status:'available',player_status:'available',entities_available:true,shared_player:true}],error:null};
  hp._hass.callWS=async request=>{health.calls.push(request);return result;};
  await hp.checkSatelliteMappings();
- assert.deepEqual(JSON.parse(JSON.stringify(health.calls)),[{type:'jarvis_local/check_satellite_mappings'}]);
+ assert.deepEqual(JSON.parse(JSON.stringify(health.calls)),[{type:'declan_local/check_satellite_mappings'}]);
  assert.equal(pendingRow.querySelector('.satellite-player').value,'media_player.kitchen');
  assert.match(he['.satellite-check-message'].textContent,/Unsaved edits are not included/);
  const text=he['.satellite-check-results'].children[0].children.map(e=>e.textContent).join('\n');
@@ -148,7 +148,7 @@ function fixture(){
  // Overlapping check and save completions must not leave either button stuck.
  let resolveSave;
  hp._hass.callWS=request=>new Promise(resolve=>{
-   if(request.type==='jarvis_local/save_settings')resolveSave=resolve;else resolveCheck=resolve;
+   if(request.type==='declan_local/save_settings')resolveSave=resolve;else resolveCheck=resolve;
  });
  const checkThenSave=hp.checkSatelliteMappings();
  const concurrentSave=hp.saveSettings();

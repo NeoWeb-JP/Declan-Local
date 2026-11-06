@@ -2,36 +2,36 @@
 from types import SimpleNamespace
 import pytest
 import asyncio
-from custom_components.jarvis_local.learning import observe, summary, suggestions, resolve_alias, normalize_alias
+from custom_components.declan_local.learning import observe, summary, suggestions, resolve_alias, normalize_alias
 
 
 def test_disabled_debug_keeps_no_evidence():
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': False}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': False}})
     observe(hass, {'outcome': 'failed', 'received_text': 'lights on'})
     assert summary(hass)['total'] == 0
 
 
 def test_bounded_evidence_and_no_successful_plain_commands():
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     observe(hass, {'outcome': 'completed', 'received_text': 'turn on lights'})
     assert summary(hass)['total'] == 0
     for i in range(50):
         observe(hass, {'outcome': 'rejected', 'received_text': f'command {i}', 'error': 'unrecognised'})
     assert summary(hass)['total'] == 40
-    assert hass.data['jarvis_local']['learning_evidence'][0]['heard'] == 'command 10'
+    assert hass.data['declan_local']['learning_evidence'][0]['heard'] == 'command 10'
 
 
 def test_correction_is_observed_without_adding_device_rules():
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     observe(hass, {'outcome': 'completed', 'received_text': 'lights, actually spotlights',
                    'resolved_text': 'turn on spotlights',
                    'transcript_corrections': ['superseded earlier command']})
     assert summary(hass)['correction_samples'] == 1
-    assert 'learned_commands' not in hass.data['jarvis_local']
+    assert 'learned_commands' not in hass.data['declan_local']
 
 
 def test_repeated_failures_become_review_only_candidates():
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     for _ in range(2):
         observe(hass, {'outcome': 'rejected', 'received_text': 'switch the snuggly lights',
                        'error': 'unknown target'})
@@ -39,11 +39,11 @@ def test_repeated_failures_become_review_only_candidates():
                                    'heard': 'switch the snuggly lights',
                                    'count': 2, 'reason': 'unknown target',
                                    'category': 'unrecognised_command', 'similar_approved': []}]
-    assert 'learned_commands' not in hass.data['jarvis_local']
+    assert 'learned_commands' not in hass.data['declan_local']
 
 
 def test_successful_corrections_need_repeated_evidence():
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     record = {'outcome': 'completed', 'received_text': 'turn on kitchen, actually turn on lounge',
               'resolved_text': 'turn on lounge',
               'transcript_corrections': ['superseded earlier command']}
@@ -54,14 +54,14 @@ def test_successful_corrections_need_repeated_evidence():
 
 
 def test_preview_and_disabled_debug_never_generate_candidates():
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     for _ in range(3):
         observe(hass, {'outcome': 'failed', 'received_text': 'play jazz', 'preview': True})
     assert suggestions(hass) == []
 
 
 def test_exact_approved_alias_only():
-    hass = SimpleNamespace(data={'jarvis_local': {
+    hass = SimpleNamespace(data={'declan_local': {
         'approved_aliases': {'turn the cosy lights on': 'turn on lounge lights'}}})
     assert resolve_alias(hass, '  TURN  the cosy lights ON ') == 'turn on lounge lights'
     assert resolve_alias(hass, 'turn the cosy lights off') == 'turn the cosy lights off'
@@ -76,14 +76,14 @@ def test_alias_validation_rejects_non_plain_text():
 
 def test_review_approval_persistence_and_removal(monkeypatch):
     import sys
-    from custom_components.jarvis_local.learning import review
+    from custom_components.declan_local.learning import review
     saved = []
     class FakeStore:
         def __init__(self, *args): pass
         async def async_save(self, value): saved.append(value)
     from homeassistant.helpers import storage
     monkeypatch.setattr(storage, 'Store', FakeStore)
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     sample = {'outcome': 'completed',
               'received_text': 'turn on kitchen, actually turn on lounge',
               'resolved_text': 'turn on lounge',
@@ -100,21 +100,21 @@ def test_review_approval_persistence_and_removal(monkeypatch):
 
 
 def test_rejected_candidate_cannot_be_approved_without_evidence(monkeypatch):
-    from custom_components.jarvis_local.learning import review
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    from custom_components.declan_local.learning import review
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     with pytest.raises(ValueError):
         asyncio.run(review(hass, 'unlock door', 'approve', 'turn on lounge lights'))
 
 
 def test_manual_teaching_of_first_fairy_light_mishearing(monkeypatch):
     from homeassistant.helpers import storage
-    from custom_components.jarvis_local.learning import review
+    from custom_components.declan_local.learning import review
     saved = []
     class FakeStore:
         def __init__(self, *args): pass
         async def async_save(self, value): saved.append(value)
     monkeypatch.setattr(storage, 'Store', FakeStore)
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     for _ in range(1):
         observe(hass, {'outcome': 'rejected', 'received_text': 'very light off.',
                        'error': 'Not understood'})
@@ -126,8 +126,8 @@ def test_manual_teaching_of_first_fairy_light_mishearing(monkeypatch):
 
 
 def test_manual_teaching_rejects_unobserved_or_unsafe_actions():
-    from custom_components.jarvis_local.learning import review
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    from custom_components.declan_local.learning import review
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     with pytest.raises(ValueError):
         asyncio.run(review(hass, 'unlock the door', 'approve_manual', 'turn off fairy lights'))
     for _ in range(2):
@@ -139,7 +139,7 @@ def test_manual_teaching_rejects_unobserved_or_unsafe_actions():
 
 
 def test_teach_accepts_natural_light_command_order():
-    from custom_components.jarvis_local.learning import validate_manual_light_command
+    from custom_components.declan_local.learning import validate_manual_light_command
     assert validate_manual_light_command('Fairy lights off') == 'turn off fairy lights'
     assert validate_manual_light_command('turn off fairy lights') == 'turn off fairy lights'
     assert validate_manual_light_command('turn on the bedroom light') == 'turn on bedroom light'
@@ -151,7 +151,7 @@ def test_teach_accepts_natural_light_command_order():
 
 @pytest.mark.parametrize('outcome', ['failed', 'rejected', 'partial'])
 def test_first_failure_is_immediately_reviewable(outcome):
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     observe(hass, {'outcome': outcome, 'received_text': 'very light off'})
     assert suggestions(hass)[0]['count'] == 1
     assert suggestions(hass, minimum_occurrences=2) == []
@@ -159,7 +159,7 @@ def test_first_failure_is_immediately_reviewable(outcome):
 
 
 def test_all_retained_unique_failures_are_reviewable():
-    hass = SimpleNamespace(data={'jarvis_local': {'debug_enabled': True}})
+    hass = SimpleNamespace(data={'declan_local': {'debug_enabled': True}})
     for i in range(40):
         observe(hass, {'outcome': 'failed', 'received_text': f'failed command {i}'})
     assert len(suggestions(hass)) == 40

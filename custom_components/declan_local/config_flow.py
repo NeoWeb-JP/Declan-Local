@@ -4,7 +4,7 @@ from homeassistant.helpers import selector
 from homeassistant import config_entries
 from homeassistant.components import tts
 
-DOMAIN = "jarvis_local"
+DOMAIN = "declan_local"
 PRIMARY = "tts.elevenlabs_text_to_speech"
 FALLBACK = "tts.jarvis_xtts"
 

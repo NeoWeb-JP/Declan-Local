@@ -41,7 +41,7 @@ def _valid(saved):
 
 async def _load(hass):
     from homeassistant.helpers.storage import Store
-    data=hass.data.setdefault('jarvis_local',{})
+    data=hass.data.setdefault('declan_local',{})
     lock=data.setdefault('lighting_preferences_lock',asyncio.Lock())
     async with lock:
         if 'lighting_preferences' not in data:

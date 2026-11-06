@@ -9,7 +9,7 @@ import re
 
 from homeassistant.helpers import entity_registry as er, device_registry as dr
 
-DOMAIN = "jarvis_local"
+DOMAIN = "declan_local"
 # Entity-registry IDs supplied by the owner, not camera entity IDs.
 KNOWN_CAMERA_REGISTRY_IDS = {
     "kitchen": "71bf6fb2c44c5cb131e72b68e9333c45",

@@ -7,7 +7,7 @@ import types
 import unittest
 from unittest.mock import AsyncMock, patch
 
-ROOT=Path(__file__).resolve().parents[1]/'custom_components'/'jarvis_local'
+ROOT=Path(__file__).resolve().parents[1]/'custom_components'/'declan_local'
 
 class VoiceApi(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
@@ -56,7 +56,7 @@ class VoiceApi(unittest.IsolatedAsyncioTestCase):
         self.module=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.module)
         self.manager=types.SimpleNamespace(catalogue=types.SimpleNamespace(
             plan=AsyncMock(return_value={'missing_count':1}),prepare=AsyncMock(return_value={'saved':True})))
-        self.hass=types.SimpleNamespace(data={'jarvis_local':{'voice_manager':self.manager}})
+        self.hass=types.SimpleNamespace(data={'declan_local':{'voice_manager':self.manager}})
         self.results=[];self.errors=[]
         self.connection=types.SimpleNamespace(send_result=lambda *args:self.results.append(args),
                                               send_error=lambda *args:self.errors.append(args))
@@ -65,8 +65,8 @@ class VoiceApi(unittest.IsolatedAsyncioTestCase):
         self.module.register(self.hass)
         self.assertGreater(len(self.registered),10)
         self.assertTrue(all(fn.requires_admin for fn in self.registered))
-        self.assertIn('jarvis_local/review_voice_catalogue',{fn.command_type for fn in self.registered})
-        self.assertIn('jarvis_local/prepare_voice_catalogue',{fn.command_type for fn in self.registered})
+        self.assertIn('declan_local/review_voice_catalogue',{fn.command_type for fn in self.registered})
+        self.assertIn('declan_local/prepare_voice_catalogue',{fn.command_type for fn in self.registered})
 
     async def test_review_never_synthesizes_and_preparation_requires_explicit_approval(self):
         await self.module.review_voice_catalogue(self.hass,self.connection,{'id':1,'modes':['Guest']})
@@ -80,7 +80,7 @@ class VoiceApi(unittest.IsolatedAsyncioTestCase):
 
     async def test_busy_and_failure_do_not_expose_provider_details(self):
         lock=asyncio.Lock();await lock.acquire()
-        self.hass.data['jarvis_local']['phrase_generation_lock']=lock
+        self.hass.data['declan_local']['phrase_generation_lock']=lock
         request={'id':2,'token':'review','line_id':'line','approved':True}
         await self.module.prepare_voice_catalogue(self.hass,self.connection,request)
         self.manager.catalogue.prepare.assert_not_awaited()

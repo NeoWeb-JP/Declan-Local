@@ -1,6 +1,6 @@
 """Conversation memory stays bounded to known speaker or conversation."""
 from types import SimpleNamespace
-from custom_components.jarvis_local.conversation_memory import context_key
+from custom_components.declan_local.conversation_memory import context_key
 
 
 def request(user=None, satellite="kitchen"):

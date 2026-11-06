@@ -1,6 +1,6 @@
 """Safety checks for in-utterance correction handling."""
 import pytest
-from custom_components.jarvis_local.corrections import final_request
+from custom_components.declan_local.corrections import final_request
 
 
 def test_full_correction_supersedes_first_action():

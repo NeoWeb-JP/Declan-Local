@@ -11,7 +11,7 @@ from unittest.mock import patch
 from test_phrase_library import audio, VoiceCache
 import base64
 
-ROOT=Path(__file__).resolve().parents[1]/'custom_components'/'jarvis_local'
+ROOT=Path(__file__).resolve().parents[1]/'custom_components'/'declan_local'
 
 class ManagerTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
@@ -154,7 +154,7 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
         """Remove the provider mock so these tests reach HA's media-source boundary."""
         self.provider_patch.stop()
         provider = importlib.import_module('phrase_manager_fixture.voice_provider')
-        self.manager.hass.data = {'jarvis_local': {'voice_manager': self.manager}}
+        self.manager.hass.data = {'declan_local': {'voice_manager': self.manager}}
         provider.tts.generate_media_source_id = lambda hass, text, **kwargs: (kwargs['engine'], text)
         self.entry.options.update(fallback_tts='tts.jarvis_xtts', phrase_library_enabled=False)
         return provider
@@ -229,7 +229,7 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
     async def test_cached_alternative_honors_configured_visitor_privacy(self):
         catalogue={'Home':{'on':['PRIVATE_HOME_A','PRIVATE_HOME_B']},
                    'Guest':{'on':['Guest A','Guest B']}}
-        self.manager.hass.data={'jarvis_local':{'settings':{'guest_mode':'input_boolean.permission', 'visitors_present':'input_boolean.company'}}}
+        self.manager.hass.data={'declan_local':{'settings':{'guest_mode':'input_boolean.permission', 'visitors_present':'input_boolean.company'}}}
         self.manager.hass.states=types.SimpleNamespace(get=lambda entity:types.SimpleNamespace(state='on' if entity=='input_boolean.company' else 'off'))
         async def executor(fn, *args): return catalogue
         self.manager.hass.async_add_executor_job=executor

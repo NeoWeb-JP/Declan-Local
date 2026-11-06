@@ -12,7 +12,7 @@ if 'custom_components' not in sys.modules:
     package = types.ModuleType('custom_components')
     package.__path__ = [str(ROOT / 'custom_components')]
     sys.modules['custom_components'] = package
-if 'custom_components.jarvis_local' not in sys.modules:
-    package = types.ModuleType('custom_components.jarvis_local')
-    package.__path__ = [str(ROOT / 'custom_components' / 'jarvis_local')]
-    sys.modules['custom_components.jarvis_local'] = package
+if 'custom_components.declan_local' not in sys.modules:
+    package = types.ModuleType('custom_components.declan_local')
+    package.__path__ = [str(ROOT / 'custom_components' / 'declan_local')]
+    sys.modules['custom_components.declan_local'] = package

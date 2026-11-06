@@ -2,7 +2,7 @@
 import random
 import pytest
 
-from custom_components.jarvis_local.music_variety import choose_playlist, updated_history
+from custom_components.declan_local.music_variety import choose_playlist, updated_history
 
 
 def test_avoids_recent_playlists():

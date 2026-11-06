@@ -14,7 +14,7 @@ def _status(hass, entity_id, domain):
 
 
 def check_mappings(hass):
-    mappings = hass.data.get('jarvis_local', {}).get('settings', {}).get('satellite_media_players', {})
+    mappings = hass.data.get('declan_local', {}).get('settings', {}).get('satellite_media_players', {})
     if not isinstance(mappings, dict) or len(mappings) > 50:
         return {'mappings': [], 'error': 'Saved satellite mappings are invalid. Review and save the settings.'}
     counts = {}

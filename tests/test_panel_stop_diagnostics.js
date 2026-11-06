@@ -5,7 +5,7 @@ class Element{
   replaceChildren(){this.children=[];this.textContent='';}
 }
 const context={HTMLElement:class{},customElements:{get:()=>false,define:(_,cls)=>Panel=cls},document:{createElement:()=>new Element()},console};
-vm.runInNewContext(fs.readFileSync('custom_components/jarvis_local/panel.js','utf8'),context);
+vm.runInNewContext(fs.readFileSync('custom_components/declan_local/panel.js','utf8'),context);
 const panel=new Panel(),container=new Element();
 panel.root={querySelector:selector=>{assert.equal(selector,'.diagnostic-cards');return container;}};
 const base={time:'2026-10-31T12:00:00Z',received_text:'Stop',resolved_text:'Stop',satellite_id:'assist_satellite.bedroom',response:'',steps:[],outcome:'completed'};

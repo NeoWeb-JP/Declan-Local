@@ -24,13 +24,13 @@ refresh fails without replacing the existing library.
 Refresh all categories:
 
 ```yaml
-action: jarvis_local.refresh_music_categories
+action: declan_local.refresh_music_categories
 ```
 
 Pin a playlist (replace the example with a real URI):
 
 ```yaml
-action: jarvis_local.manage_music_playlist
+action: declan_local.manage_music_playlist
 data:
   category: adhd_focus
   operation: favourite
@@ -40,7 +40,7 @@ data:
 Exclude a playlist:
 
 ```yaml
-action: jarvis_local.manage_music_playlist
+action: declan_local.manage_music_playlist
 data:
   category: massage
   operation: exclude
@@ -50,7 +50,7 @@ data:
 Play a category:
 
 ```yaml
-action: jarvis_local.play_music_category
+action: declan_local.play_music_category
 data:
   category: 90s
   room: everywhere

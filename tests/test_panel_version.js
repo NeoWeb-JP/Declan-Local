@@ -1,7 +1,7 @@
 const assert=require('assert'),fs=require('fs'),vm=require('vm');let Panel;
 const context={HTMLElement:class{},customElements:{get:()=>false,define:(_,cls)=>Panel=cls},
  Option:class{constructor(text,value){this.text=text;this.value=value;}},console};
-vm.runInNewContext(fs.readFileSync('custom_components/jarvis_local/panel.js','utf8'),context);
+vm.runInNewContext(fs.readFileSync('custom_components/declan_local/panel.js','utf8'),context);
 (async()=>{
  const panel=new Panel();
  const els={'.connection':{},'.room':{value:'',replaceChildren(){},add(){}},
@@ -13,7 +13,7 @@ vm.runInNewContext(fs.readFileSync('custom_components/jarvis_local/panel.js','ut
  panel.voicePipelines=[];
  let version='0.34.2';
  const hass={states:{},callWS:async request=>{
-   assert.equal(request.type,'jarvis_local/info');
+   assert.equal(request.type,'declan_local/info');
    return {version,areas:[],diagnostics:[],settings:{},voice_profiles:{},debug_enabled:false};
  }};
  panel._hass=hass;

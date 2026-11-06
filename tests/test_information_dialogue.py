@@ -39,7 +39,7 @@ class Grammar(unittest.TestCase):
 class Information(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.hass=env.fixtures.Hass()
-        self.hass.data={'jarvis_local':{'settings':{'weather':'weather.home','thermostat':'climate.home'}}}
+        self.hass.data={'declan_local':{'settings':{'weather':'weather.home','thermostat':'climate.home'}}}
         self.hass.config=types.SimpleNamespace(time_zone='Europe/London',units=types.SimpleNamespace(temperature_unit='°C'))
         self.hass.states.values['weather.home']=env.fixtures.State('weather.home','Weather','sunny')
         self.hass.states.values['weather.home'].attributes={'temperature':12,'temperature_unit':'°C'}
@@ -129,7 +129,7 @@ class AgentInformation(unittest.IsolatedAsyncioTestCase):
         self.clock=100
         self.time_patch=patch.object(env.module,'monotonic',lambda:self.clock)
         self.time_patch.start();self.addCleanup(self.time_patch.stop)
-        self.hass.data={'jarvis_local':{'settings':{'weather':'weather.home'}}}
+        self.hass.data={'declan_local':{'settings':{'weather':'weather.home'}}}
         self.hass.config=types.SimpleNamespace(time_zone='Europe/London',units=types.SimpleNamespace(temperature_unit='°C'))
         weather=env.fixtures.State('weather.home','Weather','sunny')
         weather.attributes={'temperature':12,'temperature_unit':'°C'}
@@ -211,7 +211,7 @@ class AgentInformation(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.hass.services.calls[-1][0][:2],('light','turn_off'))
 
     async def test_corrected_stop_is_silent_and_never_executes_discarded_lights(self):
-        self.hass.data['jarvis_local']['settings']['satellite_media_players']={
+        self.hass.data['declan_local']['settings']['satellite_media_players']={
             'assist_satellite.bedroom':'media_player.bedroom'}
         user=env.UserInput('lamp on');user.satellite_id='assist_satellite.bedroom'
         await self.agent.async_handle(user)

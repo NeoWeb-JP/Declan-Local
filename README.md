@@ -1,5 +1,7 @@
 # Home Voice Assistant
 
+Existing `jarvis_local` installations must follow the [domain migration guide](docs/declan-local-migration.md) before upgrading.
+
 The software is **Home Voice Assistant**; its assistant character is **Declan**,
 your dry, overworked and decidedly unimpressed male butler. Home replies allow
 strong private banter; Guest replies keep it impersonal. Existing integration
@@ -83,7 +85,7 @@ If `/config/jarvis_local_settings.json` exists from version 0.9.2, its values ar
 
 1. Back up Home Assistant, including configuration and your existing custom integration.
 2. In HACS, choose the three-dot menu, **Custom repositories**. Add `https://github.com/NeoWeb-JP/jarvis-local` as an **Integration**. This URL assumes that repository has been created and published.
-3. Find Home Voice Assistant in HACS and download a released version. It installs files under `/config/custom_components/jarvis_local/`, replacing the manually installed integration files. Preserve any local edits first.
+3. Find Home Voice Assistant in HACS and download a released version. It installs files under `/config/custom_components/declan_local/`, replacing the manually installed integration files. Preserve any local edits first.
 4. Restart Home Assistant. Keep the existing Home Voice Assistant config entry, Assist pipeline, scripts, helpers and automations. Do not create a duplicate config entry.
 5. Test the sidebar on mobile and a few commands in chat and through the satellite. Select your existing existing conversation entity (Declan) in the Assist pipeline if needed.
 

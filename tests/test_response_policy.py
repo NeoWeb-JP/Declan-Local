@@ -8,7 +8,7 @@ from jarvis_test.personality import contextual_reply
 
 @pytest.mark.parametrize('kind',['clarification','failed','self_correction','music'])
 def test_legacy_night_policy_is_not_bypassed_by_synchronous_responses(kind):
-    hass=home();settings=hass.data['jarvis_local']['settings']
+    hass=home();settings=hass.data['declan_local']['settings']
     settings.pop('quiet_hours');settings['personality_script']='script.jarvis_personality_engine'
     reason='The exact question or result remains here.'
     assert contextual_reply(hass,reason,kind)==reason
@@ -25,9 +25,9 @@ def test_guest_and_quiet_responses_are_safe_and_keep_facts(kind):
 
 
 @pytest.mark.parametrize('command,script',[
-    ('start movie time','jarvis_local_movie'),
-    ('good night','jarvis_local_good_night'),
-    ('good morning','jarvis_local_good_morning')])
+    ('start movie time','declan_local_movie'),
+    ('good night','declan_local_good_night'),
+    ('good morning','declan_local_good_morning')])
 def test_external_routine_speech_cannot_leak_to_guests(command,script):
     case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
     try:

@@ -18,11 +18,11 @@ from homeassistant.exceptions import HomeAssistantError
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/voice_cache',
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/voice_cache',
                                 vol.Optional('query',default=''):str,vol.Optional('page',default=1):int})
 @websocket_api.async_response
 async def voice_cache(hass,connection,msg):
-    data=hass.data.get('jarvis_local',{})
+    data=hass.data.get('declan_local',{})
     cache=data.get('voice_cache')
     manager=data.get('voice_manager')
     if cache is None or manager is None:
@@ -47,11 +47,11 @@ async def voice_cache(hass,connection,msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/save_voice_sentence',
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/save_voice_sentence',
     vol.Required('parts'):list,vol.Required('voice_token'):str,vol.Optional('gap_ms',default=20):int})
 @websocket_api.async_response
 async def save_voice_sentence(hass,connection,msg):
-    data=hass.data.get('jarvis_local',{})
+    data=hass.data.get('declan_local',{})
     manager=data.get('voice_manager')
     if manager is None:
         connection.send_error(msg['id'],'not_loaded','Voice Manager is not loaded');return
@@ -68,11 +68,11 @@ async def save_voice_sentence(hass,connection,msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/preview_voice_sentence',
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/preview_voice_sentence',
     vol.Required('parts'):list,vol.Required('voice_token'):str,vol.Optional('gap_ms',default=20):int})
 @websocket_api.async_response
 async def preview_voice_sentence(hass,connection,msg):
-    manager=hass.data.get('jarvis_local',{}).get('voice_manager')
+    manager=hass.data.get('declan_local',{}).get('voice_manager')
     if manager is None:
         connection.send_error(msg['id'],'not_loaded','Declan Voice Manager is not loaded');return
     try:
@@ -85,11 +85,11 @@ async def preview_voice_sentence(hass,connection,msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/import_voice_clips',
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/import_voice_clips',
     vol.Required('clips'):list,vol.Required('voice_token'):str})
 @websocket_api.async_response
 async def import_voice_clips(hass,connection,msg):
-    data=hass.data.get('jarvis_local',{})
+    data=hass.data.get('declan_local',{})
     manager=data.get('voice_manager')
     if manager is None:
         connection.send_error(msg['id'],'not_loaded','Declan Voice Manager is not loaded');return
@@ -106,11 +106,11 @@ async def import_voice_clips(hass,connection,msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/voice_cache_audio',
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/voice_cache_audio',
     vol.Required('key'):str,vol.Required('extension'):str})
 @websocket_api.async_response
 async def voice_cache_audio(hass,connection,msg):
-    cache=hass.data.get('jarvis_local',{}).get('voice_cache')
+    cache=hass.data.get('declan_local',{}).get('voice_cache')
     if cache is None:
         connection.send_error(msg['id'],'not_loaded','Voice cache is not loaded');return
     try:
@@ -122,11 +122,11 @@ async def voice_cache_audio(hass,connection,msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/prepare_voice_phrase',
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/prepare_voice_phrase',
     vol.Required('text'):str,vol.Required('kind'):vol.In(['clip','sentence'])})
 @websocket_api.async_response
 async def prepare_voice_phrase(hass,connection,msg):
-    data=hass.data.get('jarvis_local',{})
+    data=hass.data.get('declan_local',{})
     manager=data.get('voice_manager')
     if manager is None:
         connection.send_error(msg['id'],'not_loaded','Declan Voice Manager is not loaded');return
@@ -143,15 +143,15 @@ async def prepare_voice_phrase(hass,connection,msg):
     connection.send_result(msg['id'],result)
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/info'})
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/info'})
 @callback
 def info(hass,connection,msg):
-    data=hass.data.get('jarvis_local',{})
+    data=hass.data.get('declan_local',{})
     connection.send_result(msg['id'],{'areas':[{'id':a.id,'name':a.name} for a in ar.async_get(hass).async_list_areas()], 'diagnostics':data.get('diagnostics',[]) if data.get('debug_enabled',False) else [],'debug_enabled':data.get('debug_enabled',False),'version':data.get('version'),'settings':data.get('settings',{}),'voice_profiles':public_profiles(data.get('voice_id_config',{})),'media_search_config':public_media_search(hass)})
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/save_media_search',vol.Required('config'):dict})
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/save_media_search',vol.Required('config'):dict})
 @websocket_api.async_response
 async def save_media_search(hass,connection,msg):
     try:
@@ -164,12 +164,12 @@ async def save_media_search(hass,connection,msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/search_media',vol.Required('query'):str,
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/search_media',vol.Required('query'):str,
     vol.Optional('title_id'):vol.All(int,vol.Range(min=1)),
     vol.Optional('kind'):vol.In(['movie','tv'])})
 @websocket_api.async_response
 async def search_media(hass,connection,msg):
-    data=hass.data.setdefault('jarvis_local',{})
+    data=hass.data.setdefault('declan_local',{})
     if data.get('media_search_busy'):
         connection.send_error(msg['id'],'busy','A media search is already running.');return
     try:
@@ -196,23 +196,23 @@ async def search_media(hass,connection,msg):
     connection.send_result(msg['id'],result)
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/check_satellite_mappings'})
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/check_satellite_mappings'})
 @callback
 def check_satellite_mappings(hass,connection,msg):
     connection.send_result(msg['id'],check_mappings(hass))
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/clear_diagnostics'})
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/clear_diagnostics'})
 @callback
 def clear(hass,connection,msg):
-    hass.data.setdefault('jarvis_local',{})['diagnostics']=[]
+    hass.data.setdefault('declan_local',{})['diagnostics']=[]
     connection.send_result(msg['id'],{})
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/process',vol.Required('text'):str,vol.Optional('area_id'):str,vol.Optional('conversation_id'):str})
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/process',vol.Required('text'):str,vol.Optional('area_id'):str,vol.Optional('conversation_id'):str})
 @websocket_api.async_response
 async def process(hass,connection,msg):
-    agent=hass.data.get('jarvis_local',{}).get('agent')
+    agent=hass.data.get('declan_local',{}).get('agent')
     if agent is None:
         connection.send_error(msg['id'],'not_loaded','Home Voice Assistant is not loaded');return
     area=ar.async_get(hass).async_get_area(msg['area_id']) if msg.get('area_id') else None
@@ -223,7 +223,7 @@ async def process(hass,connection,msg):
     connection.send_result(msg['id'],result.as_dict())
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/save_settings',vol.Required('settings'):dict})
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/save_settings',vol.Required('settings'):dict})
 @websocket_api.async_response
 async def save_settings(hass,connection,msg):
     try:
@@ -234,12 +234,12 @@ async def save_settings(hass,connection,msg):
     connection.send_result(msg['id'],{})
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/save_voice_profiles', vol.Required('profiles'):dict})
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/save_voice_profiles', vol.Required('profiles'):dict})
 @websocket_api.async_response
 async def save_voice_profiles(hass,connection,msg):
     try:
         profiles=validate_profiles(msg['profiles'])
-        data=hass.data.setdefault('jarvis_local',{})
+        data=hass.data.setdefault('declan_local',{})
         lock=data.setdefault('voice_profiles_lock',asyncio.Lock())
         async with lock:
             config=await hass.async_add_executor_job(save_profiles_file,hass.config.path('jarvis_voice_id.json'),profiles)
@@ -249,18 +249,18 @@ async def save_voice_profiles(hass,connection,msg):
     connection.send_result(msg['id'],{'profiles':public_profiles(config)})
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/set_debug',vol.Required('enabled'):bool})
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/set_debug',vol.Required('enabled'):bool})
 @websocket_api.async_response
 async def set_debug(hass,connection,msg):
     enabled=msg['enabled']
     await Store(hass,1,'jarvis_local.debug').async_save({'enabled':enabled})
-    data=hass.data.setdefault('jarvis_local',{})
+    data=hass.data.setdefault('declan_local',{})
     data['debug_enabled']=enabled
     if not enabled:data['diagnostics']=[]
     connection.send_result(msg['id'],{'enabled':enabled})
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/check_voice_bridge'})
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/check_voice_bridge'})
 @websocket_api.async_response
 async def check_voice_bridge(hass,connection,msg):
     entries=hass.config_entries.async_entries('jarvis_voice_bridge')
@@ -279,11 +279,11 @@ async def check_voice_bridge(hass,connection,msg):
     connection.send_result(msg['id'],{'bridges':results})
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/review_voice_catalogue',
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/review_voice_catalogue',
                                 vol.Required('modes'):list})
 @websocket_api.async_response
 async def review_voice_catalogue(hass,connection,msg):
-    manager=hass.data.get('jarvis_local',{}).get('voice_manager')
+    manager=hass.data.get('declan_local',{}).get('voice_manager')
     if manager is None:
         connection.send_error(msg['id'],'not_loaded','Voice Manager is not loaded');return
     try:
@@ -294,13 +294,13 @@ async def review_voice_catalogue(hass,connection,msg):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'):'jarvis_local/prepare_voice_catalogue',
+@websocket_api.websocket_command({vol.Required('type'):'declan_local/prepare_voice_catalogue',
     vol.Required('token'):str,vol.Required('line_id'):str,vol.Required('approved'):bool})
 @websocket_api.async_response
 async def prepare_voice_catalogue(hass,connection,msg):
     if msg.get('approved') is not True:
         connection.send_error(msg['id'],'review_required','Approve the reviewed text and estimated usage first');return
-    data=hass.data.get('jarvis_local',{})
+    data=hass.data.get('declan_local',{})
     manager=data.get('voice_manager')
     if manager is None:
         connection.send_error(msg['id'],'not_loaded','Voice Manager is not loaded');return
@@ -325,11 +325,11 @@ def register(hass):
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required('type'): 'jarvis_local/learning_review_list'})
+@websocket_api.websocket_command({vol.Required('type'): 'declan_local/learning_review_list'})
 @callback
 def learning_review_list(hass, connection, msg):
     from .learning import suggestions, summary
-    data = hass.data.get('jarvis_local', {})
+    data = hass.data.get('declan_local', {})
     connection.send_result(msg['id'], {
         'summary': summary(hass),
         'history': data.get('learning_history', []),
@@ -344,7 +344,7 @@ def learning_review_list(hass, connection, msg):
 
 @websocket_api.require_admin
 @websocket_api.websocket_command({
-    vol.Required('type'): 'jarvis_local/learning_review',
+    vol.Required('type'): 'declan_local/learning_review',
     vol.Required('heard'): str,
     vol.Required('decision'): vol.In(['approve', 'approve_manual', 'edit', 'reject', 'remove']),
     vol.Optional('suggested'): str,
@@ -365,7 +365,7 @@ async def learning_review(hass, connection, msg):
 
 @websocket_api.require_admin
 @websocket_api.websocket_command({
-    vol.Required('type'): 'jarvis_local/learning_test',
+    vol.Required('type'): 'declan_local/learning_test',
     vol.Required('heard'): str,
     vol.Optional('suggested'): str,
 })

@@ -1,14 +1,14 @@
 """Focused review-only learning, room context and recognition regression tests."""
 from types import SimpleNamespace
 
-from custom_components.jarvis_local.learning import (
+from custom_components.declan_local.learning import (
     speech_variants, failure_category, suggestions, observe)
-from custom_components.jarvis_local.conversation_memory import context_followup, context_key
-from custom_components.jarvis_local.transcript import recognition_diagnostic
+from custom_components.declan_local.conversation_memory import context_followup, context_key
+from custom_components.declan_local.transcript import recognition_diagnostic
 
 
 def test_similar_approved_speech_only_suggested():
-    hass = SimpleNamespace(data={'jarvis_local': {
+    hass = SimpleNamespace(data={'declan_local': {
         'debug_enabled': True,
         'approved_aliases': {'very light off': 'turn off fairy lights'}}})
     for _ in range(2):
@@ -16,8 +16,8 @@ def test_similar_approved_speech_only_suggested():
                        'error': 'I did not understand'})
     result = suggestions(hass)
     assert result[0]['similar_approved'][0]['suggested'] == 'turn off fairy lights'
-    assert 'very lights off' not in hass.data['jarvis_local']['approved_aliases']
-    assert speech_variants('completely unrelated', hass.data['jarvis_local']['approved_aliases']) == []
+    assert 'very lights off' not in hass.data['declan_local']['approved_aliases']
+    assert speech_variants('completely unrelated', hass.data['declan_local']['approved_aliases']) == []
 
 
 def test_device_fault_is_not_misclassified_as_stt():

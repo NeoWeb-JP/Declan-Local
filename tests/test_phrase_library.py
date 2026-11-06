@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-ROOT=Path(__file__).resolve().parents[1]/'custom_components'/'jarvis_local'
+ROOT=Path(__file__).resolve().parents[1]/'custom_components'/'declan_local'
 def load(name):
     spec=importlib.util.spec_from_file_location(name,ROOT/(name+'.py'))
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)

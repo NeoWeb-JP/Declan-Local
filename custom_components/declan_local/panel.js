@@ -34,7 +34,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
 .media-search-settings{border:1px solid var(--divider-color);border-radius:12px;padding:14px;margin:14px 0}.media-search-settings label{display:block;margin:8px 0}.media-subscriptions{display:flex;flex-wrap:wrap;gap:6px 18px}.tmdb-token{display:block;box-sizing:border-box;width:100%;padding:10px}.media-query{box-sizing:border-box;max-width:100%;padding:10px;margin:8px}.media-search-results a{color:var(--primary-color)}
 .satellite-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;padding:14px;margin:12px 0;background:var(--secondary-background-color);border-radius:10px}.satellite-row label{flex:1 1 260px;min-width:0}.satellite-row select{display:block;box-sizing:border-box;width:100%;min-height:44px;margin-top:6px}.satellite-empty[hidden]{display:none}
 .recording-pagination{align-items:center;justify-content:space-between}.recordings-page-status{color:var(--secondary-text-color)}
-</style><header class="toolbar"><button type="button" class="menu" aria-label="Open Home Assistant menu">☰</button><img src="/jarvis_local/logo.png" alt="" width="36" height="36" style="border-radius:9px"><span class="toolbar-title">Declan</span><button type="button" class="fallback open-settings">Settings</button><a href="/config">HA settings</a></header>
+</style><header class="toolbar"><button type="button" class="menu" aria-label="Open Home Assistant menu">☰</button><img src="/declan_local/logo.png" alt="" width="36" height="36" style="border-radius:9px"><span class="toolbar-title">Declan</span><button type="button" class="fallback open-settings">Settings</button><a href="/config">HA settings</a></header>
 <ha-card class="settings-card" hidden><h2>Declan settings</h2><small>Lights and areas are discovered automatically. Choose optional household entities below.</small><div class="settings-fields"></div><h3>Voice profiles</h3><small>Use the enrolled name from VoicePipeline as the speaker key. Scores below the threshold get a neutral greeting. One morning response per line; {name} inserts the display name. Voice matching does not grant access.</small><div class="profile-fields"></div><div class="tools"><button type="button" class="add-profile">Add voice profile</button><button type="button" class="save-profiles">Save voice profiles</button></div><small class="profile-message" role="status"></small><h3>Switches used as lights</h3><small>Switches must be exposed to Assist.</small><div class="switch-fields"></div><div class="tools"><button type="button" class="add-switch">Add switch</button></div><h3>Film and TV search</h3><fieldset class="media-search-settings"><legend>UK streaming availability</legend><small>Local HA media folders and the connected Jellyfin integration are searched first. The optional TMDB token enables UK catalogue listings; it does not log in to your subscriptions.</small><div class="media-subscriptions"><label><input type="checkbox" value="netflix"> Netflix</label><label><input type="checkbox" value="prime"> Prime Video</label><label><input type="checkbox" value="disney"> Disney+</label><label><input type="checkbox" value="paramount"> Paramount+</label></div><label>TMDB API read access token <input type="password" class="tmdb-token" aria-label="TMDB API read access token" autocomplete="new-password"></label><small class="tmdb-token-status"></small><label><input type="checkbox" class="clear-tmdb-token"> Remove saved token</label><div class="tools"><button type="button" class="save-media-search">Save media search settings</button><a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener noreferrer">TMDB token setup</a></div><small class="media-settings-message" role="status"></small><small>Catalogue availability: JustWatch via TMDB. Listings can differ by plan, season, add-on and date. No paid-account passwords are needed.</small></fieldset><h3>Satellite audio stops</h3><small>Choose the media player that belongs to each Assist satellite. “Stop”, “Be quiet” and “Shut up” stop only that player, with no spoken reply. Players are never chosen automatically.</small><div class="satellite-fields"></div><small class="satellite-empty">No satellites mapped. Spoken stop will not stop a media player.</small><div class="tools"><button type="button" class="add-satellite">Add satellite mapping</button><button type="button" class="check-satellite-mappings">Check saved mappings</button></div><small class="satellite-check-message" role="status"></small><div class="satellite-check-results"></div><small>Changes take effect when you save settings. The satellite must hear the wake word during playback for voice interruption to work.</small><div class="tools"><button type="button" class="save-settings">Save settings</button><button type="button" class="close-settings">Back to chat</button></div><small class="settings-message" role="status"></small></ha-card>
 <ha-card class="chat-card"><div class="chat-head"><div><h2>Chat with Declan</h2><small class="connection">Connecting to Home Assistant…</small></div><button type="button" class="clear">Clear chat</button></div>
 <div class="overview" aria-label="Declan overview"><small class="overview-agent">Agent: checking…</small><small class="overview-pipeline">Voice assistant: not selected</small><small class="overview-stt">Speech-to-text: not selected</small><button type="button" class="check-bridge">Check bridge connection</button><small class="bridge-status" role="status"></small></div><div class="history" role="log" aria-live="polite"></div>
@@ -110,7 +110,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     this.readQuick();this.renderQuick();
     this.root.querySelector('.refresh').onclick=()=>this.loadInfo();
     this.root.querySelector('.copy-diag').onclick=()=>this.copyDiagnostics();
-    this.root.querySelector('.clear-diag').onclick=async()=>{await this._hass.callWS({type:'jarvis_local/clear_diagnostics'});this.loadInfo();};
+    this.root.querySelector('.clear-diag').onclick=async()=>{await this._hass.callWS({type:'declan_local/clear_diagnostics'});this.loadInfo();};
     this.root.querySelector('form').onsubmit = e => { e.preventDefault(); this.send(); };
     this.root.querySelector('.preview').onclick = () => this.send(true);
     this.root.querySelector('.speak').onclick = () => this.toggleVoice();
@@ -153,7 +153,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const revision=this.sentenceRevision || 0,parts=[...this.sentenceParts];
     this.savingSentence=true;this.renderSentence();status.textContent='Reusing saved clips, requesting missing audio and saving your sentence…';
     try {
-      const result=await this._hass.callWS({type:'jarvis_local/save_voice_sentence',parts,voice_token:this.voiceCacheData.import_voice_token,gap_ms:Number(this.root.querySelector('.sentence-pause').value)});
+      const result=await this._hass.callWS({type:'declan_local/save_voice_sentence',parts,voice_token:this.voiceCacheData.import_voice_token,gap_ms:Number(this.root.querySelector('.sentence-pause').value)});
       await this.loadVoiceCache();
       const message=result.saved?'Saved “'+result.text+'” for reuse. '+result.reused_clips+' clips reused; '+result.generated_clips+' missing clips requested.':'Sentence audio was prepared but could not be saved because storage filled up. Saved clips are kept for retry.';
       status.textContent=(revision!==(this.sentenceRevision || 0)?'For your earlier sentence: ':'')+message;
@@ -195,7 +195,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const revision=this.sentenceRevision || 0;
     this.previewingSentence=true;this.renderSentence();status.textContent='Joining saved clips…';
     try {
-      const result=await this._hass.callWS({type:'jarvis_local/preview_voice_sentence',parts:[...this.sentenceParts],voice_token:this.voiceCacheData.import_voice_token,gap_ms:Number(this.root.querySelector('.sentence-pause').value)});
+      const result=await this._hass.callWS({type:'declan_local/preview_voice_sentence',parts:[...this.sentenceParts],voice_token:this.voiceCacheData.import_voice_token,gap_ms:Number(this.root.querySelector('.sentence-pause').value)});
       if(revision!==(this.sentenceRevision || 0))return;
       this.sentenceMissing=result.missing || [];this.renderSentence();
       if(this.sentenceMissing.length){status.textContent='No preview played. Missing recordings: '+this.sentenceMissing.join(', ')+'. Save sentence will request only the missing clips.';return;}
@@ -264,7 +264,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     if(!this.voiceCacheData?.import_voice_token){status.textContent='Refresh the voice cache before importing.';return;}
     button.disabled=true;status.textContent='Checking and saving recordings…';
     try {
-      const result=await this._hass.callWS({type:'jarvis_local/import_voice_clips',clips:this.pendingClips,voice_token:this.voiceCacheData.import_voice_token});
+      const result=await this._hass.callWS({type:'declan_local/import_voice_clips',clips:this.pendingClips,voice_token:this.voiceCacheData.import_voice_token});
       status.textContent=result.imported.length+' recordings imported; '+result.existing.length+' existing clips kept.'+(result.not_saved.length?' '+result.not_saved.length+' could not be saved because storage filled up.':' No ElevenLabs requests were made.');
       await this.loadVoiceCache();
     } catch(e){status.textContent='Could not import recordings: '+(e.message || String(e));}
@@ -303,7 +303,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const summary=this.root.querySelector('.catalogue-summary');
     summary.textContent='Reviewing static replies and saved audio. No speech is being generated.';
     try {
-      const plan=await this._hass.callWS({type:'jarvis_local/review_voice_catalogue',modes});
+      const plan=await this._hass.callWS({type:'declan_local/review_voice_catalogue',modes});
       this.cataloguePlan=plan;
       const lines=this.root.querySelector('.catalogue-lines');lines.replaceChildren();
       for(const line of plan.lines){
@@ -331,7 +331,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
       for(const line of plan.lines.filter(line=>!line.cached)){
         if(this.catalogueStop)break;
         status.textContent='Preparing '+(completed+1)+' of '+plan.missing_count+'. Stop takes effect after the current recording.';
-        const result=await this._hass.callWS({type:'jarvis_local/prepare_voice_catalogue',token:plan.token,line_id:line.id,approved:true});
+        const result=await this._hass.callWS({type:'declan_local/prepare_voice_catalogue',token:plan.token,line_id:line.id,approved:true});
         if(!result.saved)throw new Error('Recording was not saved');
         completed++;
       }
@@ -351,7 +351,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     this.voiceCacheRefreshPending=false;this.loadingVoiceCache=true;this.updateRecordingPagination();
     const summary=this.root.querySelector('.voice-cache-summary');let applied=false;
     try {
-      const data=await this._hass.callWS({type:'jarvis_local/voice_cache',query,page:requestedPage});
+      const data=await this._hass.callWS({type:'declan_local/voice_cache',query,page:requestedPage});
       if(query!==this.root.querySelector('.recording-search').value.trim() || requestedPage!==(this.recordingPage || 1))return;
       if(this.voiceCacheData?.import_voice_token && this.voiceCacheData.import_voice_token!==data.import_voice_token)this.sentenceChanged();
       this.voiceCacheData=data;this.recordingPage=data.page || requestedPage;applied=true;
@@ -419,7 +419,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
   async playSavedPhrase(entry) {
     const status=this.root.querySelector('.phrase-message');
     try {
-      const result=await this._hass.callWS({type:'jarvis_local/voice_cache_audio',key:entry.key,extension:entry.extension});
+      const result=await this._hass.callWS({type:'declan_local/voice_cache_audio',key:entry.key,extension:entry.extension});
       const mime={wav:'audio/wav',mp3:'audio/mpeg',ogg:'audio/ogg',flac:'audio/flac'}[result.extension];
       if(!mime)throw new Error('Unsupported recording format');
       const bytes=Uint8Array.from(atob(result.audio),c=>c.charCodeAt(0));
@@ -460,7 +460,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const status=this.root.querySelector('.bridge-status'),button=this.root.querySelector('.check-bridge');
     button.disabled=true;status.textContent='Checking connection…';
     try {
-      const result=await this._hass.callWS({type:'jarvis_local/check_voice_bridge'});
+      const result=await this._hass.callWS({type:'declan_local/check_voice_bridge'});
       status.textContent=result.bridges.length?result.bridges.map(b=>b.name+': '+(b.reachable?'TCP reachable':'not reachable')).join('; ')+' . This checks the connection only.':'No Voice Bridge integration configured.';
     } catch(e){status.textContent='Unable to check the bridge: '+(e.message || String(e));}
     finally{button.disabled=false;}
@@ -515,9 +515,9 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
       const text=event.data.stt_output?.text;if(text){session.transcript=text;this.line('You',text);}
     } else if(event.type==='intent-end'){
       const reply=event.data.intent_output;this.conversationId=reply.conversation_id;
-      const mediaReport=reply.response?.speech?.plain?.extra_data?.jarvis_local?.media_search;
+      const mediaReport=reply.response?.speech?.plain?.extra_data?.declan_local?.media_search;
       if(mediaReport)this.renderMediaSearch(mediaReport);
-      if(event.data.processed_locally===false && reply.response?.speech?.plain?.extra_data?.jarvis_local?.trackable===true && session.transcript)this.trackCommand(session.transcript);
+      if(event.data.processed_locally===false && reply.response?.speech?.plain?.extra_data?.declan_local?.trackable===true && session.transcript)this.trackCommand(session.transcript);
       this.line('Declan',reply.response?.speech?.plain?.speech || 'No text response.');
       if(this.debugEnabled && event.data.processed_locally===true)this.line('Routing','Home Assistant processed this request locally. It may have matched a sentence trigger before Declan. Check the Assist debug trace.');
     } else if(event.type==='tts-end') {
@@ -653,7 +653,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
       profiles[key]={name:row.querySelector('.profile-name').value.trim(),min_confidence:Number(threshold),morning_responses:row.querySelector('.profile-responses').value.split('\n').map(x=>x.trim()).filter(Boolean)};
     }
     const button=this.root.querySelector('.save-profiles');button.disabled=true;
-    try {const reply=await this._hass.callWS({type:'jarvis_local/save_voice_profiles',profiles});this.voiceProfiles=reply.profiles;this.root.querySelector('.profile-message').textContent='Voice profiles saved and active.';}
+    try {const reply=await this._hass.callWS({type:'declan_local/save_voice_profiles',profiles});this.voiceProfiles=reply.profiles;this.root.querySelector('.profile-message').textContent='Voice profiles saved and active.';}
     catch(e){this.root.querySelector('.profile-message').textContent='Could not save profiles: '+(e.message || String(e));}
     finally{button.disabled=false;}
   }
@@ -682,7 +682,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const config={region:'GB',subscriptions:[...this.root.querySelectorAll('.media-subscriptions input')].filter(field=>field.checked).map(field=>field.value),clear_token:this.root.querySelector('.clear-tmdb-token').checked};
     if(token.value.trim())config.tmdb_token=token.value.trim();
     try {
-      this.mediaSearchConfig=await this._hass.callWS({type:'jarvis_local/save_media_search',config});
+      this.mediaSearchConfig=await this._hass.callWS({type:'declan_local/save_media_search',config});
       this.renderMediaSearchSettings();message.textContent='Media search settings saved and active.';
     } catch(error) {message.textContent='Could not save media search settings: '+(error.message || String(error));}
     finally {this.savingMediaSearch=false;controls.forEach((field,index)=>{field.disabled=disabled[index];});}
@@ -695,7 +695,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     this.searchingMedia=true;this.root.querySelector('.search-media').disabled=true;
     this.root.querySelector('.media-search-results').replaceChildren();
     status.textContent='Searching HA media, Jellyfin and available UK catalogues…';
-    try {const report=await this._hass.callWS({type:'jarvis_local/search_media',query});this.renderMediaSearch(report);}
+    try {const report=await this._hass.callWS({type:'declan_local/search_media',query});this.renderMediaSearch(report);}
     catch(error){status.textContent='Could not complete the search: '+(error.message || String(error));}
     finally{this.searchingMedia=false;this.root.querySelector('.search-media').disabled=false;}
   }
@@ -772,7 +772,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
           const status=this.root.querySelector('.media-search-status');
           status.textContent='Checking streaming services for '+item.title+'…';
           try{
-            const result=await this._hass.callWS({type:'jarvis_local/search_media',
+            const result=await this._hass.callWS({type:'declan_local/search_media',
               query:item.title,title_id:item.id,kind:item.kind});
             this.renderMediaSearch(result);
           }catch(_){status.textContent='Could not check this title. Please try again.';}
@@ -848,7 +848,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const container=this.root.querySelector('.satellite-check-results');
     button.disabled=true;container.replaceChildren();message.textContent='Checking saved mappings…';
     try {
-      const result=await this._hass.callWS({type:'jarvis_local/check_satellite_mappings'});
+      const result=await this._hass.callWS({type:'declan_local/check_satellite_mappings'});
       if(revision!==(this.satelliteCheckRevision || 0))return;
       if(result.error){message.textContent=result.error;return;}
       const rows=result.mappings || [];
@@ -917,7 +917,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const disabled=controls.map(control=>control.disabled);
     this.savingSettings=true;
     controls.forEach(control=>{control.disabled=true;});
-    try {await this._hass.callWS({type:'jarvis_local/save_settings',settings:data});this.settings=data;this.clearSatelliteCheck();this.root.querySelector('.settings-message').textContent='Settings saved. Changes are active now.';}
+    try {await this._hass.callWS({type:'declan_local/save_settings',settings:data});this.settings=data;this.clearSatelliteCheck();this.root.querySelector('.settings-message').textContent='Settings saved. Changes are active now.';}
     catch(e){this.root.querySelector('.settings-message').textContent='Could not save settings: '+(e.message || String(e));}
     finally{this.savingSettings=false;controls.forEach((control,index)=>{control.disabled=disabled[index];});this.root.querySelector('.check-satellite-mappings').disabled=!!this.checkingSatelliteMappings;this.updateSatelliteRows();}
   }
@@ -929,7 +929,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     this.line('Checks','Running previews only. A bedroom room selection is required for the lamp example.');
     try {
       for(const text of checks) {
-        const request={type:'jarvis_local/process',text};if(room)request.area_id=room;
+        const request={type:'declan_local/process',text};if(room)request.area_id=room;
         const reply=await this._hass.callWS(request);
         this.line(text,reply.response?.speech?.plain?.speech || 'No response');
       }
@@ -942,7 +942,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const status=this.root.querySelector('.learning-status');
     status.textContent='Loading suggestions…';
     try {
-      const data=await this._hass.callWS({type:'jarvis_local/learning_review_list'});
+      const data=await this._hass.callWS({type:'declan_local/learning_review_list'});
       const pending=this.root.querySelector('.learning-pending');
       const approved=this.root.querySelector('.learning-approved');
       const rejected=this.root.querySelector('.learning-rejected');
@@ -1033,7 +1033,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const status=this.root.querySelector('.learning-status');
     status.textContent='Testing without running actions…';
     try{
-      const request={type:'jarvis_local/learning_test',heard};if(suggested)request.suggested=suggested;
+      const request={type:'declan_local/learning_test',heard};if(suggested)request.suggested=suggested;
       const result=await this._hass.callWS(request);status.textContent=result.summary;
     }catch(error){status.textContent='Could not preview correction: '+(error.message || String(error));}
   }
@@ -1043,7 +1043,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const status=this.root.querySelector('.learning-status');
     status.textContent='Saving decision…';
     try {
-      const request={type:'jarvis_local/learning_review',heard,decision};
+      const request={type:'declan_local/learning_review',heard,decision};
       if(suggested)request.suggested=suggested;
       await this._hass.callWS(request);
       await this.loadLearning();
@@ -1055,7 +1055,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     if (!this._hass || !this.root || this.loadingInfo) return;
     this.loadingInfo=true;
     try {
-      const data=await this._hass.callWS({type:'jarvis_local/info'});
+      const data=await this._hass.callWS({type:'declan_local/info'});
       const select=this.root.querySelector('.room'),selected=select.value;
       select.replaceChildren(new Option('No room selected',''));
       for(const area of data.areas) select.add(new Option(area.name,area.id));
@@ -1074,7 +1074,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
   }
   async setDebug(enabled) {
     const toggle=this.root.querySelector('.debug-toggle');toggle.disabled=true;
-    try {const result=await this._hass.callWS({type:'jarvis_local/set_debug',enabled});this.debugEnabled=result.enabled===true;this.root.querySelector('.debug-content').hidden=!this.debugEnabled;if(!this.debugEnabled){this.root.querySelector('.diagnostics').textContent='[]';this.renderDiagnostics([]);for(const item of this.root.querySelectorAll('.routing-message'))item.remove();}await this.loadInfo();}
+    try {const result=await this._hass.callWS({type:'declan_local/set_debug',enabled});this.debugEnabled=result.enabled===true;this.root.querySelector('.debug-content').hidden=!this.debugEnabled;if(!this.debugEnabled){this.root.querySelector('.diagnostics').textContent='[]';this.renderDiagnostics([]);for(const item of this.root.querySelectorAll('.routing-message'))item.remove();}await this.loadInfo();}
     catch(e){toggle.checked=!!this.debugEnabled;this.voiceStatus('Could not change troubleshooting: '+(e.message || String(e)));}
     finally{toggle.disabled=false;}
   }
@@ -1120,7 +1120,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     if(!this._hass?.states[agent] || this._hass.states[agent].state==='unavailable'){this.line('Status','The conversation agent is not loaded. Check the integration startup logs. No command was sent.');return;}
     this.busy=true;this.root.querySelector('.send').disabled=true;input.value='';this.line('You',text);
     const start=performance.now();
-    try {const request={type:'jarvis_local/process',text};const room=this.root.querySelector('.room').value;if(room)request.area_id=room;if(this.conversationId)request.conversation_id=this.conversationId;const reply=await this._hass.callWS(request);if(!preview && reply.response?.speech?.plain?.extra_data?.jarvis_local?.trackable===true)this.trackCommand(original);this.conversationId=reply.conversation_id;const mediaReport=reply.response?.speech?.plain?.extra_data?.jarvis_local?.media_search;if(mediaReport)this.renderMediaSearch(mediaReport);this.line('Declan',reply.response?.speech?.plain?.speech || '(No text reply. The routine may announce through the Bedroom Muse.)');}
+    try {const request={type:'declan_local/process',text};const room=this.root.querySelector('.room').value;if(room)request.area_id=room;if(this.conversationId)request.conversation_id=this.conversationId;const reply=await this._hass.callWS(request);if(!preview && reply.response?.speech?.plain?.extra_data?.declan_local?.trackable===true)this.trackCommand(original);this.conversationId=reply.conversation_id;const mediaReport=reply.response?.speech?.plain?.extra_data?.declan_local?.media_search;if(mediaReport)this.renderMediaSearch(mediaReport);this.line('Declan',reply.response?.speech?.plain?.speech || '(No text reply. The routine may announce through the Bedroom Muse.)');}
     catch(e){this.line('Error',e.message || String(e));}
     finally{this.loadInfo();this.busy=false;this.root.querySelector('.send').disabled=false;input.focus();}
   }

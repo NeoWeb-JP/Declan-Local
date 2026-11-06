@@ -2,7 +2,7 @@
 
 ## Music selection (phase 1)
 
-The pure selection policy is in `custom_components/jarvis_local/music_variety.py`.
+The pure selection policy is in `custom_components/declan_local/music_variety.py`.
 It takes category-to-playlist mappings and per-category recent history; it does
 not call Spotify, Music Assistant, or Home Assistant. Use a private local config
 for real Spotify URIs. Do not commit household playlists or credentials.

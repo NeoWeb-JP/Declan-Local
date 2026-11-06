@@ -50,7 +50,7 @@ async def save(hass, data):
         raise ValueError('Invalid settings fields')
     cleaned={}
     for key, domain in FIELDS.items():
-        previous=hass.data.get('jarvis_local', {}).get('settings', {}).get(key, '')
+        previous=hass.data.get('declan_local', {}).get('settings', {}).get(key, '')
         value=data.get(key, previous if key in PRIVACY_FIELDS else '')
         if not isinstance(value, str):
             raise ValueError('Invalid '+key)
@@ -60,7 +60,7 @@ async def save(hass, data):
                 raise ValueError('Choose an existing '+domain+' entity for '+key)
             cleaned[key]=value
     cleaned['frigate_url'] = validate_frigate_url(data.get('frigate_url',
-        hass.data.get('jarvis_local', {}).get('settings', {}).get('frigate_url', '')))
+        hass.data.get('declan_local', {}).get('settings', {}).get('frigate_url', '')))
     mappings=data.get('switch_lights', {})
     if not isinstance(mappings, dict) or len(mappings)>50:
         raise ValueError('Invalid switch mappings')
@@ -74,7 +74,7 @@ async def save(hass, data):
     cleaned['switch_lights']=switches
     # Older sidebar clients omit this field; preserve their existing mappings.
     players=data.get('satellite_media_players',
-        hass.data.get('jarvis_local', {}).get('settings', {}).get('satellite_media_players', {}))
+        hass.data.get('declan_local', {}).get('settings', {}).get('satellite_media_players', {}))
     if not isinstance(players, dict) or len(players)>50:
         raise ValueError('Invalid satellite media player mappings')
     import re
@@ -82,7 +82,7 @@ async def save(hass, data):
         if (not isinstance(satellite, str) or not re.fullmatch(r'assist_satellite\.[a-z0-9_]+', satellite)
                 or not isinstance(player, str) or not re.fullmatch(r'media_player\.[a-z0-9_]+', player)):
             raise ValueError('Each satellite needs an explicit media_player entity')
-    previous=hass.data.get('jarvis_local', {}).get('settings', {}).get('satellite_media_players', {})
+    previous=hass.data.get('declan_local', {}).get('settings', {}).get('satellite_media_players', {})
     for satellite, player in players.items():
         # Keep unchanged mappings even when a saved entity is temporarily missing.
         if isinstance(previous, dict) and previous.get(satellite) == player:
@@ -96,14 +96,14 @@ async def save(hass, data):
     for first, second in (('guest_owner_one', 'guest_owner_two'), ('guest_names', 'guest_staying_names')):
         if cleaned.get(first) and cleaned.get(first) == cleaned.get(second):
             raise ValueError('Guest owner sensors and name helper roles must be distinct')
-    controller=hass.data.get('jarvis_local', {}).get('guest_authority')
+    controller=hass.data.get('declan_local', {}).get('guest_authority')
     if controller:
         await controller.prepare_settings(cleaned)
     await Store(hass, 1, KEY).async_save(cleaned)
-    hass.data['jarvis_local']['settings']=cleaned
+    hass.data['declan_local']['settings']=cleaned
 
 def get(hass, key, default=None):
-    value=hass.data.get('jarvis_local', {}).get('settings', {}).get(key, default)
+    value=hass.data.get('declan_local', {}).get('settings', {}).get(key, default)
     if not value and key == 'thermostat':
         candidates=hass.states.async_all('climate')
         if len(candidates)==1:

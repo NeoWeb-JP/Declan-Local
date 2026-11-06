@@ -26,7 +26,7 @@ class GuestAuthority:
         self.restart_cleanup = False
 
     def settings(self):
-        return self.hass.data['jarvis_local'].get('settings', {})
+        return self.hass.data['declan_local'].get('settings', {})
 
     def state(self, entity):
         value = self.hass.states.get(entity) if entity else None

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 import pytest
 
-from custom_components.jarvis_local import show_cameras as sc
+from custom_components.declan_local import show_cameras as sc
 
 
 def test_three_existing_cameras_have_explicit_references():

@@ -8,7 +8,7 @@ import types
 import unittest
 from unittest.mock import AsyncMock, patch
 
-ROOT = Path(__file__).resolve().parents[1] / "custom_components" / "jarvis_local"
+ROOT = Path(__file__).resolve().parents[1] / "custom_components" / "declan_local"
 package = types.ModuleType("_media_search_tests")
 package.__path__ = [str(ROOT)]
 sys.modules[package.__name__] = package
@@ -95,7 +95,7 @@ class SourceAdapters(unittest.TestCase):
         async def executor(fn, *args):
             return fn(*args)
         self.hass = types.SimpleNamespace(
-            data={"jarvis_local": {}},
+            data={"declan_local": {}},
             config=types.SimpleNamespace(media_dirs={"local": str(self.folder)}),
             config_entries=types.SimpleNamespace(async_entries=lambda domain: []),
             async_add_executor_job=executor)
@@ -198,7 +198,7 @@ class SourceAdapters(unittest.TestCase):
 
 class Streaming(unittest.TestCase):
     def setUp(self):
-        self.hass = types.SimpleNamespace(data={"jarvis_local": {"media_search_config": {
+        self.hass = types.SimpleNamespace(data={"declan_local": {"media_search_config": {
             "region": "GB", "subscriptions": list(media.SUBSCRIPTIONS),
             "tmdb_token": "private_test_read_token_1234567890"}}})
         self.candidate = {"id": 693, "media_type": "tv", "name": "Desperate Housewives", "first_air_date": "2004-10-03"}
@@ -221,7 +221,7 @@ class Streaming(unittest.TestCase):
         self.assertNotIn("private_test", str(result))
 
     def test_missing_credentials_never_claims_catalogue_was_checked(self):
-        self.hass.data["jarvis_local"]["media_search_config"]["tmdb_token"] = ""
+        self.hass.data["declan_local"]["media_search_config"]["tmdb_token"] = ""
         with patch.object(adapters, "_tmdb_json", AsyncMock()) as api:
             result = complete(adapters.search_streaming(self.hass, "Example", None))
         api.assert_not_awaited()
@@ -263,7 +263,7 @@ class Streaming(unittest.TestCase):
 class PrivateConfiguration(unittest.TestCase):
     def test_validation_and_public_settings_never_return_token(self):
         saved = config.validate({"tmdb_token": "test_token_that_is_long_enough"})
-        public = config.public_config(types.SimpleNamespace(data={"jarvis_local": {"media_search_config": saved}}))
+        public = config.public_config(types.SimpleNamespace(data={"declan_local": {"media_search_config": saved}}))
         self.assertEqual(public["region"], "GB")
         self.assertTrue(public["catalogue_configured"])
         self.assertNotIn("tmdb_token", public)
@@ -288,7 +288,7 @@ class PrivateConfiguration(unittest.TestCase):
             loaded = complete(config.load(hass))
         self.assertEqual(loaded["tmdb_token"], "test_token_that_is_long_enough")
         self.assertEqual(loaded["subscriptions"], ["disney"])
-        self.assertEqual(hass.data["jarvis_local"]["media_search_config"], loaded)
+        self.assertEqual(hass.data["declan_local"]["media_search_config"], loaded)
 
 
 if __name__ == "__main__":

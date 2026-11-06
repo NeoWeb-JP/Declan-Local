@@ -21,7 +21,7 @@ async def generate_from_existing_tts(
     """Fetch provider audio using the supported Home Assistant media-source API."""
     if not provider_entity_id.startswith("tts."):
         raise ValueError("Provider must be a TTS entity")
-    manager = getattr(hass, "data", {}).get("jarvis_local", {}).get("voice_manager")
+    manager = getattr(hass, "data", {}).get("declan_local", {}).get("voice_manager")
     if (provider_entity_id.startswith(("tts.jarvis_voice_manager", "tts.declan_voice_manager"))
             or provider_entity_id == getattr(manager, "entity_id", None)):
         raise ValueError("Declan Voice Manager cannot call itself")
