@@ -57,6 +57,8 @@ class InstalledVersion(unittest.TestCase):
             guest_controller.create = AsyncMock(return_value=types.SimpleNamespace(stop=AsyncMock()))
             learning_module = types.ModuleType('version_test_pkg.learning')
             learning_module.load_evidence = AsyncMock()
+            music_controller = types.ModuleType('version_test_pkg.music_controller')
+            music_controller.async_register = AsyncMock()
             storage_module = types.ModuleType('homeassistant.helpers.storage')
             class Store:
                 def __init__(self, *args): pass
@@ -65,6 +67,7 @@ class InstalledVersion(unittest.TestCase):
             package = types.ModuleType('version_test_pkg')
             package.__path__ = []
             modules = {'version_test_pkg': package,
+                       'version_test_pkg.music_controller': music_controller,
                        'version_test_pkg.media_search_config': media_config,
                        'version_test_pkg.timers': timers_module,
                        'version_test_pkg.settings': settings_module,
@@ -80,6 +83,10 @@ class InstalledVersion(unittest.TestCase):
                 async_add_executor_job=executor,
                 config=types.SimpleNamespace(path=lambda name: str(folder / name)),
                 config_entries=types.SimpleNamespace(async_forward_entry_setups=AsyncMock()))
+            entry = types.SimpleNamespace(
+                async_on_unload=lambda callback: None,
+                add_update_listener=lambda callback: lambda: None,
+            )
             setup = function(ROOT / '__init__.py', 'async_setup_entry', {
                 '__package__': 'version_test_pkg', 'DOMAIN': 'jarvis_local',
                 'Path': Path, 'quote': quote, 'read_version': version.read_version,
@@ -93,7 +100,7 @@ class InstalledVersion(unittest.TestCase):
             with patch.dict(sys.modules, modules), patch.object(version, '__file__', str(folder / 'version.py')):
                 for installed in ('1.2.3', '1.2.4'):
                     manifest_path.write_text(json.dumps({'version': installed}), encoding='utf-8')
-                    self.assertTrue(complete(setup(hass, object())))
+                    self.assertTrue(complete(setup(hass, entry)))
                     self.assertEqual(data['version'], installed)
                     self.assertEqual(registration.call_args.kwargs['module_url'],
                                      '/jarvis_local/panel.js?v=' + installed)
