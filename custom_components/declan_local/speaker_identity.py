@@ -70,3 +70,62 @@ def bridge_profile(text, profiles):
     if confidence < threshold or not isinstance(name, str) or not re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ '-]{0,39}", name):
         return None
     return name
+
+
+class SatelliteSpeakerMemory:
+    """Short-lived, per-satellite identity hints for conversation only.
+
+    Never use the result to authorise actions or grant access. An explicit
+    speaker disagreement invalidates the cached hint, even at low confidence.
+    """
+
+    def __init__(self, ttl=30, anchor_confidence=0.65):
+        self.ttl = ttl
+        self.anchor_confidence = anchor_confidence
+        self._recent = {}
+
+    def resolve(self, transcript, satellite_id, profiles, now=None, diagnostic=None):
+        from .speaker_models import SpeakerTranscript
+
+        def report(profile, source, confidence=None):
+            if diagnostic is not None:
+                diagnostic(profile, source, confidence)
+            return profile
+
+        now = time.monotonic() if now is None else now
+        self._recent = {key: value for key, value in self._recent.items()
+                        if now - value[1] < self.ttl}
+        # A missing satellite must never share identity across devices.
+        if not isinstance(satellite_id, str) or not satellite_id.strip():
+            direct = bridge_profile(transcript, profiles)
+            return report(direct, 'direct' if direct else 'unknown')
+
+        direct = bridge_profile(transcript, profiles)
+        metadata = getattr(transcript, 'jarvis_speaker', None) if isinstance(transcript, SpeakerTranscript) else None
+        speaker = None
+        confidence = None
+        if isinstance(metadata, tuple) and len(metadata) == 3:
+            _, raw_speaker, raw_confidence = metadata
+            if isinstance(raw_speaker, str) and isinstance(raw_confidence, (int, float)) and not isinstance(raw_confidence, bool) and math.isfinite(raw_confidence) and 0 <= raw_confidence <= 1:
+                speaker, confidence = raw_speaker.casefold(), raw_confidence
+
+        previous = self._recent.get(satellite_id)
+        if direct:
+            if confidence is not None and confidence >= self.anchor_confidence:
+                self._recent[satellite_id] = (speaker, now, direct)
+            elif previous and speaker != previous[0]:
+                self._recent.pop(satellite_id, None)
+            return report(direct, 'direct', confidence)
+
+        # A recogniser's explicit different identity is contradictory evidence.
+        if speaker is not None and previous and speaker != previous[0]:
+            self._recent.pop(satellite_id, None)
+            return report(None, 'unknown', confidence)
+        if not previous or not isinstance(transcript, SpeakerTranscript):
+            return report(None, 'unknown', confidence)
+        # Do not carry identity into long or unrelated requests.
+        words = str(transcript).split()
+        if not 1 <= len(words) <= 5:
+            return report(None, 'unknown', confidence)
+        # Missing metadata is permitted only for short, same-satellite follow-ups.
+        return report(previous[2], 'memory', confidence)

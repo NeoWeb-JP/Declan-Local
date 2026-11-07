@@ -9,7 +9,7 @@ from .understanding import normalize_request
 from .media_search import parse_search
 from .media_search_adapters import search as search_media
 from .settings import get
-from .speaker_identity import unwrap, bridge_profile
+from .speaker_identity import unwrap, bridge_profile, SatelliteSpeakerMemory
 from .visual_observation import inspect_speaker_camera
 from .morning import morning_reply
 from .social import social_reply
@@ -51,6 +51,7 @@ class JarvisAgent(conversation.ConversationEntity):
         self._recent_lights = {}
         self._pending_clarifications = {}
         self._voice_markers = {}
+        self._speaker_memory = SatelliteSpeakerMemory()
         self._information_topics = {}
         self._information_runs = {}
         self._previous_failed = {}
@@ -87,7 +88,16 @@ class JarvisAgent(conversation.ConversationEntity):
         self_corrected=False
         command_text=user_input.text
         cfg=self.hass.data.get('declan_local',{}).get('voice_id_config',{})
-        voice_profile=bridge_profile(command_text,cfg.get('profiles',{}))
+        satellite_id=getattr(user_input,'satellite_id',None)
+        def speaker_diagnostic(profile, source, confidence):
+            # Only allow bounded labels in logs; never include transcripts or IDs.
+            safe_satellite = satellite_id if isinstance(satellite_id,str) and re.fullmatch(r'[a-zA-Z0-9_.-]{1,128}',satellite_id) else 'unavailable'
+            safe_profile = profile if isinstance(profile,str) and re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿ '-]{1,40}",profile) else 'unknown'
+            safe_confidence = f'{confidence:.2f}' if isinstance(confidence,(int,float)) and not isinstance(confidence,bool) and 0 <= confidence <= 1 else 'unavailable'
+            logging.getLogger(__name__).info(
+                "DECLAN_SPEAKER satellite=%s recognized=%s source=%s confidence=%s",
+                safe_satellite,safe_profile,source,safe_confidence)
+        voice_profile=self._speaker_memory.resolve(command_text,satellite_id,cfg.get('profiles',{}),now=now,diagnostic=speaker_diagnostic)
         if command_text.startswith('JVS1.'):
             cfg=self.hass.data.get('declan_local',{}).get('voice_id_config',{})
             command_text,voice_profile=unwrap(command_text,cfg.get('secret'),cfg.get('profiles',{}),self._voice_markers)
