@@ -9,7 +9,7 @@ from .understanding import normalize_request
 from .media_search import parse_search
 from .media_search_adapters import search as search_media
 from .settings import get
-from .speaker_identity import unwrap, bridge_profile
+from .speaker_identity import unwrap, bridge_profile, SatelliteSpeakerMemory
 from .visual_observation import inspect_speaker_camera
 from .morning import morning_reply
 from .social import social_reply
@@ -51,6 +51,7 @@ class JarvisAgent(conversation.ConversationEntity):
         self._recent_lights = {}
         self._pending_clarifications = {}
         self._voice_markers = {}
+        self._speaker_memory = SatelliteSpeakerMemory()
         self._information_topics = {}
         self._information_runs = {}
         self._previous_failed = {}
@@ -87,7 +88,7 @@ class JarvisAgent(conversation.ConversationEntity):
         self_corrected=False
         command_text=user_input.text
         cfg=self.hass.data.get('declan_local',{}).get('voice_id_config',{})
-        voice_profile=bridge_profile(command_text,cfg.get('profiles',{}))
+        voice_profile=self._speaker_memory.resolve(command_text,getattr(user_input,'satellite_id',None),cfg.get('profiles',{}),now=now)
         if command_text.startswith('JVS1.'):
             cfg=self.hass.data.get('declan_local',{}).get('voice_id_config',{})
             command_text,voice_profile=unwrap(command_text,cfg.get('secret'),cfg.get('profiles',{}),self._voice_markers)
