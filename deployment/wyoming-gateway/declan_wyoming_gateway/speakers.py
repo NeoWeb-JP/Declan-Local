@@ -49,8 +49,23 @@ class WeSpeakerEmbedder:
                 wav.setsampwidth(2)
                 wav.setframerate(16000)
                 wav.writeframes(pcm)
+            # Decode PCM WAV with SoundFile to avoid TorchCodec's optional
+            # dependency in newer TorchAudio releases.
+            import soundfile as sf
+            import torch
+            import torchaudio
+
+            def load_pcm_wav(path, *args, **kwargs):
+                audio, sample_rate = sf.read(path, dtype="float32", always_2d=True)
+                return torch.from_numpy(audio.T.copy()), sample_rate
+
             with self._lock:
-                result = self._model.extract_embedding(filename)
+                original_load = torchaudio.load
+                try:
+                    torchaudio.load = load_pcm_wav
+                    result = self._model.extract_embedding(filename)
+                finally:
+                    torchaudio.load = original_load
             return normalise([float(x) for x in result.flatten()])
         finally:
             Path(filename).unlink(missing_ok=True)
