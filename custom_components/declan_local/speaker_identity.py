@@ -42,7 +42,7 @@ def unwrap(text, secret, profiles, seen, now=None):
 def bridge_profile(text, profiles):
     """Use bridge metadata only for optional response personalisation."""
     try:
-        from custom_components.jarvis_voice_bridge.models import SpeakerTranscript
+        from .speaker_models import SpeakerTranscript
     except ImportError:
         return None
     if not isinstance(text, SpeakerTranscript):
