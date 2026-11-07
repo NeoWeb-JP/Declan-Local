@@ -1,6 +1,6 @@
 """Integrated Wyoming speaker-aware speech recognition, adapted from Jarvis-Voice-Bridge.
 
-Requires a Wyoming speech service emitting jarvis-speaker before Transcript.
+Accepts Wyoming speaker events before or shortly after Transcript.
 """
 import asyncio
 import logging
@@ -22,9 +22,20 @@ async def upload(client,stream):
 async def receive(client):
     identity = None
     speaker_event_seen = False
-    speaker_event_valid = False
     speaker_unknown = False
-    while event := await client.read_event():
+    transcript = None
+    # Bound the wait after a transcript so missing speaker events cannot stall STT.
+    late_speaker_timeout = 0.35
+    while True:
+        try:
+            event = (
+                await asyncio.wait_for(client.read_event(), timeout=late_speaker_timeout)
+                if transcript is not None else await client.read_event()
+            )
+        except asyncio.TimeoutError:
+            break
+        if event is None:
+            break
         if event.type == 'jarvis-speaker':
             speaker_event_seen = True
             value = event.data if isinstance(event.data, dict) else {}
@@ -32,35 +43,42 @@ async def receive(client):
             confidence = value.get('confidence')
             identity_id = value.get('interaction_id')
             speaker_unknown = isinstance(name, str) and name.casefold() in ('unknown', 'unidentified', 'none')
-            speaker_event_valid = (
+            valid = (
                 isinstance(name, str) and bool(name) and len(name) <= 80
                 and isinstance(identity_id, str) and len(identity_id) <= 80
                 and isinstance(confidence, (int, float)) and not isinstance(confidence, bool)
                 and math.isfinite(confidence) and 0 <= confidence <= 1
             )
-            if speaker_event_valid:
+            if valid and not speaker_unknown:
                 identity = (identity_id, name, confidence)
             _LOGGER.info(
                 "DECLAN_WYOMING_SPEAKER event=received valid=%s unknown=%s",
-                speaker_event_valid, speaker_unknown,
+                valid, speaker_unknown,
             )
+            if transcript is not None:
+                break
         elif Transcript.is_type(event.type):
-            _LOGGER.info(
-                "DECLAN_WYOMING_SPEAKER event=transcript speaker_event_seen=%s "
-                "identity_attached=%s ordering=%s",
-                speaker_event_seen, identity is not None,
-                'speaker_before_transcript' if speaker_event_seen else 'transcript_before_speaker',
-            )
-            return stt.SpeechResult(
-                SpeakerTranscript(Transcript.from_event(event).text, identity),
-                stt.SpeechResultState.SUCCESS,
-            )
+            transcript = Transcript.from_event(event).text
+            if speaker_event_seen:
+                break
         elif Error.is_type(event.type):
             _LOGGER.info(
                 "DECLAN_WYOMING_SPEAKER event=error speaker_event_seen=%s",
                 speaker_event_seen,
             )
             return stt.SpeechResult(None, stt.SpeechResultState.ERROR)
+    if transcript is not None:
+        _LOGGER.info(
+            "DECLAN_WYOMING_SPEAKER event=transcript speaker_event_seen=%s "
+            "identity_attached=%s ordering=%s",
+            speaker_event_seen, identity is not None,
+            ('speaker_before_transcript' if speaker_event_seen and identity is not None
+             else 'speaker_missing_or_late'),
+        )
+        return stt.SpeechResult(
+            SpeakerTranscript(transcript, identity),
+            stt.SpeechResultState.SUCCESS,
+        )
     _LOGGER.info(
         "DECLAN_WYOMING_SPEAKER event=stream_closed speaker_event_seen=%s",
         speaker_event_seen,
