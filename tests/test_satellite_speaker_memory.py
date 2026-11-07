@@ -47,5 +47,21 @@ class SatelliteMemoryTests(unittest.TestCase):
         self.memory.resolve(utterance('hello', 'jaco', .8), 'kitchen', PROFILES, 100)
         self.assertIsNone(self.memory.resolve(utterance('please give me a complete home status report'), 'kitchen', PROFILES, 101))
 
+
+    def test_diagnostic_reports_direct_memory_and_unknown(self):
+        records = []
+        callback = lambda profile, source, confidence: records.append((profile, source, confidence))
+        self.memory.resolve(utterance('hello', 'jaco', .8), 'kitchen', PROFILES, 100, diagnostic=callback)
+        self.memory.resolve(utterance('yes'), 'kitchen', PROFILES, 101, diagnostic=callback)
+        self.memory.resolve(utterance('yes'), 'bedroom', PROFILES, 102, diagnostic=callback)
+        self.assertEqual(records, [('Jaco', 'direct', .8), ('Jaco', 'memory', None), (None, 'unknown', None)])
+
+    def test_diagnostic_conflict_does_not_leak_previous_identity(self):
+        records = []
+        callback = lambda profile, source, confidence: records.append((profile, source, confidence))
+        self.memory.resolve(utterance('hello', 'jaco', .8), 'kitchen', PROFILES, 100, diagnostic=callback)
+        self.memory.resolve(utterance('yes', 'edd', .3), 'kitchen', PROFILES, 101, diagnostic=callback)
+        self.assertEqual(records[-1], (None, 'unknown', .3))
+
 if __name__ == '__main__':
     unittest.main()
