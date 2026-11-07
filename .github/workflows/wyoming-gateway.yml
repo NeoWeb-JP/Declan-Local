@@ -1,0 +1,27 @@
+name: Wyoming speaker gateway
+on:
+  push:
+    paths:
+      - 'deployment/wyoming-gateway/**'
+      - '.github/workflows/wyoming-gateway.yml'
+  pull_request:
+    paths:
+      - 'deployment/wyoming-gateway/**'
+      - '.github/workflows/wyoming-gateway.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Wyoming protocol client/server
+        run: python -m pip install wyoming==1.11.0
+      - name: Compile Python sources
+        run: python -m compileall -q deployment/wyoming-gateway
+      - name: Protocol, enrolment and fallback tests
+        working-directory: deployment/wyoming-gateway
+        run: PYTHONPATH=. python -m unittest discover -s tests -v
