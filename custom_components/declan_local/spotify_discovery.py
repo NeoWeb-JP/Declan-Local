@@ -58,7 +58,10 @@ async def credentials(hass):
 
 async def search(hass, client_id, client_secret):
     """Fetch up to 10 results per search; abort on API errors."""
-    # Import Home Assistant only when performing an actual API request.\n    # Pure catalogue helpers can be tested without the HA runtime installed.\n    from homeassistant.helpers.aiohttp_client import async_get_clientsession\n    session = async_get_clientsession(hass)
+    # Import Home Assistant only when performing an actual API request.
+    # Pure catalogue helpers can be tested without the HA runtime installed.
+    from homeassistant.helpers.aiohttp_client import async_get_clientsession
+    session = async_get_clientsession(hass)
     timeout = aiohttp.ClientTimeout(total=20)
     basic = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
     async with session.post("https://accounts.spotify.com/api/token",
