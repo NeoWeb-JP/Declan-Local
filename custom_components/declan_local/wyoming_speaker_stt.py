@@ -24,6 +24,7 @@ async def receive(client):
     speaker_event_seen = False
     speaker_unknown = False
     transcript = None
+    speaker_arrived_after_transcript = False
     # Bound the wait after a transcript so missing speaker events cannot stall STT.
     late_speaker_timeout = 0.35
     while True:
@@ -37,6 +38,7 @@ async def receive(client):
         if event is None:
             break
         if event.type == 'jarvis-speaker':
+            speaker_arrived_after_transcript = transcript is not None
             speaker_event_seen = True
             value = event.data if isinstance(event.data, dict) else {}
             name = value.get('speaker')
@@ -72,8 +74,9 @@ async def receive(client):
             "DECLAN_WYOMING_SPEAKER event=transcript speaker_event_seen=%s "
             "identity_attached=%s ordering=%s",
             speaker_event_seen, identity is not None,
-            ('speaker_before_transcript' if speaker_event_seen and identity is not None
-             else 'speaker_missing_or_late'),
+            ('speaker_after_transcript' if speaker_arrived_after_transcript
+             else 'speaker_before_transcript' if speaker_event_seen
+             else 'speaker_missing'),
         )
         return stt.SpeechResult(
             SpeakerTranscript(transcript, identity),
