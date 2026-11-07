@@ -84,15 +84,21 @@ class SatelliteSpeakerMemory:
         self.anchor_confidence = anchor_confidence
         self._recent = {}
 
-    def resolve(self, transcript, satellite_id, profiles, now=None):
+    def resolve(self, transcript, satellite_id, profiles, now=None, diagnostic=None):
         from .speaker_models import SpeakerTranscript
+
+        def report(profile, source, confidence=None):
+            if diagnostic is not None:
+                diagnostic(profile, source, confidence)
+            return profile
 
         now = time.monotonic() if now is None else now
         self._recent = {key: value for key, value in self._recent.items()
                         if now - value[1] < self.ttl}
         # A missing satellite must never share identity across devices.
         if not isinstance(satellite_id, str) or not satellite_id.strip():
-            return bridge_profile(transcript, profiles)
+            direct = bridge_profile(transcript, profiles)
+            return report(direct, 'direct' if direct else 'unknown')
 
         direct = bridge_profile(transcript, profiles)
         metadata = getattr(transcript, 'jarvis_speaker', None) if isinstance(transcript, SpeakerTranscript) else None
@@ -109,17 +115,17 @@ class SatelliteSpeakerMemory:
                 self._recent[satellite_id] = (speaker, now, direct)
             elif previous and speaker != previous[0]:
                 self._recent.pop(satellite_id, None)
-            return direct
+            return report(direct, 'direct', confidence)
 
         # A recogniser's explicit different identity is contradictory evidence.
         if speaker is not None and previous and speaker != previous[0]:
             self._recent.pop(satellite_id, None)
-            return None
+            return report(None, 'unknown', confidence)
         if not previous or not isinstance(transcript, SpeakerTranscript):
-            return None
+            return report(None, 'unknown', confidence)
         # Do not carry identity into long or unrelated requests.
         words = str(transcript).split()
         if not 1 <= len(words) <= 5:
-            return None
+            return report(None, 'unknown', confidence)
         # Missing metadata is permitted only for short, same-satellite follow-ups.
-        return previous[2]
+        return report(previous[2], 'memory', confidence)
