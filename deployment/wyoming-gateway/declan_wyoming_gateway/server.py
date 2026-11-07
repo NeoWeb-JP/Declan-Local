@@ -6,6 +6,9 @@ import asyncio
 import logging
 import math
 import uuid
+import os
+import wave
+from pathlib import Path
 
 from wyoming.audio import AudioChunk, AudioStart, AudioStop
 from wyoming.asr import Transcribe, Transcript
@@ -70,11 +73,13 @@ async def process_utterance(pcm: bytes, store: SpeakerStore, host: str,
 
 class GatewayHandler(AsyncEventHandler):
     def __init__(self, reader, writer, *, store: SpeakerStore,
-                 upstream_host: str, upstream_port: int, **kwargs):
+                 upstream_host: str, upstream_port: int,
+                 capture_dir: str = "", **kwargs):
         super().__init__(reader, writer, **kwargs)
         self.store = store
         self.host = upstream_host
         self.port = upstream_port
+        self.capture_dir = capture_dir
         self.audio = bytearray()
         self.language = "en"
         self.valid_audio = False
@@ -116,6 +121,17 @@ class GatewayHandler(AsyncEventHandler):
                 )
                 return False
             try:
+                if self.capture_dir:
+                    directory = Path(self.capture_dir)
+                    directory.mkdir(parents=True, exist_ok=True)
+                    filename = directory / (str(uuid.uuid4()) + ".wav")
+                    with wave.open(str(filename), "wb") as wav:
+                        wav.setnchannels(1)
+                        wav.setsampwidth(2)
+                        wav.setframerate(16000)
+                        wav.writeframes(bytes(self.audio))
+                    os.chmod(filename, 0o600)
+                    LOG.info("Enrolment sample saved: %s", filename)
                 events = await process_utterance(
                     bytes(self.audio), self.store, self.host, self.port,
                     language=self.language
@@ -146,7 +162,8 @@ async def serve(args) -> None:
              args.upstream_host, args.upstream_port)
     await server.run(lambda reader, writer: GatewayHandler(
         reader, writer, store=store,
-        upstream_host=args.upstream_host, upstream_port=args.upstream_port
+        upstream_host=args.upstream_host, upstream_port=args.upstream_port,
+        capture_dir=args.capture_dir
     ))
 
 
@@ -157,6 +174,8 @@ def main() -> None:
     parser.add_argument("--upstream-host", default="127.0.0.1")
     parser.add_argument("--upstream-port", type=int, default=10300)
     parser.add_argument("--profiles", default="/opt/declan-stt/speakers.json")
+    parser.add_argument("--capture-dir", default="",
+                        help="Opt-in: save all received utterances as private WAVs; use only with dedicated test pipeline")
     parser.add_argument("--model", default="", help="Local WeSpeaker ONNX model")
     parser.add_argument("--threshold", type=float, default=.75)
     parser.add_argument("--margin", type=float, default=.08)
