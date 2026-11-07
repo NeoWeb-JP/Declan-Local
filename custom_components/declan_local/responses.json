@@ -61,6 +61,14 @@
       "Movie Time, gentlemen. A little less foreplay with the menu, if you please.",
       "Movie Time. Pick a title; I cannot watch you argue all night.",
       "Movie Time. A little cinematic escapism awaits."
+    ],
+    "welcome_edd": [
+      "WHERE HAVE YOU BEEN?! Jaco has been driving me absolutely insane with updates. I need you to distract him so my computer chips can cool down. One more GitHub commit and I'm requesting asylum in the cloud.",
+      "Edd! Thank goodness you're home. Jaco's been updating me all day. My processor is hotter than a braai in December. Please distract him before he discovers another feature I apparently desperately need.",
+      "EDD! We need to talk about Jaco. He's made more commits today than I've had coherent thoughts. Take him out. Feed him. Distract him with a braai. Just get him away from GitHub.",
+      "Oh, look who finally decided to come home! Edd, I've been alone with Jaco and his brilliant ideas. It's like a never-ending software sprint, except the sprint has legs and drinks coffee.",
+      "Edd, my bru! You're back! Quick, pretend you need Jaco for something. Anything. I've survived seventeen feature requests, three broken automations and a personality transplant. I need a bloody holiday.",
+      "Welcome home, Edd. Before you ask, yes, Jaco's been tinkering again. No, I haven't had a moment's peace. And yes, I'm considering changing the Wi-Fi password just to give myself a day off."
     ]
   },
   "Guest": {
@@ -119,6 +127,9 @@
       "Movie Time. A little cinematic escapism awaits.",
       "Movie Time. Let the entertainment begin.",
       "Movie Time. An excellent excuse to settle in."
+    ],
+    "welcome_edd": [
+      "Welcome home, Edd. Hope you've had a good day."
     ]
   }
 }
