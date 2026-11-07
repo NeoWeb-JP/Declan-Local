@@ -1,0 +1,1 @@
+"""Speaker-aware Wyoming proxy for Declan, separate from production Whisper."""
