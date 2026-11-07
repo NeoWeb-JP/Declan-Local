@@ -440,13 +440,13 @@ class JarvisAgent(conversation.ConversationEntity):
                                 await self.hass.services.async_call(
                                     'declan_local', 'play_music_category',
                                     {'category': step['category'], 'room': step['room']},
-                                    blocking=True, context=user_input.context)
-                                replies.append('Playing a different ' + step['category'] + ' playlist in ' + step['room'] + '.')
+                                    blocking=False, context=user_input.context)
+                                replies.append('Starting a different ' + step['category'] + ' playlist in ' + step['room'] + '.')
                                 continue
                             if step['kind'] == 'music_assistant_play':
-                                await self.hass.services.async_call('music_assistant', 'play_media', step['data'], target={'entity_id': step['entity_id']}, blocking=True, context=user_input.context)
+                                await self.hass.services.async_call('music_assistant', 'play_media', step['data'], target={'entity_id': step['entity_id']}, blocking=False, context=user_input.context)
                                 replies.append(contextual_reply(self.hass,
-                                    'Requested ' + step['data']['media_id'] + ' in ' + step['target_label'] + '.', 'music'))
+                                    'Starting ' + step['data']['media_id'] + ' in ' + step['target_label'] + '.', 'music'))
                                 continue
                             if step['kind'] == 'music':
                                 await self.hass.services.async_call('script',step['name'],step['data'],blocking=True,context=user_input.context)
