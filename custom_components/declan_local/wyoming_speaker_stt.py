@@ -1,4 +1,8 @@
-"""Integrated Wyoming speaker-aware speech recognition, adapted from Jarvis-Voice-Bridge.\n\nRequires a Wyoming speech service emitting jarvis-speaker before Transcript.\n"""\nimport asyncio
+"""Integrated Wyoming speaker-aware speech recognition, adapted from Jarvis-Voice-Bridge.
+
+Requires a Wyoming speech service emitting jarvis-speaker before Transcript.
+"""
+import asyncio
 import logging
 import math
 from collections.abc import AsyncIterable
