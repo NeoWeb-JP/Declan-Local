@@ -113,7 +113,7 @@ async def async_register(hass):
             await hass.services.async_call(
                 "music_assistant", "play_media",
                 {"media_id": selected, "media_type": "playlist"},
-                target={"entity_id": entity}, blocking=True, context=call.context)
+                target={"entity_id": entity}, blocking=False, context=call.context)
             await history_store.async_save(updated_history(category, selected, history))
 
     hass.services.async_register(DOMAIN, "play_music_category", play,
