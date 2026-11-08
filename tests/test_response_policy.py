@@ -1,5 +1,6 @@
 """All acknowledgment paths preserve quiet/privacy policy and factual responses."""
 import pytest
+from unittest.mock import patch
 import test_agent_dialogue as dialogue
 import test_commands as fixtures
 from test_context_personality_batch import home,complete
@@ -86,13 +87,17 @@ def test_movie_time_respects_script_outcome(context, expected):
             return {'response_context':context,
                     'response':'Screen is moving' if context=='movie_busy' else 'Routine completed'}
         case.hass.services.async_call=call
-        result=complete(case.agent.async_handle(dialogue.UserInput('movie time')))
+        # The shared dialogue fixture replaces confirmation with a plain
+        # acknowledgement. Restore the real implementation for this test.
+        from jarvis_test import personality
+        import json
+        from pathlib import Path
+        catalog = json.loads((Path(__file__).resolve().parents[1] / 'custom_components' / 'declan_local' / 'responses.json').read_text(encoding='utf-8'))
+        with patch.object(dialogue.module, 'confirmation', personality.confirmation), patch.object(personality, 'CATALOG', catalog):
+            result=complete(case.agent.async_handle(dialogue.UserInput('movie time')))
         if expected is None:
             assert result.response.speech == 'Screen is moving'
         else:
-            import json
-            from pathlib import Path
-            catalog = json.loads((Path(__file__).resolve().parents[1] / 'custom_components' / 'declan_local' / 'responses.json').read_text(encoding='utf-8'))
             assert result.response.speech in catalog['Guest'][expected]
     finally:
         case.doCleanups()
