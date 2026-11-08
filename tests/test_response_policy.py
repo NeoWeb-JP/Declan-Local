@@ -64,9 +64,9 @@ def test_quiet_music_correction_keeps_request_fact_without_success_claim():
 
 
 @pytest.mark.parametrize('context,expected',[
-    ('movie_start', 'Movie Time'),
-    ('movie_end', 'Cinema'),
-    ('movie_busy', 'Screen is moving'),
+    ('movie_start', 'movie'),
+    ('movie_end', 'movie_end'),
+    ('movie_busy', None),
 ])
 def test_movie_time_respects_script_outcome(context, expected):
     case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
@@ -84,6 +84,10 @@ def test_movie_time_respects_script_outcome(context, expected):
                     'response':'Screen is moving' if context=='movie_busy' else 'Routine completed'}
         case.hass.services.async_call=call
         result=complete(case.agent.async_handle(dialogue.UserInput('movie time')))
-        assert expected.lower() in result.response.speech.lower()
+        if expected is None:
+            assert result.response.speech == 'Screen is moving'
+        else:
+            from custom_components.declan_local.personality import CATALOG
+            assert result.response.speech in CATALOG['Guest'][expected]
     finally:
         case.doCleanups()
