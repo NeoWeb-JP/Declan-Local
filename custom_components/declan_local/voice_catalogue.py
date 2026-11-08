@@ -33,7 +33,7 @@ class CataloguePreparation:
                 if category not in STATIC_CATEGORIES or not isinstance(values,list):
                     raise ValueError('Invalid catalogue')
                 for sentence in values:
-                    if not isinstance(sentence,str) or not sentence.strip() or len(sentence)>200 or any(c in sentence for c in '{}'):
+                    if not isinstance(sentence,str) or not sentence.strip() or len(sentence)>(300 if category == 'welcome_edd' else 200) or any(c in sentence for c in '{}'):
                         raise ValueError('Catalogue must contain short static sentences only')
                     key = sha256(json.dumps([mode,category,sentence],ensure_ascii=False).encode()).hexdigest()
                     if not any(line['id']==key for line in lines):
