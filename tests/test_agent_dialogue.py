@@ -59,7 +59,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('Jaco',neutral.response.speech)
         original=module.bridge_profile
         try:
-            module.bridge_profile=lambda text,profiles:'Jaco'
+            self.agent._speaker_memory.resolve=lambda *args, **kwargs:'Jaco'
             self.hass.data={'declan_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'}}}
             self.hass.states.values['input_boolean.visitors']=fixtures.State('input_boolean.visitors','Visitors','off')
             self.hass.states.values['input_boolean.authority']=fixtures.State('input_boolean.authority','Authority','off')
@@ -89,7 +89,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         async def routine(*args, **kwargs):
             self.hass.services.calls.append((args, kwargs))
             return {'response':'PRIVATE_SCRIPT_GREETING'}
-        with patch.object(module, 'bridge_profile', lambda *args:'Jaco'), patch.object(self.hass.services, 'async_call', routine):
+        with patch.object(self.agent._speaker_memory, 'resolve', lambda *args, **kwargs:'Jaco'), patch.object(self.hass.services, 'async_call', routine):
             home=await self.agent.async_handle(UserInput('good morning'))
             self.assertIn('PRIVATE_INTIMATE_GREETING',home.response.speech)
             for state in ('on','unknown','unavailable'):
