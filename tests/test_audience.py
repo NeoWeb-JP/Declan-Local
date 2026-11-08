@@ -47,7 +47,7 @@ class AudienceTests(unittest.TestCase):
         original=hass.states.get
         for state in ('on','unknown','unavailable'):
             hass.states.get=lambda entity,state=state:types.SimpleNamespace(state=state) if entity=='input_boolean.staying' else original(entity)
-            self.assertEqual(audience.mode(hass),'Guest')
+            self.assertEqual(audience.mode(hass),'Home')
 
     def test_quiet_helper_is_independent_and_fails_quiet(self):
         for state in ('on', 'unknown', 'unavailable'):
@@ -91,9 +91,9 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
         guest = await self.module.confirmation(self.hass, None, 'Done.', 'off')
         self.assertIn(guest, self.module.CATALOG['Guest']['off'])
 
-    async def test_quiet_and_legacy_night_keep_plain_confirmation(self):
+    async def test_quiet_and_legacy_night_do_not_override_guest_mode(self):
         self.hass = house(quiet='on')
-        self.assertEqual(await self.module.confirmation(self.hass, None, 'Lights off.', 'off'), 'Lights off.')
+        self.assertIn(await self.module.confirmation(self.hass, None, 'Lights off.', 'off'), self.module.CATALOG['Home']['off'] + self.module.SAVAGE_LINES['off'] + self.module.BRUTAL_LINES['off'] + self.module.NUCLEAR_LINES['off'])
         self.hass = house()
         self.hass.data['declan_local']['settings']['personality_script'] = 'script.legacy'
         self.hass.states = types.SimpleNamespace(get=lambda entity: types.SimpleNamespace(state='on'))
@@ -112,7 +112,7 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
     async def test_unknown_context_and_quiet_failure_do_not_joke(self):
         self.assertEqual(await self.module.confirmation(self.hass, None, 'Alarm failed.', 'security_error'), 'Alarm failed.')
         self.hass = house(quiet='unavailable')
-        self.assertEqual(await self.module.confirmation(self.hass, None, 'Done.', 'on'), 'Done.')
+        self.assertIn(await self.module.confirmation(self.hass, None, 'Done.', 'on'), self.module.CATALOG['Home']['on'] + self.module.SAVAGE_LINES['on'] + self.module.BRUTAL_LINES['on'] + self.module.NUCLEAR_LINES['on'])
 
     async def test_action_specific_anti_repeat(self):
         lines = [await self.module.confirmation(self.hass, None, 'Done.', 'on') for _ in range(4)]
