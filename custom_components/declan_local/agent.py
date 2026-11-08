@@ -467,7 +467,12 @@ class JarvisAgent(conversation.ConversationEntity):
                                     'script', 'declan_sexy_time',
                                     {'operation': step['operation']}, blocking=True,
                                     return_response=True, context=user_input.context)
-                                replies.append((reply or {}).get('speech') or 'Routine request sent.')
+                                # External routine speech may contain private Home banter.
+                                # Do not relay it verbatim to guests or during quiet hours.
+                                routine_speech = (reply or {}).get('speech') or 'Routine request sent.'
+                                if audience_mode(self.hass) == 'Guest' or plain_responses(self.hass):
+                                    routine_speech = 'Routine request sent.'
+                                replies.append(routine_speech)
                                 continue
                             if step['kind'] == 'dinner_routine':
                                 await self.hass.services.async_call(
@@ -485,8 +490,22 @@ class JarvisAgent(conversation.ConversationEntity):
                             if step.get('kind')=='action' or (reply or {}).get('response'):
                                 routine_reply=(reply or {}).get('response') or 'Routine request sent.'
                                 if step['name'] != 'declan_local_good_morning':
-                                    action=('bedtime' if step['name']=='declan_local_good_night' else 'movie' if step['name']=='declan_local_movie' else 'general')
-                                    routine_reply=await confirmation(self.hass,user_input.context,'Routine request sent.',action=action)
+                                    if step['name'] == 'declan_local_movie':
+                                        # The HA routine owns toggle state and reports the outcome.
+                                        # Never turn a busy/error/already-on result into a success.
+                                        movie_context = (reply or {}).get('response_context')
+                                        if movie_context in {'movie_start', 'movie_end'}:
+                                            action = 'movie' if movie_context == 'movie_start' else 'movie_end'
+                                            routine_reply = await confirmation(
+                                                self.hass, user_input.context, routine_reply, action=action)
+                                        elif movie_context is None:
+                                            # Older HA scripts may return speech only. For a
+                                            # toggle we cannot infer which direction it took.
+                                            routine_reply = 'Movie Time request processed. Check the projector state.'
+                                    else:
+                                        action = 'bedtime' if step['name'] == 'declan_local_good_night' else 'general'
+                                        routine_reply = await confirmation(
+                                            self.hass, user_input.context, 'Routine request sent.', action=action)
                                 if step['name']=='declan_local_good_morning':
                                     if audience_mode(self.hass) == 'Guest' or plain_responses(self.hass):
                                         routine_reply=await confirmation(self.hass,user_input.context,'Good morning. The morning routine is underway.',action='morning')
