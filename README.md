@@ -1,13 +1,16 @@
 # Home Voice Assistant
 
-Existing `jarvis_local` installations must follow the [domain migration guide](docs/declan-local-migration.md) before upgrading.
+Installations still running the historical `jarvis_local` domain must follow the [domain migration guide](docs/declan-local-migration.md). Do not repeat this migration on an existing `declan_local` installation.
 
 The software is **Home Voice Assistant**; its assistant character is **Declan**,
 your dry, overworked and decidedly unimpressed male butler. Home replies allow
-strong private banter; Guest replies keep it impersonal. Existing integration
-domains, entity IDs, routes and settings remain unchanged. Old registry labels
-may still say Jarvis; rename display labels only, retaining the selected IDs.
-Both Declan and the legacy Jarvis text aliases are accepted. A text alias does
+strong private banter; Guest replies keep it impersonal. The active integration domain is `declan_local`. Some source-controlled
+identifiers, storage keys, routes and compatibility aliases still contain
+`jarvis` and are being audited for a separate, tested migration. The owner
+reports that live Home Assistant Jarvis entity references have already been
+renamed to Declan; do not assume the old IDs are still present or rename
+persistent keys without migration checks. See [legacy-reference inventory](docs/legacy-jarvis-reference-audit.md).
+Both Declan and legacy Jarvis text aliases are currently accepted by the parser. A text alias does
 not install a wake-word model on a satellite. See [branding and voice migration](docs/branding-declan.md).
 
 ### Reviewed voice recordings and usage controls
@@ -28,11 +31,13 @@ HA weather provider. See [supported wording and cancellation limits](docs/conver
 
 ### Home and Guest speech
 
-Declan now uses two local response catalogues. Select the existing **Visitors
-present** and **Guest mode** helpers in Settings; only healthy, explicit off
-states allow private Home replies. Missing or unavailable signals use Guest
-speech. Visitors do not gain permissions. Quiet hours are independent, and
-private names/morning replies are suppressed for visitors. See
+Declan uses two local response catalogues. Configure **Guest Mode** in Settings:
+`off` selects savage Home speech; `on` selects lighter guest roasts.
+Missing or unavailable Guest Mode selects Guest speech as a privacy-safe
+fallback. Visitor presence, owner presence and quiet hours do not independently
+select a persona. Automatic guest handover may change the Guest Mode helper
+when its separate opt-in conditions are met. Guest speech suppresses private
+names and private morning replies. See
 [speech privacy and the remaining guest-authority work](docs/guest-persona.md).
 
 With the separate automatic-handover helpers explicitly configured and enabled,
@@ -84,7 +89,7 @@ If `/config/jarvis_local_settings.json` exists from version 0.9.2, its values ar
 ## Installation with HACS
 
 1. Back up Home Assistant, including configuration and your existing custom integration.
-2. In HACS, choose the three-dot menu, **Custom repositories**. Add `https://github.com/NeoWeb-JP/jarvis-local` as an **Integration**. This URL assumes that repository has been created and published.
+2. In HACS, choose the three-dot menu, **Custom repositories**. Add `https://github.com/NeoWeb-JP/Declan-Local` as an **Integration**.
 3. Find Home Voice Assistant in HACS and download a released version. It installs files under `/config/custom_components/declan_local/`, replacing the manually installed integration files. Preserve any local edits first.
 4. Restart Home Assistant. Keep the existing Home Voice Assistant config entry, Assist pipeline, scripts, helpers and automations. Do not create a duplicate config entry.
 5. Test the sidebar on mobile and a few commands in chat and through the satellite. Select your existing existing conversation entity (Declan) in the Assist pipeline if needed.
