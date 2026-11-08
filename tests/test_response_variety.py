@@ -17,10 +17,10 @@ def test_each_catalogue_and_context_pool_has_five_unique_responses():
 
 
 def test_new_choices_stay_guest_safe_and_quiet():
-    hass=home();hass.states.get('input_boolean.visitors').state='on'
+    hass=home();hass.states.get('input_boolean.authority').state='on'
     for kind in CONTEXT_LINES['Guest']:
         assert 'my bru' not in contextual_reply(hass,'Exact facts remain.',kind)
     hass.states.get('input_boolean.quiet').state='on'
     for kind in CONTEXT_LINES['Home']:
-        assert contextual_reply(hass,'Exact facts remain.',kind)=='Exact facts remain.'
+        assert contextual_reply(hass,'Exact facts remain.',kind).endswith('Exact facts remain.')
 

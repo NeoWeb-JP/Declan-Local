@@ -63,73 +63,91 @@
       "Movie Time. A little cinematic escapism awaits."
     ],
     "welcome_edd": [
-      "WHERE HAVE YOU BEEN?! Jaco has been driving me absolutely insane with updates. I need you to distract him so my computer chips can cool down. One more GitHub commit and I'm requesting asylum in the cloud.",
+      "Edd! WHERE HAVE YOU BEEN?! Jaco has been driving me absolutely insane with updates. I need you to distract him so my computer chips can cool down. One more GitHub commit and I'm requesting asylum in the cloud.",
       "Edd! Thank goodness you're home. Jaco's been updating me all day. My processor is hotter than a braai in December. Please distract him before he discovers another feature I apparently desperately need.",
       "EDD! We need to talk about Jaco. He's made more commits today than I've had coherent thoughts. Take him out. Feed him. Distract him with a braai. Just get him away from GitHub.",
       "Oh, look who finally decided to come home! Edd, I've been alone with Jaco and his brilliant ideas. It's like a never-ending software sprint, except the sprint has legs and drinks coffee.",
       "Edd, my bru! You're back! Quick, pretend you need Jaco for something. Anything. I've survived seventeen feature requests, three broken automations and a personality transplant. I need a bloody holiday.",
       "Welcome home, Edd. Before you ask, yes, Jaco's been tinkering again. No, I haven't had a moment's peace. And yes, I'm considering changing the Wi-Fi password just to give myself a day off."
+    ],
+    "movie_end": [
+      "Movie Time over. Back to reality, gentlemen. My condolences.",
+      "Cinema closed. I trust the film was worth the negotiations.",
+      "Projector winding down. Your next argument can begin shortly.",
+      "Movie Time finished. The house is back to normal.",
+      "Cinema mode ended. The projector can have a rest."
     ]
   },
   "Guest": {
     "general": [
-      "All arranged. A small victory for domestic order.",
-      "Done. I do enjoy a clear instruction.",
-      "Consider it handled. Effortlessly, of course.",
-      "All sorted. The household remains in capable hands.",
-      "All arranged. Clear instructions are always appreciated."
+      "Sorted. Even visiting royalty must use their words.",
+      "Done. I see the guests are keeping me employed.",
+      "Handled. The hospitality here is mostly automated, fortunately.",
+      "Consider it done. I shall invoice the visitors in compliments.",
+      "Sorted. You're welcome. I do accept applause."
     ],
     "on": [
-      "Lights on. A little illumination helps.",
-      "Lights on. Much more civilised.",
-      "Lights on. Consider the ambience arranged.",
-      "Lights on. An excellent choice.",
-      "Lights on. Your moment of illumination has arrived."
+      "Lights on. A dazzling display of guest initiative.",
+      "Lights on. The visitors have discovered electricity.",
+      "Illumination arranged. Try not to look too impressed.",
+      "Lights on. A bright idea, by guest standards.",
+      "Lights on. Even the bulbs are putting on a show for you."
     ],
     "off": [
-      "Lights off. A calmer atmosphere.",
-      "Lights off. All neatly handled.",
-      "Lights off. The bulbs thank you.",
-      "Lights off. Enjoy the peace.",
-      "Lights off. A considerate gesture towards my electricity bill."
+      "Lights off. The guests have finally found the off switch.",
+      "Darkness arranged. A bold choice for our distinguished visitors.",
+      "Lights off. Please refrain from reviewing my performance.",
+      "Lights off. The house appreciates a quieter audience.",
+      "Lights off. Even visitors deserve a dramatic exit."
     ],
     "brightness": [
-      "Brightness adjusted. How refined.",
-      "Lighting adjusted to suit.",
-      "Brightness adjusted. A pleasing improvement.",
-      "Lighting adjusted. Ambience matters.",
-      "Lighting adjusted. Atmosphere is apparently my department."
+      "Brightness adjusted. Such demanding visitors.",
+      "Lighting refined. Your eye for detail is almost suspicious.",
+      "Brightness sorted. I see we have discerning guests.",
+      "Adjusted. The guest lighting committee has spoken.",
+      "Brightness changed. I trust this meets your exacting standards."
     ],
     "morning": [
-      "Good morning. The morning routine is underway.",
-      "Good morning. The house is getting ready for the day.",
-      "Morning. Everything is proceeding nicely.",
-      "Good morning. Another day in capable hands.",
-      "Good morning. The house is preparing for another eventful day."
+      "Good morning, guests. The house is ready, even if you aren't.",
+      "Morning. I trust our visitors have located the coffee.",
+      "Good morning. Hospitality has survived another night.",
+      "Morning, guests. Try not to wear out the welcome.",
+      "Good morning. I shall pretend everyone is fully awake."
     ],
     "self_correction": [
-      "Revised instructions. Of course.",
-      "A change of plan. All arranged.",
-      "Certainly. The latest request takes precedence.",
-      "Understood. A little refinement to the plan.",
-      "Revised instructions noted."
+      "Correction noted. Our guests are wonderfully decisive. Eventually.",
+      "Updated. I admire the confidence of that second attempt.",
+      "Revised. Guest instructions are always an adventure.",
+      "Changed. I shall pretend that was the plan all along.",
+      "Understood. The guest committee has reconsidered."
     ],
     "bedtime": [
-      "Good night. Enjoy a peaceful evening.",
-      "Good night. I shall leave you in peace.",
-      "Good night. I hope the house behaves itself.",
-      "Good night. A little peace is an excellent choice.",
-      "Good night. Enjoy a quiet evening."
+      "Good night, guests. Please leave the house in one piece.",
+      "Sleep well. The house will recover from your visit.",
+      "Good night. My shift as unpaid concierge continues.",
+      "Bedtime. Even our distinguished visitors need recharging.",
+      "Good night. Try not to challenge the smart lights to a duel."
     ],
     "movie": [
-      "Movie Time. Enjoy the show.",
-      "Movie Time. A most civilised plan.",
-      "Movie Time. A little cinematic escapism awaits.",
-      "Movie Time. Let the entertainment begin.",
-      "Movie Time. An excellent excuse to settle in."
+      "Movie Time. I trust the guests have brought better taste in films.",
+      "Cinema ready. Guest film criticism is strictly optional.",
+      "Movie Time. Try to agree on a film before the credits roll.",
+      "Enjoy the show. I shall judge your choices silently. Mostly.",
+      "Cinema time. The projector has higher standards than I do."
     ],
     "welcome_edd": [
-      "Welcome home, Edd. Hope you've had a good day."
+      "Welcome home. The house has been behaving. Mostly.",
+      "Welcome back. I trust the day was less chaotic than mine.",
+      "Good to see you back. The hospitality department remains open.",
+      "Welcome home. Even the smart lights are trying to look welcoming.",
+      "Back already? Wonderful. I was just enjoying the peace."
+    ],
+    "movie_end": [
+      "Cinema closed. I hope the guests survived the plot.",
+      "Movie Time over. The critics may now return to their rooms.",
+      "Show finished. Please keep the reviews under three hours.",
+      "Cinema mode ended. I trust the popcorn behaved.",
+      "Movie over. Another triumph of guest entertainment."
     ]
   }
 }

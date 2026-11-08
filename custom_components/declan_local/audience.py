@@ -11,17 +11,12 @@ def helper_state(hass, key):
 
 
 def mode(hass):
-    """Private Home speech requires affirmative, healthy privacy signals.
+    """Only Guest Mode controls the reply personality.
 
-    An absent/unavailable visitor or authority helper is not evidence that the
-    room is private. Speaker identity cannot override this decision.
+    Unknown/unavailable Guest Mode stays Guest, avoiding private Home banter.
+    Presence, visitors and speaker identity never change the persona.
     """
-    settings = hass.data.get('declan_local', {}).get('settings', {})
-    if settings.get('guests_staying') and helper_state(hass, 'guests_staying') != 'off':
-        return 'Guest'
-    if helper_state(hass, 'visitors_present') == 'off' and helper_state(hass, 'guest_mode') == 'off':
-        return 'Home'
-    return 'Guest'
+    return 'Home' if helper_state(hass, 'guest_mode') == 'off' else 'Guest'
 
 
 def quiet(hass):

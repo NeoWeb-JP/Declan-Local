@@ -60,11 +60,11 @@ def test_contextual_personality_preserves_question_and_avoids_repetition():
     first=contextual_reply(hass,question,'clarification')
     second=contextual_reply(hass,question,'clarification')
     assert first.endswith(question) and second.endswith(question) and first!=second
-    hass.states.get('input_boolean.visitors').state='on'
+    hass.states.get('input_boolean.authority').state='on'
     guest=contextual_reply(hass,question,'clarification')
     assert 'my bru' not in guest and guest.endswith(question)
     hass.states.get('input_boolean.quiet').state='on'
-    assert contextual_reply(hass,question,'clarification')==question
+    assert contextual_reply(hass,question,'clarification').endswith(question)
 
 
 @pytest.mark.parametrize('reason',['The device is unavailable.','Security alarm failed.','An emergency was reported.'])

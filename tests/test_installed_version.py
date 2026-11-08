@@ -59,6 +59,11 @@ class InstalledVersion(unittest.TestCase):
             learning_module.load_evidence = AsyncMock()
             music_controller = types.ModuleType('version_test_pkg.music_controller')
             music_controller.async_register = AsyncMock()
+            blacklist_module = types.ModuleType('version_test_pkg.music_blacklist')
+            class MusicBlacklist:
+                def __init__(self, hass): pass
+                async def start(self): pass
+            blacklist_module.MusicBlacklist = MusicBlacklist
             storage_module = types.ModuleType('homeassistant.helpers.storage')
             class Store:
                 def __init__(self, *args): pass
@@ -68,6 +73,7 @@ class InstalledVersion(unittest.TestCase):
             package.__path__ = []
             modules = {'version_test_pkg': package,
                        'version_test_pkg.music_controller': music_controller,
+                       'version_test_pkg.music_blacklist': blacklist_module,
                        'version_test_pkg.media_search_config': media_config,
                        'version_test_pkg.timers': timers_module,
                        'version_test_pkg.settings': settings_module,

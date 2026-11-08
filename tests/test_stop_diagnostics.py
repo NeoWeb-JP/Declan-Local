@@ -50,6 +50,7 @@ class StopDiagnostics(unittest.TestCase):
         self.hass = types.SimpleNamespace(
             data={'declan_local': self.data}, services=types.SimpleNamespace(async_call=self.call))
         self.agent = types.SimpleNamespace(
+            _speaker_memory=types.SimpleNamespace(resolve=lambda *a, **kw: None),
             hass=self.hass, _lock=asyncio.Lock(), _recent_lights={},
             _previous_failed={}, _pending_clarifications={}, _voice_markers={})
 

@@ -172,7 +172,7 @@ class AgentInformation(unittest.IsolatedAsyncioTestCase):
 
     async def test_recognized_speakers_and_satellites_do_not_share_topic_or_lights(self):
         speaker=['Jaco']
-        with patch.object(env.module,'bridge_profile',lambda *args:speaker[0]):
+        with patch.object(self.agent._speaker_memory,'resolve',lambda *args, **kwargs:speaker[0]):
             await self.agent.async_handle(env.UserInput('weather'))
             speaker[0]='Edd'
             result=await self.agent.async_handle(env.UserInput('and tomorrow'))

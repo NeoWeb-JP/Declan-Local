@@ -57,19 +57,18 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
     async def test_social_reply_unknown_and_matched(self):
         neutral=await self.agent.async_handle(UserInput('thank you'))
         self.assertNotIn('Jaco',neutral.response.speech)
-        original=module.bridge_profile
         try:
-            module.bridge_profile=lambda text,profiles:'Jaco'
+            self.agent._speaker_memory.resolve=lambda *args, **kwargs:'Jaco'
             self.hass.data={'declan_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'}}}
             self.hass.states.values['input_boolean.visitors']=fixtures.State('input_boolean.visitors','Visitors','off')
             self.hass.states.values['input_boolean.authority']=fixtures.State('input_boolean.authority','Authority','off')
             named=await self.agent.async_handle(UserInput('hello'))
             self.assertIn('Jaco',named.response.speech)
-            self.hass.states.values['input_boolean.visitors'].state='on'
+            self.hass.states.values['input_boolean.authority'].state='on'
             guest=await self.agent.async_handle(UserInput('hello'))
             self.assertNotIn('Jaco',guest.response.speech)
             self.assertEqual(self.hass.services.calls,[])
-        finally:module.bridge_profile=original
+        finally:pass
     async def test_compound_followup_applies_to_all_targets(self):
         await self.agent.async_handle(UserInput('turn office and bedroom lamp on'))
         self.assertEqual(len(self.hass.services.calls),2)
@@ -80,7 +79,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(call[0][:2] == ('light','turn_off') for call in followup_calls))
         self.assertEqual({entity for call in followup_calls for entity in call[0][2]['entity_id']},{'light.office','light.bedroom'})
 
-    async def test_visitors_suppress_private_morning_without_changing_authority(self):
+    async def test_guest_mode_suppresses_private_morning(self):
         self.hass.data={'declan_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'},
             'voice_id_config':{'profiles':{'jaco':{'name':'Jaco','morning_responses':['PRIVATE_INTIMATE_GREETING']}}}}}
         self.hass.states.values['input_boolean.visitors']=fixtures.State('input_boolean.visitors','Visitors','off')
@@ -89,16 +88,16 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         async def routine(*args, **kwargs):
             self.hass.services.calls.append((args, kwargs))
             return {'response':'PRIVATE_SCRIPT_GREETING'}
-        with patch.object(module, 'bridge_profile', lambda *args:'Jaco'), patch.object(self.hass.services, 'async_call', routine):
+        with patch.object(self.agent._speaker_memory, 'resolve', lambda *args, **kwargs:'Jaco'), patch.object(self.hass.services, 'async_call', routine):
             home=await self.agent.async_handle(UserInput('good morning'))
             self.assertIn('PRIVATE_INTIMATE_GREETING',home.response.speech)
             for state in ('on','unknown','unavailable'):
-                self.hass.states.values['input_boolean.visitors'].state=state
+                self.hass.states.values['input_boolean.authority'].state=state
                 guest=await self.agent.async_handle(UserInput('good morning'))
                 self.assertNotIn('PRIVATE',guest.response.speech)
                 self.assertNotIn('Jaco',guest.response.speech)
         self.assertTrue(all(call[0][:2] == ('script','declan_local_good_morning') for call in self.hass.services.calls))
-        self.assertEqual(self.hass.states.values['input_boolean.authority'].state,'off')
+        self.assertEqual(self.hass.states.values['input_boolean.authority'].state,'unavailable')
 
     async def test_staying_declaration_preview_and_dispatch_without_embedded_actions(self):
         ids={'guest_mode':'input_boolean.permission','guest_names':'input_text.in_charge',
@@ -160,9 +159,12 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
             UserInput('Dinner on, no I mean movie time'))
         self.assertEqual(len(self.hass.services.calls),1)
         self.assertEqual(self.hass.services.calls[0][0][:2],('script','declan_local_movie'))
-        from jarvis_test.personality import CONTEXT_LINES
-        self.assertTrue(any(line in result.response.speech for line in CONTEXT_LINES['Guest']['self_correction']))
-        self.assertIn('Routine request sent.',result.response.speech)
+        # The mocked script returns no response_context, so the agent cannot
+        # know whether Movie Time started or ended. Its factual uncertainty
+        # message must not be replaced by a playful correction prefix.
+        self.assertIn('Movie Time request processed.', result.response.speech)
+        self.assertIn('Check the projector state.', result.response.speech)
+        self.assertNotIn('Routine request sent.', result.response.speech)
 
     async def test_incomplete_correction_runs_nothing(self):
         result=await self.agent.async_handle(UserInput('Lights on, scratch that'))

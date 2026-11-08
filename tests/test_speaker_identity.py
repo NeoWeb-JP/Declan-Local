@@ -28,14 +28,14 @@ class BridgeProfileTests(unittest.TestCase):
     def test_bridge_match_and_threshold(self):
         import sys, types
         from jarvis_test.speaker_identity import bridge_profile
-        bridge = types.ModuleType('custom_components.jarvis_voice_bridge.models')
+        bridge = types.ModuleType('jarvis_test.speaker_models')
         class SpeakerTranscript(str):
             def __new__(cls, text, identity):
                 value = super().__new__(cls, text)
                 value.jarvis_speaker = identity
                 return value
         bridge.SpeakerTranscript = SpeakerTranscript
-        with mock.patch.dict(sys.modules, {'custom_components.jarvis_voice_bridge.models': bridge}):
+        with mock.patch.dict(sys.modules, {'jarvis_test.speaker_models': bridge}):
             profiles = {'jaco': {'name': 'Jaco', 'min_confidence': 0.6}}
             self.assertEqual(bridge_profile(SpeakerTranscript('hello', ('id', 'Jaco', 0.7)), profiles), 'Jaco')
             self.assertIsNone(bridge_profile(SpeakerTranscript('hello', ('id', 'Jaco', 0.5)), profiles))

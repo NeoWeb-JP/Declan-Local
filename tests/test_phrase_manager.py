@@ -226,11 +226,11 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('PRIVATE_SPEECH_OR_KEY', '\n'.join(logs.output))
         self.assertEqual(self.usage.snapshot()['provider_failures'], {'primary': 1, 'fallback': 1})
 
-    async def test_cached_alternative_honors_configured_visitor_privacy(self):
+    async def test_cached_alternative_honors_guest_mode_privacy(self):
         catalogue={'Home':{'on':['PRIVATE_HOME_A','PRIVATE_HOME_B']},
                    'Guest':{'on':['Guest A','Guest B']}}
         self.manager.hass.data={'declan_local':{'settings':{'guest_mode':'input_boolean.permission', 'visitors_present':'input_boolean.company'}}}
-        self.manager.hass.states=types.SimpleNamespace(get=lambda entity:types.SimpleNamespace(state='on' if entity=='input_boolean.company' else 'off'))
+        self.manager.hass.states=types.SimpleNamespace(get=lambda entity:types.SimpleNamespace(state='on' if entity=='input_boolean.permission' else 'off'))
         async def executor(fn, *args): return catalogue
         self.manager.hass.async_add_executor_job=executor
         async def find(**kwargs):

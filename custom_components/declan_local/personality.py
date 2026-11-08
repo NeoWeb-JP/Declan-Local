@@ -201,22 +201,6 @@ def choose(hass, mode, action, catalog):
 async def confirmation(hass, context, fallback, action='general'):
     """Only call after successful actions; failures retain their direct wording."""
     global CATALOG
-    if quiet(hass):
-        return fallback
-    # Preserve existing Night rules until an explicit quiet-hours helper replaces
-    # the old policy script. Its Home/Guest choice and arbitrary text are ignored.
-    if not get(hass, 'quiet_hours') and get(hass, 'personality_script'):
-        script_id = get(hass, 'personality_script')
-        state = hass.states.get(script_id) if isinstance(script_id, str) and script_id.startswith('script.') else None
-        if state is None or state.state in {'unknown', 'unavailable'}:
-            return fallback
-        try:
-            reply = await _timed_script(hass, script_id.split('.', 1)[1],
-                {'response_context': 'general'}, context, 'legacy_quiet_policy')
-            if not isinstance(reply, dict) or reply.get('personality') == 'Night':
-                return fallback
-        except (HomeAssistantError, ValueError, TypeError):
-            return fallback
     try:
         if CATALOG is None:
             CATALOG = await hass.async_add_executor_job(
@@ -230,7 +214,7 @@ async def confirmation(hass, context, fallback, action='general'):
         if state and state.state not in {'unknown', 'unavailable'}:
             converted = await _timed_script(hass, phonetic_id.split('.', 1)[1],
                 {'input_text': line}, context, 'phonetic_script')
-            if audience_mode(hass) != selected_mode or quiet(hass):
+            if audience_mode(hass) != selected_mode:
                 return fallback
             value = converted.get('text') if isinstance(converted, dict) else None
             if isinstance(value, str) and value.strip():
@@ -242,8 +226,8 @@ async def confirmation(hass, context, fallback, action='general'):
 
 
 def plain_responses(hass):
-    """Synchronous paths must not bypass a legacy script's unknown Night policy."""
-    return quiet(hass) or (not get(hass, 'quiet_hours') and bool(get(hass, 'personality_script')))
+    """Personality is always selected by Guest Mode, never by quiet hours."""
+    return False
 
 
 CONTEXT_LINES = {
@@ -284,8 +268,6 @@ def contextual_reply(hass, reason, kind):
 
 def failure_reply(hass, reason, mode=None):
     """Compatibility wrapper; derive privacy from current household state."""
-    if mode == 'Guest':
-        return reason
     return contextual_reply(hass, reason, 'failed')
 
 
