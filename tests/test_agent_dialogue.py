@@ -64,7 +64,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
             self.hass.states.values['input_boolean.authority']=fixtures.State('input_boolean.authority','Authority','off')
             named=await self.agent.async_handle(UserInput('hello'))
             self.assertIn('Jaco',named.response.speech)
-            self.hass.states.values['input_boolean.visitors'].state='on'
+            self.hass.states.values['input_boolean.authority'].state='on'
             guest=await self.agent.async_handle(UserInput('hello'))
             self.assertNotIn('Jaco',guest.response.speech)
             self.assertEqual(self.hass.services.calls,[])
@@ -79,7 +79,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(call[0][:2] == ('light','turn_off') for call in followup_calls))
         self.assertEqual({entity for call in followup_calls for entity in call[0][2]['entity_id']},{'light.office','light.bedroom'})
 
-    async def test_visitors_suppress_private_morning_without_changing_authority(self):
+    async def test_guest_mode_suppresses_private_morning(self):
         self.hass.data={'declan_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'},
             'voice_id_config':{'profiles':{'jaco':{'name':'Jaco','morning_responses':['PRIVATE_INTIMATE_GREETING']}}}}}
         self.hass.states.values['input_boolean.visitors']=fixtures.State('input_boolean.visitors','Visitors','off')
@@ -92,12 +92,12 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
             home=await self.agent.async_handle(UserInput('good morning'))
             self.assertIn('PRIVATE_INTIMATE_GREETING',home.response.speech)
             for state in ('on','unknown','unavailable'):
-                self.hass.states.values['input_boolean.visitors'].state=state
+                self.hass.states.values['input_boolean.authority'].state=state
                 guest=await self.agent.async_handle(UserInput('good morning'))
                 self.assertNotIn('PRIVATE',guest.response.speech)
                 self.assertNotIn('Jaco',guest.response.speech)
         self.assertTrue(all(call[0][:2] == ('script','declan_local_good_morning') for call in self.hass.services.calls))
-        self.assertEqual(self.hass.states.values['input_boolean.authority'].state,'off')
+        self.assertEqual(self.hass.states.values['input_boolean.authority'].state,'unavailable')
 
     async def test_staying_declaration_preview_and_dispatch_without_embedded_actions(self):
         ids={'guest_mode':'input_boolean.permission','guest_names':'input_text.in_charge',
