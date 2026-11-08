@@ -7,7 +7,7 @@ The domain compatibility statements below describe the original branding release
 - **Software / integration:** Home Voice Assistant (generic, reusable).
 - **Assistant character and wake word:** Declan.
 - **Voice:** male; continue using configured ElevenLabs male voice, with cached ElevenLabs responses and isolated local XTTS fallback.
-- **Internal compatibility:** keep existing `jarvis_local` and `jarvis_voice_bridge` integration domains, entity IDs, configuration keys, file paths, service identifiers and existing web routes until a tested migration. Do not rename them merely for branding. Existing YAML and Assist pipelines rely on these identifiers.
+- **Current integration domain:** `declan_local`. The owner confirms live Home Assistant Jarvis references have already been changed to Declan. Legacy identifiers still found in this repository are **migration candidates**, not a requirement to keep Jarvis indefinitely. Review the [reference audit](legacy-jarvis-reference-audit.md) and migrate persistent storage, cache keys, event schemas and UI IDs deliberately, with compatibility checks and rollback.
 - Repository migration implemented in 0.40.0: generic HACS/onboarding/software names, Declan agent and voice-manager display names, neutral bridge display names, refreshed default replies and documentation. Existing Home Assistant config-entry or user-assigned display names may remain unchanged; rename display labels manually without changing entity IDs.
 - Wake word change must be configured on the actual supported satellite/wake-word engine. Changing repository text alone does not install a new wake-word model.
 
@@ -36,14 +36,14 @@ Jaco and Edd sleep **downstairs**. Upstairs is exclusively for guests. Finn is t
 
 ## Implementation and compatibility
 
-1. Both repositories retain their legacy domains and registration identities. New displays are Declan, Declan Voice Manager, Home Voice Assistant Speech and Home Voice Assistant Bridge Check. Existing Assist selections remain tied to their existing IDs; fresh installations may receive newly suggested IDs from HA.
+1. The main integration registers as `declan_local`. A bundled bridge still registers under `jarvis_voice_bridge`, and several source-level unique IDs and persisted keys remain legacy; these are recorded for owner review rather than assumed to exist in live HA. New displays are Declan, Declan Voice Manager, Home Voice Assistant Speech and Home Voice Assistant Bridge Check.
 2. Home and Guest catalogues are implemented, with private Home banter isolated from Guest speech. Social/default morning replies use original butler wording; Guest policy still suppresses private names and custom morning profiles. Errors and factual answers remain direct.
 3. Leading and applicable trailing Declan aliases work in local conversation, social replies, status questions, information follow-ups and Stop; legacy Jarvis aliases remain accepted. They do not claim either hardware wake word is installed.
 4. Written Edd is retained. Through Declan Voice Manager, newly synthesized speech sends Ed to the provider for pronunciation, while cache labels and configuration stay unchanged. A review shows differing spoken text. Set a voice profile's display name to Edd if desired, leaving its enrollment key and person.eddy untouched. Existing cached recordings are preserved; change the cache revision if you want recordings regenerated, which may use credits. Pipelines using another TTS entity bypass this pronunciation adapter.
 5. The text-free house/voice icon was visually audited and retained as generic software branding. It contains no assistant name or character portrait. No voice model, protected-character likeness or copied TV dialogue was introduced.
 6. No owned STT initial_prompt or LLM system prompt exists to rename in the local agent or bridge. The Wyoming server/recognition model and speaker-event metadata are unchanged. If your separate provider supports a vocabulary hint, review Declan, Jaco, Edd, Finn and Tux there; this repository does not silently alter provider settings.
-7. Live personality YAML, HA scripts, dashboards and existing announcements are outside this source migration and were not rewritten. Their display/speech labels require a live audit while retaining IDs. The bundled bridge installer keeps exact known-version checks, backup and idempotence; the separate bridge release retains its own HACS lifecycle.
-8. Changes are committed directly to main under owner authorization. The owner controls releases.
+7. Live personality YAML, HA scripts, dashboards and announcements are outside this repository. The owner reports their Jarvis references have already been changed; confirm actual entity IDs before changing source defaults or unique IDs. The bundled bridge installer keeps exact known-version checks, backup and idempotence; the separate bridge release retains its own HACS lifecycle.
+8. Changes are proposed in pull requests from main, reviewed and merged only with owner approval. The owner controls releases and production deployment.
 
 ## Separate hardware acceptance
 
