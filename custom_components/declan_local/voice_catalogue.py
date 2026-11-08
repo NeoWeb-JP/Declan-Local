@@ -9,7 +9,7 @@ from time import monotonic
 from .voice_catalog_fallback import load_catalogue
 from .voice_text import spoken_text
 STATIC_CATEGORIES = frozenset({'general','on','off','brightness','morning','self_correction',
-                               'bedtime','movie','changed_mind','clarification','repeat'})
+                               'bedtime','movie','welcome_edd','changed_mind','clarification','repeat'})
 
 
 class CataloguePreparation:
