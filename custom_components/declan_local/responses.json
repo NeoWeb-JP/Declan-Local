@@ -69,6 +69,11 @@
       "Oh, look who finally decided to come home! Edd, I've been alone with Jaco and his brilliant ideas. It's like a never-ending software sprint, except the sprint has legs and drinks coffee.",
       "Edd, my bru! You're back! Quick, pretend you need Jaco for something. Anything. I've survived seventeen feature requests, three broken automations and a personality transplant. I need a bloody holiday.",
       "Welcome home, Edd. Before you ask, yes, Jaco's been tinkering again. No, I haven't had a moment's peace. And yes, I'm considering changing the Wi-Fi password just to give myself a day off."
+    ],
+    "movie_end": [
+      "Movie Time over. Back to reality, gentlemen. My condolences.",
+      "Cinema closed. I trust the film was worth the negotiations.",
+      "Projector winding down. Your next argument can begin shortly."
     ]
   },
   "Guest": {
@@ -131,6 +136,10 @@
     "welcome_edd": [
       "Welcome home, Edd. Hope you've had a good day.",
       "Good to see you home, Edd. Welcome back."
+    ],
+    "movie_end": [
+      "Movie Time has ended. Hope you enjoyed the film.",
+      "Cinema mode finished. Enjoy the rest of your evening."
     ]
   }
 }
