@@ -22,7 +22,6 @@ from .phrase_import import decode_clips
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_PROVIDER = "tts.elevenlabs_text_to_speech"
-DEFAULT_FALLBACK = "tts.jarvis_xtts"
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -147,7 +146,6 @@ class JarvisVoiceManager(TextToSpeechEntity):
     async def async_get_tts_audio(self, message, language, options):
         config = self._entry.options
         primary = config.get("primary_tts", DEFAULT_PROVIDER)
-        fallback = config.get("fallback_tts", DEFAULT_FALLBACK)
         # Bump these identity strings when the provider's configured voice
         # or model changes, otherwise old speech may be reused.
         revision = config.get("cache_revision", "v1")
@@ -164,8 +162,6 @@ class JarvisVoiceManager(TextToSpeechEntity):
         if not config.get("cache_enabled", True):
             _LOGGER.debug("Persistent cache disabled in settings")
         candidates = [primary]
-        if isinstance(fallback, str) and fallback.startswith("tts.") and fallback not in candidates:
-            candidates.append(fallback)
 
         errors = []
         for index, entity_id in enumerate(candidates):
@@ -227,7 +223,7 @@ class JarvisVoiceManager(TextToSpeechEntity):
                         self._usage.record("elevenlabs_category_cached")
                         return alternate
 
-        raise HomeAssistantError("Declan TTS primary and fallback failed: " + "; ".join(errors))
+        raise HomeAssistantError("Declan TTS primary failed and no cached alternative was available: " + "; ".join(errors))
 
     async def _cached_primary_alternative(
         self, message, provider, revision, language, options,
