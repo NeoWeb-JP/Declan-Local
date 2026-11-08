@@ -20,7 +20,7 @@ def test_guest_never_receives_brutal_lines():
 def test_home_includes_brutal_pool():
     hass = SimpleNamespace(data={})
     catalog = {"Home": {"on": []}, "Guest": {"on": []}}
-    assert choose(hass, "Home", "on", catalog) in BRUTAL_LINES["on"]
+    assert choose(hass, "Home", "on", catalog) in BRUTAL_LINES["on"] + NUCLEAR_LINES["on"] + SAVAGE_LINES["on"]
 
 
 def test_nuclear_lines_are_available_for_home():
