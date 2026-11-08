@@ -1,7 +1,7 @@
 """Brutal Home personality must not leak into Guest responses."""
 from collections import deque
 from types import SimpleNamespace
-from custom_components.declan_local.personality import BRUTAL_LINES, NUCLEAR_LINES, choose
+from custom_components.declan_local.personality import BRUTAL_LINES, NUCLEAR_LINES, SAVAGE_LINES, choose
 
 
 def test_brutal_catalogue_covers_routine_actions():
