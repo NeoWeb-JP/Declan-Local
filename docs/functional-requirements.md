@@ -66,14 +66,14 @@
 
 ## 7. Speech, speaker identity and TTS
 
-- **FR-070 [Source]** Declan shall work with configured Assist STT/TTS providers and optional Wyoming speaker-aware services.
+- **FR-070 [Source; live configuration verified]** Declan shall use its active Assist speech entities and configured Wyoming speaker-aware bridge. Live options point to `192.168.0.43:10301`; OpenAI STT is enabled with model `gpt-transcribe`. The bridge's downstream dependencies have not been established.
 - **FR-071 [Source]** Speaker recognition shall not be used as authentication and shall avoid guessing unknown speakers.
-- **FR-072 [Source]** Voice Manager shall cache audio by exact synthesis identity and preserve independent primary/fallback caches.
-- **FR-073 [Source]** On primary TTS failure or local daily character allowance exhaustion, the configured fallback may be used; cached primary audio remains reusable.
+- **FR-072 [Decision; pending PR #47]** Voice Manager shall cache ElevenLabs audio by exact synthesis identity and retain phrase assembly and cached category alternatives. The owner has chosen to remove the secondary TTS provider; PR #47 proposes the implementation.
+- **FR-073 [Decision; pending PR #47]** ElevenLabs shall be the sole synthesis provider. Existing exact cached audio may be reused; where configured, an approved cached category alternative may be used after primary generation fails. If no suitable cache entry exists and ElevenLabs is unavailable or blocked by a configured allowance, speech generation shall fail clearly, without trying a secondary provider.
 - **FR-074 [Source]** Static catalogue generation shall require review and explicit approval; cache hits shall not trigger unnecessary paid generation.
 - **FR-075 [Source]** Persistent daily usage counters are local estimates/guards, not the provider's authoritative billing.
 - **FR-076 [Planned]** Speaker gateway and camera-assisted identification shall have separately versioned acceptance tests for microphone quality, identity confidence, privacy and end-to-end playback.
-- **FR-077 [Decision]** Confirm actual Declan-named conversation, STT, TTS and voice-bridge IDs before removing legacy defaults from source.
+- **FR-077 [Verified live; code change pending PR #48]** Active Assist pipeline uses `conversation.declan`, `stt.declan_wyoming_speaker_recognition` and `tts.declan_voice_manager`. Sidebar default cleanup is proposed in PR #48, not yet deployed.
 
 ## 8. Learning, resilience and governance
 
@@ -105,6 +105,8 @@
 - **C-04** Source implementation and live deployment are not equivalent. **Resolved in this draft** by separate status categories; live verification is still outstanding.
 - **C-05** Routine response contract remains inconsistent. **Open**: FR-063 requires owner agreement.
 - **C-06** Speaker bridge/gateway experiments have different maturity. **Open**: verify deployed components and classify each before acceptance.
+- **C-07** FR-072 and FR-073 previously required a secondary TTS provider, contradicting the owner's decision to remove it. **Reconciled in this draft**; implementation remains pending in draft PR #47.
+- **C-08** The owner disabled unused STT/TTS integrations and reports Declan routines still work. This is operational evidence, not proof of startup behaviour or absence of all dependencies. Keep disabled entries recoverable until a normal restart and observation period.
 
 ## 11. Owner review checklist
 
