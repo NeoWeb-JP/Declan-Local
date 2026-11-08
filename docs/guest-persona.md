@@ -1,26 +1,26 @@
-# Home/Guest speech and guest handover (0.37.0)
+# Home/Guest speech and guest handover (current behaviour)
+
+> Updated for the Guest Mode-only persona policy merged after 0.40.3 development. The visitor and staying helpers remain relevant to handover, **not** direct personality selection.
 
 The speech-privacy foundation remains active. Automatic guest handover is
 now available as a separately configured opt-in. Nothing is enabled merely
 by installing this update, and no existing HA automation is edited.
 
-In Declan's administrator settings select separate, existing input_boolean
-helpers for **Guest mode helper**, **Visitors present (speech privacy only)**
-and, optionally, **Quiet hours (plain acknowledgements)**. The integration
-does not create helpers or infer visitor presence from recognized voices.
+In Declan's administrator settings, select the existing **Guest Mode**
+input_boolean helper. The optional visitor, staying and quiet-hours helpers
+have independent responsibilities. The integration does not create them.
 
-| Visitor helper | Guest authority helper | Speech |
-| --- | --- | --- |
-| off | off | Home |
-| on | any state | Guest |
-| any state | on | Guest |
-| missing, unknown or unavailable signal | any state | Guest |
+| Guest Mode helper state | Spoken persona |
+| --- | --- |
+| `off` | Home: full savage household banter |
+| `on` | Guest: playful, impersonal guest roasts |
+| missing, unknown or unavailable | Guest: privacy-safe fallback |
 
-Both signals must explicitly be healthy and off for private Home replies.
-Existing installations without the new visitor setting therefore use Guest
-speech until it is configured. Declaring visitors changes the speech policy;
-it grants no new permissions. Authority continues to use the existing explicit
-handover commands and configured Guest Mode helper.
+Only the Guest Mode helper selects the persona. Visitor presence, staying
+declarations, owner presence, speaker identity and quiet hours do **not**
+directly select it. The separate automatic guest handover controller may
+**change Guest Mode itself** after its eligibility checks; that state change
+then changes the persona. Visitor declarations alone grant no permissions.
 
 Only Home and Guest response catalogues remain. Home has short original,
 sharp butler banter and occasional clothing-optional jokes; Guest has impersonal
@@ -33,13 +33,10 @@ speech. Self-correction acknowledgements use the same catalogue policy instead
 of checking a hardcoded Guest Mode entity. Speaker identification remains
 personalization only and never confers authority.
 
-Quiet hours use plain acknowledgements. A configured quiet helper that is
-missing or unavailable also uses plain speech. If no quiet helper is selected,
-the configured legacy personality script is consulted only to preserve Night
-behavior; its old Classic/Sassy/Savage/Guest choices and response text cannot
-override the local privacy decision. With an explicit quiet helper, lighting
-responses need no personality-script round trip. Existing phonetic conversion
-remains optional.
+Quiet hours do not change the Home/Guest personality or force plain
+acknowledgements. Delivery and audio-level behaviour are separate concerns.
+Legacy personality-script choices do not override Guest Mode. Optional
+phonetic conversion remains independent.
 
 The morning routine's returned private greeting is replaced in Guest mode.
 Other existing HA routines may make their own announcements; their external
@@ -69,7 +66,7 @@ Select these existing entities in Settings; no entity IDs or owners are guessed:
 | --- | --- |
 | Guest authority helper | input_boolean; existing Guest Mode |
 | Names currently in charge | input_text; existing authorized names |
-| Visitors present | input_boolean; speech privacy |
+| Visitors present | input_boolean; automatic handover eligibility, not persona |
 | Guests staying | input_boolean; explicit staying declaration |
 | Staying guest names | separate input_text; never the authority names helper |
 | Enable automatic handover | separate input_boolean; must be on to opt in |
@@ -86,8 +83,7 @@ checks. Checking status does not reset the window.
 The integration first raises the dedicated suspension signal, copies staying
 names into the authority names helper, then enables Guest Mode. It rechecks
 eligibility between awaited writes. A return or uncertain presence removes
-only recorded automatic authority; visitor speech stays Guest while visitors
-remain declared. Manual handovers survive owner return. Taking over an
+only recorded automatic authority; the Guest persona then follows the actual Guest Mode state. Manual handovers survive owner return. Taking over an
 automatic handover with an explicit manual command persists that decision.
 
 ## Occupancy simulation coordination
