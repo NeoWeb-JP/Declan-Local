@@ -57,7 +57,10 @@ def test_quiet_music_correction_keeps_request_fact_without_success_claim():
         complete(case.agent.async_handle(dialogue.UserInput('unrecognised babble')))
         result=complete(case.agent.async_handle(dialogue.UserInput('no I meant play Queen in the kitchen')))
         assert 'Requested' in result.response.speech and 'kitchen' in result.response.speech.lower()
-        assert 'my bru' not in result.response.speech and 'Done.' not in result.response.speech
+        # Quiet hours no longer select a polite persona. Preserve the factual
+        # request acknowledgement without claiming playback has started.
+        assert 'Starting ' not in result.response.speech
+        assert 'Now playing' not in result.response.speech
         assert case.hass.services.calls[-1][0][0]=='music_assistant'
     finally:case.doCleanups()
 
