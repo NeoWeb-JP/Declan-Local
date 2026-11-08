@@ -70,3 +70,35 @@
 6. Require a backup, idempotent migration, tests for upgraded and clean installations, and a rollback before changing keys, domains or unique IDs.
 
 **Scope limit:** This inventory covers source files and the main runtime/bridge/docs references inspected on the merged main branch. Test fixtures and archived experiments contain additional historical Jarvis strings; the migration PR should run a full case-insensitive repository search and classify every remaining match. No live HA registry or configuration was accessible for validation.
+
+## F. Live HA registry evidence (owner-supplied, 2026-11-08)
+
+The owner ran a read-only query of `/config/.storage/core.entity_registry` and `core.config_entries` on Home Assistant OS 18.4 / Core 2026.11.0. **Registry existence does not prove a provider is used in an Assist pipeline.**
+
+| Domain | Entity ID | Registry platform / config-entry title | Initial classification |
+| --- | --- | --- | --- |
+| Conversation | `conversation.declan` | `declan_local` / Home Voice Assistant | Current Declan agent; retain |
+| Conversation | `conversation.jarvis_local_test` | `conversation` / no entry title | Potential legacy orphan; investigate before removal |
+| Conversation | `conversation.google_ai_conversation` | Google Generative AI | Independent provider; do not remove without usage check |
+| Conversation | `conversation.ollama_conversation` | Ollama | Independent provider; do not remove without usage check |
+| STT | `stt.declan_openai_transcription` | `declan_local` / Home Voice Assistant | Declan provider; retain pending pipeline check |
+| STT | `stt.declan_wyoming_speaker_recognition` | `declan_local` / Home Voice Assistant | Declan speaker-aware STT; retain pending pipeline check |
+| STT | `stt.elevenlabs_speech_to_text` | ElevenLabs | Independent provider |
+| STT | `stt.faster_whisper` | Wyoming / Whisper | Verify endpoint and pipeline usage |
+| STT | `stt.faster_whisper_2` | Wyoming / faster-whisper | Verify endpoint and pipeline usage |
+| STT | `stt.faster_whisper_3` | Wyoming / faster-whisper | Verify endpoint and pipeline usage; possible duplicate |
+| STT | `stt.google_ai_stt` | Google Generative AI | Independent provider |
+| STT | `stt.home_assistant_cloud` | Home Assistant Cloud | Independent provider |
+| STT | `stt.voice_pipeline` | Wyoming / voice-pipeline | Verify endpoint and pipeline usage |
+| TTS | `tts.declan_voice_manager` | `declan_local` / Home Voice Assistant | Current Declan manager; retain |
+| TTS | `tts.elevenlabs_text_to_speech` | ElevenLabs | Potential primary provider |
+| TTS | `tts.google_ai_tts` | Google Generative AI | Independent provider |
+| TTS | `tts.google_translate_en_com` | Google Translate | Independent provider |
+| TTS | `tts.home_assistant_cloud` | Home Assistant Cloud | Independent provider |
+| TTS | `tts.piper` | Wyoming / Piper | Local provider; retain pending usage check |
+
+**Confirmed mismatch:** `panel.js` still defaults to `conversation.jarvis_local_test`, while the live registry has `conversation.declan`. Source fallback/default should be updated to the real Declan entity after confirming the relevant Assist and sidebar configuration. The legacy conversation registry entry should not be deleted until its references are checked.
+
+**Important fallback mismatch:** Source currently defaults to `tts.jarvis_xtts`, which is absent from the owner-supplied TTS registry list. Do **not** assume `tts.piper` is an equivalent fallback; inspect configured TTS provider and actual pipeline settings before selecting a replacement.
+
+**Next evidence needed:** Read-only export of `/config/.storage/assist_pipeline.pipelines` (or the applicable pipeline storage file) listing pipeline name, conversation agent, STT and TTS entity IDs, with secrets omitted. Also check any `declan_local` TTS fallback setting and Wyoming config-entry endpoint titles. No deletions or runtime renames approved.
