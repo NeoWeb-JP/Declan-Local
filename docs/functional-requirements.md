@@ -48,6 +48,7 @@
 - **FR-026 [Source]** Previews shall be side-effect-free; incomplete or unsafe requests shall run nothing.
 - **FR-027 [Source]** Unsupported single requests may fall back to built-in HA conversation without recursion; only confirmed success may be reported as success.
 - **FR-028 [Source]** Stop requests shall target the media player explicitly mapped to the originating satellite and avoid guessed destinations or spoken confirmations.
+- **FR-030 [Owner-approved requirement; implementation pending]** Declan shall treat incidental punctuation in recognised/transcribed voice commands as insignificant for intent matching. For example, `Play, country music` and `play country music` shall resolve to the same music-play intent, subject to identical authorisation, target resolution and validation. Command normalisation shall be case-insensitive where appropriate and tolerate commas, full stops, question marks and similar transcription punctuation without changing meaningful words, quoted values, entity identifiers or structured arguments. Punctuation removal must not join words, create new commands, or bypass security checks; preserve the original utterance for diagnostics. Add regression tests for equivalent punctuated/unpunctuated commands across music, device control and routines, plus tests for punctuation-sensitive values.
 - **FR-029 [Planned]** Generate a machine-readable command/phrase catalogue linked to parser branches, scripts and regression tests.
 
 ## 4. Guest handover and authority
