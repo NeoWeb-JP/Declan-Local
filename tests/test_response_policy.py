@@ -77,7 +77,7 @@ def test_movie_time_respects_script_outcome(context, expected):
         case.hass.data=home().data
         for key in ('visitors','authority','quiet'):
             case.hass.states.values['input_boolean.'+key]=fixtures.State(
-                'input_boolean.'+key,key,'on' if key=='visitors' else 'off')
+                'input_boolean.'+key,key,'on' if key=='authority' else 'off')
         case.hass.states.values['script.declan_local_movie']=fixtures.State(
             'script.declan_local_movie','movie','off')
         original=case.hass.services.async_call
@@ -90,7 +90,9 @@ def test_movie_time_respects_script_outcome(context, expected):
         if expected is None:
             assert result.response.speech == 'Screen is moving'
         else:
-            from custom_components.declan_local.personality import CATALOG
-            assert result.response.speech in CATALOG['Guest'][expected]
+            import json
+            from pathlib import Path
+            catalog = json.loads((Path(__file__).resolve().parents[1] / 'custom_components' / 'declan_local' / 'responses.json').read_text(encoding='utf-8'))
+            assert result.response.speech in catalog['Guest'][expected]
     finally:
         case.doCleanups()
