@@ -140,3 +140,18 @@ Read-only inspection of `core.config_entries` for the `declan_local` entry title
 | `category_fallback` | `True` | Retain |
 
 Source `tts.py` and `config_flow.py` both also default to `tts.jarvis_xtts`. The live options override defaults, so **changing the source default alone will not repair the existing HA installation**. The registered `tts.piper` is a potential local fallback, subject to successful playback and compatibility test. Owner has not yet approved or performed a live option change. Preserve caching and category fallback settings. Avoid editing `.storage` directly while Home Assistant runs; use the integration's supported options flow.
+
+## J. Wyoming/STT endpoint audit (owner-supplied, 2026-11-08)
+
+Home Assistant `wyoming` config entries:
+
+| Entry | Endpoint | Classification |
+| --- | --- | --- |
+| Piper | `core-piper:10200` | Unused by active Assist pipeline; removal candidate pending other dependencies |
+| openWakeWord | `core-openwakeword:10400` | Wake-word service; **not** STT/TTS cleanup candidate without satellite check |
+| Whisper | `core-whisper:10300` | Not selected by active pipeline; removal candidate pending other dependencies |
+| voice-pipeline | `192.168.0.43:10300` | Investigate separate VoicePipeline service |
+| faster-whisper | `192.168.0.53:10300` | Investigate distinct port/service |
+| faster-whisper | `192.168.0.53:10301` | Investigate distinct port/service |
+
+Live `declan_local` options: `wyoming_bridge_enabled=True`, `wyoming_bridge_host=192.168.0.43`, `wyoming_bridge_port=10301`, `openai_stt_enabled=True`, `openai_stt_model=gpt-transcribe`. Source `wyoming_speaker_stt.py` directly connects via `AsyncTcpClient(self.host,self.port)` and consumes the legacy `jarvis-speaker` event. Thus the active Declan pipeline does not directly select any separately registered Wyoming STT entity; **do not infer** that the service at `192.168.0.43:10301` is independent of downstream Whisper/VoicePipeline services. Check VoicePipeline deployment topology before removing any server or HA integration. OpenAI STT is enabled but whether its API key is configured or it is used as a fallback is not established by this evidence.
