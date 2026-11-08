@@ -61,3 +61,29 @@ def test_quiet_music_correction_keeps_request_fact_without_success_claim():
         assert case.hass.services.calls[-1][0][0]=='music_assistant'
     finally:case.doCleanups()
 
+
+
+@pytest.mark.parametrize('context,expected',[
+    ('movie_start', 'Movie Time'),
+    ('movie_end', 'Cinema'),
+    ('movie_busy', 'Screen is moving'),
+])
+def test_movie_time_respects_script_outcome(context, expected):
+    case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
+    try:
+        case.hass.data=home().data
+        for key in ('visitors','authority','quiet'):
+            case.hass.states.values['input_boolean.'+key]=fixtures.State(
+                'input_boolean.'+key,key,'on' if key=='visitors' else 'off')
+        case.hass.states.values['script.declan_local_movie']=fixtures.State(
+            'script.declan_local_movie','movie','off')
+        original=case.hass.services.async_call
+        async def call(*args,**kwargs):
+            await original(*args,**kwargs)
+            return {'response_context':context,
+                    'response':'Screen is moving' if context=='movie_busy' else 'Routine completed'}
+        case.hass.services.async_call=call
+        result=complete(case.agent.async_handle(dialogue.UserInput('movie time')))
+        assert expected.lower() in result.response.speech.lower()
+    finally:
+        case.doCleanups()
