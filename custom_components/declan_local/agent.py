@@ -485,7 +485,7 @@ class JarvisAgent(conversation.ConversationEntity):
                             if step.get('kind')=='action' or (reply or {}).get('response'):
                                 routine_reply=(reply or {}).get('response') or 'Routine request sent.'
                                 if step['name']!='declan_local_good_morning':
-                                    action='bedtime' if step['name']=='declan_local_good_night' else 'movie' if step['data'].get('requested_action')=='start' else 'general'
+                                    action='bedtime' if step['name']=='declan_local_good_night' else 'movie' if step['name']=='declan_local_movie' and step['data'].get('requested_action') in ('start', 'toggle') else 'general'
                                     routine_reply=await confirmation(self.hass,user_input.context,'Routine request sent.',action=action)
                                 if step['name']=='declan_local_good_morning':
                                     if audience_mode(self.hass) == 'Guest' or plain_responses(self.hass):
