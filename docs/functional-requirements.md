@@ -72,8 +72,10 @@
 - **FR-060 [Source]** Status, weather, forecast, time, climate and car responses shall be derived from current configured HA data and indicate unavailable data rather than invent it.
 - **FR-061 [Source]** Contextual follow-up questions shall reuse bounded context and refresh current facts.
 - **FR-062 [Source]** Timers shall be associated with the originating satellite when known and validate requested durations.
-- **FR-063 [Planned]** HA scripts invoked by Declan shall return a standard machine-readable result: `success`, `busy`, `failed`, `unknown`, action type and safe spoken summary.
+- **FR-063 [Planned; response policy approved]** HA scripts invoked by Declan shall return a standard machine-readable result: `success`, `busy`, `failed`, `unknown`, action type and safe spoken summary. For **confirmed successful** routines, Declan shall give a **short, personality-driven confirmation** consistent with the effective Home/Guest persona and privacy rules. For **partial failures**, Declan shall give a **short spoken warning** without claiming complete success, and record actionable failure details in diagnostics. An unconfirmed or unknown outcome must not be presented as success. The exact result schema, diagnostics fields and script coverage remain implementation/review items; this approval does not mean the behaviour is implemented or verified.
 - **FR-064 [Decision]** Agree which existing household routines are in scope for this script-response contract and which remain external HA-managed features.
+
+**Owner decision (2026-11-08):** Routine success speech is concise and personality-driven, respecting Guest Mode. Partial failures receive a brief warning; technical details belong in diagnostics, not the spoken response. This is a specification decision only, not a claim of live implementation. Acceptance tests must cover confirmed success, partial failure and unknown outcomes, including truthful spoken status and diagnostic capture.
 
 ## 7. Speech, speaker identity and TTS
 
@@ -115,7 +117,7 @@
 - **C-02** Quiet hours were incorrectly documented as forcing plain replies. **Resolved**: they do not override Guest Mode; volume policy remains an owner decision.
 - **C-03** Old branding docs claimed Jarvis domains/IDs must always remain and that work is committed directly to main. **Resolved**: active integration is `declan_local`; remaining references are inventoried for a later controlled migration, and work uses PRs.
 - **C-04** Source implementation and live deployment are not equivalent. **Resolved in this draft** by separate status categories; live verification is still outstanding.
-- **C-05** Routine response contract remains inconsistent. **Open**: FR-063 requires owner agreement.
+- **C-05** Routine response policy **partially resolved by owner decision**: short personality-driven confirmations on confirmed success; short warnings with diagnostic details for partial failure (FR-063). **Still open:** final machine-readable schema, handling of `busy`/`failed`/`unknown`, and which routines are covered (FR-064).
 - **C-06** Speaker bridge/gateway experiments have different maturity. **Open**: verify deployed components and classify each before acceptance.
 - **C-07** FR-072 and FR-073 previously required a secondary TTS provider, contradicting the owner's decision to remove it. **Reconciled in this draft**; implementation remains pending in draft PR #47.
 - **C-08** The owner disabled unused STT/TTS integrations and reports Declan routines still work. This is operational evidence, not proof of startup behaviour or absence of all dependencies. Keep disabled entries recoverable until a normal restart and observation period.
@@ -126,7 +128,7 @@
 2. Approve automatic guest handover remaining opt-in and able to toggle Guest Mode.
 3. Specify quiet-hours audio behaviour, if any.
 4. Review [Jarvis inventory](legacy-jarvis-reference-audit.md), especially conversation, TTS, STT and voice bridge IDs.
-5. Agree the routine result schema and whether external HA scripts are included.
+5. **Response style approved:** short personality-driven confirmations on confirmed success and short warnings with diagnostic details on partial failure (FR-063). Finalise the machine-readable result schema and whether external HA scripts are included (FR-064).
 6. Confirm which speaker/voice subsystems are live versus experimental.
 7. Agree requirement governance and release/rollback gates.
 8. Review portability requirements FR-007–009 and FR-086–088, including native HA routine ownership, settings source of truth, and import/export privacy defaults.
