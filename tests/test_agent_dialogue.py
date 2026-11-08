@@ -57,7 +57,6 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
     async def test_social_reply_unknown_and_matched(self):
         neutral=await self.agent.async_handle(UserInput('thank you'))
         self.assertNotIn('Jaco',neutral.response.speech)
-        original=module.bridge_profile
         try:
             self.agent._speaker_memory.resolve=lambda *args, **kwargs:'Jaco'
             self.hass.data={'declan_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'}}}
@@ -69,7 +68,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
             guest=await self.agent.async_handle(UserInput('hello'))
             self.assertNotIn('Jaco',guest.response.speech)
             self.assertEqual(self.hass.services.calls,[])
-        finally:module.bridge_profile=original
+        finally:pass
     async def test_compound_followup_applies_to_all_targets(self):
         await self.agent.async_handle(UserInput('turn office and bedroom lamp on'))
         self.assertEqual(len(self.hass.services.calls),2)
