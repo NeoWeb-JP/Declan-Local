@@ -117,3 +117,13 @@ Read-only export from `/config/.storage/assist_pipeline.pipelines`:
 **Confirmed:** The main Declan and Voice enrolment pipelines both reference correctly named Declan entities. No need to rename those pipeline provider IDs. The source `panel.js` default `conversation.jarvis_local_test` is inconsistent with the main pipeline and the actual Declan registry entity. The legacy isolated-test pipeline references `*_jarvis_voice_bridge_test_2` entities absent from the supplied registry inventory, so it may be stale; some providers may be dynamically exposed, so do not delete without checking. The source default `tts.jarvis_xtts` is not in the registry inventory; actual Voice Manager fallback configuration remains unverified.
 
 **Proposed next review:** Identify whether the isolated-test pipeline is still used by any satellite or manual test; inspect configured Voice Manager fallback provider. Do not remove providers merely because they are not selected by these four pipelines.
+
+## H. Owner decision: active pipeline (2026-11-08)
+
+The owner confirmed **only the Assist pipeline named `Declan` is used**. Therefore:
+
+- **Retain as active:** `Declan` → `conversation.declan` / `stt.declan_wyoming_speaker_recognition` / `tts.declan_voice_manager`.
+- **Mark for retirement (not yet removed):** `Jarvis Isolated Test`, `Voice enrolment`, and `Home Assistant Cloud` Assist pipelines.
+- **Do not equate unused pipelines with unused providers:** Keep underlying STT/TTS integration entities until dependencies, fallback settings and any direct service calls have been checked.
+- **Implementation follow-up:** Remove the hardcoded `conversation.jarvis_local_test` sidebar fallback in favour of the confirmed `conversation.declan` or a validated configured agent; do not change registry unique IDs in a documentation-only PR.
+- **Operational boundary:** No HA pipeline, entity, provider or automation has been deleted or disabled by this PR. Any actual cleanup requires a separate approved change in the live HA environment.
