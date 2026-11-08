@@ -13,6 +13,17 @@
 - **FR-005 [Decision]** All remaining Jarvis references shall be reviewed using [the audit](legacy-jarvis-reference-audit.md), not assumed necessary for compatibility. The owner reports that all live HA Jarvis references have already been renamed.
 - **FR-006 [Planned]** Future migrations shall preserve settings, voice caches, speaker profiles, learning history and guest-authority ownership, with upgrade/rollback tests.
 
+### Portability and native Home Assistant configuration (new candidates; Phase 1 audit)
+
+- **FR-007 [Planned]** A clean HA installation shall be able to configure Declan without editing integration source code or inheriting another household's person, camera, device, network or script identifiers. Missing optional features shall not block core setup.
+- **FR-008 [Planned]** Declan shall discover available HA entities/areas and offer native HA selectors for mappings. The native options flow and Declan dashboard shall share one authoritative persisted configuration, with validation and clear missing-entity handling.
+- **FR-009 [Planned]** Declan shall route configurable routines to user-selected native HA scripts or automations; optional examples/blueprints shall not be installed or enabled silently. Execution results shall follow FR-063 when that contract is approved.
+- **FR-086 [Planned]** Declan shall support versioned configuration export/import with schema validation, dry-run preview, entity remapping, explicit conflict approval and rollback. Default exports shall exclude credentials, tokens, speaker biometrics, private learning evidence and personal playback history.
+- **FR-087 [Planned]** Persisted storage and registry migrations shall be idempotent and non-destructive, retaining legacy reads until verified. A clean install and an upgrade from an existing household shall both pass acceptance tests.
+- **FR-088 [Planned]** Optional integrations (cameras, Frigate, Music Assistant/Spotify, EV, guest helpers) shall be individually configurable and safely unavailable when absent.
+
+**Evidence:** [Phase 1 portability audit](portability-hardcoded-values-audit.md) is an initial targeted scan on `main`; full repository coverage and acceptance tests remain open. Settings dashboard work is separate draft PR #49; portability audit is draft PR #50. These requirements are proposed, not approved or implemented.
+
 ## 2. Personality and privacy
 
 - **FR-010 [Source]** **Only Guest Mode selects the persona**: `off` = savage Home; `on` = playful Guest; missing/unknown/unavailable = privacy-safe Guest.
@@ -96,6 +107,7 @@
 | RM-06 | Improve local STT from consented correction evidence | Review data provenance, privacy, evaluation metrics and rollback |
 | RM-07 | Dashboard for requirements, diagnostics and test coverage | Stable feature inventory, automated traceability and owner review |
 | RM-08 | End-to-end Home Assistant acceptance suite | Explicit hardware/provider tests beyond mocked CI |
+| RM-09 | Portable configuration and native HA routines | Complete Phase 1 audit, define migration/export contracts, test fresh install and existing-home upgrade |
 
 ## 10. Conflicts reconciled in this documentation PR
 
@@ -117,6 +129,7 @@
 5. Agree the routine result schema and whether external HA scripts are included.
 6. Confirm which speaker/voice subsystems are live versus experimental.
 7. Agree requirement governance and release/rollback gates.
+8. Review portability requirements FR-007–009 and FR-086–088, including native HA routine ownership, settings source of truth, and import/export privacy defaults.
 
 **Baseline remains DRAFT until explicitly approved.** Once agreed, mark the approved revision and record change decisions; do not silently change requirements to match future implementation.
 
