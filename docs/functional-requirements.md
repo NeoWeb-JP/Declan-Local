@@ -1,0 +1,122 @@
+# Declan functional specification and roadmap
+
+**Draft 0.2 — for owner review, NOT approved.** Source: `main` after PR #45 merged, 8 November 2026. This document defines the candidate requirements baseline and planned direction. No code change or live HA deployment is authorised by approving a document PR alone.
+
+**Status key:** **Source** = implemented in repository, subject to test/live verification; **Planned** = proposed future behaviour; **Decision** = requires explicit owner agreement. An implemented module does not prove it is deployed, configured or working in the household.
+
+## 1. Product, identity and configuration
+
+- **FR-001 [Source]** Home Voice Assistant shall register with Home Assistant under the `declan_local` integration domain and expose a conversation agent, settings and administrator panel.
+- **FR-002 [Source]** The assistant shall be called Declan. Its personality and display branding shall be distinct from stable HA entity IDs and storage identifiers.
+- **FR-003 [Source]** Device control shall use existing HA entities, exposed areas, services and scripts; it shall not silently create or replace household YAML or automations.
+- **FR-004 [Source]** Optional mappings for switches, satellites, music players, car sensors, thermostat, weather and guest helpers shall validate entity type and configured availability.
+- **FR-005 [Decision]** All remaining Jarvis references shall be reviewed using [the audit](legacy-jarvis-reference-audit.md), not assumed necessary for compatibility. The owner reports that all live HA Jarvis references have already been renamed.
+- **FR-006 [Planned]** Future migrations shall preserve settings, voice caches, speaker profiles, learning history and guest-authority ownership, with upgrade/rollback tests.
+
+## 2. Personality and privacy
+
+- **FR-010 [Source]** **Only Guest Mode selects the persona**: `off` = savage Home; `on` = playful Guest; missing/unknown/unavailable = privacy-safe Guest.
+- **FR-011 [Source]** Visitors, staying declarations, speaker identity, owner presence and quiet hours shall not directly choose a persona. Automatic handover may change the Guest Mode helper, which in turn changes the persona.
+- **FR-012 [Source]** Home speech may include strong personal banter for Jaco and Edd; Guest speech may roast visitors lightly but shall avoid private host details, intimate jokes and personalised host greetings.
+- **FR-013 [Source]** Serious safety, security, medical, operational failure and factual messages shall be clear, accurate and not replaced by jokes.
+- **FR-014 [Source]** Quiet hours shall not turn off sass or override Guest Mode. Any volume/delivery policy shall be defined separately.
+- **FR-015 [Source]** Confirmations, social greetings, corrections, clarification and cached category alternatives shall respect the effective Guest/Home persona, without changing the factual outcome or exposing private Home audio in Guest Mode.
+- **FR-016 [Source]** Speaker identity may personalise suitable Home greetings, but shall never confer permissions or independently select persona.
+- **FR-017 [Decision]** Specify desired quiet-hours *volume* and speech-length behaviour, if any, separately from persona.
+
+## 3. Local command interpretation and actions
+
+- **FR-020 [Source]** Commands shall be parsed and validated before actions; unknown or ambiguous devices shall not be guessed.
+- **FR-021 [Source]** Lighting, brightness, areas and configured switch-as-light aliases shall support room-aware commands and bounded follow-ups.
+- **FR-022 [Source]** Good Morning, Good Night and Movie Time shall invoke the corresponding configured HA routines when available.
+- **FR-023 [Source]** Movie Time responses shall distinguish confirmed action from unknown/unconfirmed outcome; no false claim of projector success.
+- **FR-024 [Source]** In-sentence corrections shall execute only the final validated request, not superseded commands.
+- **FR-025 [Source]** Follow-up references shall be conversation-scoped, time-bounded and revalidated.
+- **FR-026 [Source]** Previews shall be side-effect-free; incomplete or unsafe requests shall run nothing.
+- **FR-027 [Source]** Unsupported single requests may fall back to built-in HA conversation without recursion; only confirmed success may be reported as success.
+- **FR-028 [Source]** Stop requests shall target the media player explicitly mapped to the originating satellite and avoid guessed destinations or spoken confirmations.
+- **FR-029 [Planned]** Generate a machine-readable command/phrase catalogue linked to parser branches, scripts and regression tests.
+
+## 4. Guest handover and authority
+
+- **FR-040 [Source]** Staying declarations, manual guest handover, status and cancellation shall remain separate from the personality selector.
+- **FR-041 [Source]** Automatic handover shall remain opt-in and require healthy distinct helpers, confirmed staying guests and both owners `not_home` for at least 120 seconds.
+- **FR-042 [Source]** The automatic controller shall copy authorised guest names, raise the dedicated away-simulation suspension signal and enable Guest Mode, rechecking eligibility between writes.
+- **FR-043 [Source]** On owner return or loss of eligibility, only automatically owned authority and suspension changes shall be revoked; manual handover shall survive.
+- **FR-044 [Source]** Restart/reconfiguration shall preserve ownership provenance and avoid deleting manually set authority.
+- **FR-045 [Decision]** The external occupancy-simulation automation must independently respect the suspension helper; verify this in the live HA configuration.
+
+## 5. Music and media
+
+- **FR-050 [Source]** Music playback shall use configured Music Assistant players and Spotify playlist URIs, with category, artist/title, room, transport and volume handling where supported.
+- **FR-051 [Source]** Playlist selection shall avoid unnecessary repetition and preserve favourites, exclusions, feedback weights and history.
+- **FR-052 [Source]** Spotify discovery shall support configured categories, bounded selection, manual refresh and weekly scheduled refresh; discovery results are not guaranteed accurate.
+- **FR-053 [Source]** A household-wide blacklist shall prevent repeat selection of banned tracks and skip detected excluded tracks where possible.
+- **FR-054 [Source]** A request-dispatched acknowledgement shall not claim music has begun unless playback was verified.
+- **FR-055 [Source]** Media search shall distinguish HA/Jellyfin/local results from streaming-catalogue listings; search does not automatically start a film or guarantee subscription availability.
+- **FR-056 [Planned]** Provide consistent playback outcome/health telemetry for voice feedback and troubleshooting.
+
+## 6. Information, routines and timers
+
+- **FR-060 [Source]** Status, weather, forecast, time, climate and car responses shall be derived from current configured HA data and indicate unavailable data rather than invent it.
+- **FR-061 [Source]** Contextual follow-up questions shall reuse bounded context and refresh current facts.
+- **FR-062 [Source]** Timers shall be associated with the originating satellite when known and validate requested durations.
+- **FR-063 [Planned]** HA scripts invoked by Declan shall return a standard machine-readable result: `success`, `busy`, `failed`, `unknown`, action type and safe spoken summary.
+- **FR-064 [Decision]** Agree which existing household routines are in scope for this script-response contract and which remain external HA-managed features.
+
+## 7. Speech, speaker identity and TTS
+
+- **FR-070 [Source]** Declan shall work with configured Assist STT/TTS providers and optional Wyoming speaker-aware services.
+- **FR-071 [Source]** Speaker recognition shall not be used as authentication and shall avoid guessing unknown speakers.
+- **FR-072 [Source]** Voice Manager shall cache audio by exact synthesis identity and preserve independent primary/fallback caches.
+- **FR-073 [Source]** On primary TTS failure or local daily character allowance exhaustion, the configured fallback may be used; cached primary audio remains reusable.
+- **FR-074 [Source]** Static catalogue generation shall require review and explicit approval; cache hits shall not trigger unnecessary paid generation.
+- **FR-075 [Source]** Persistent daily usage counters are local estimates/guards, not the provider's authoritative billing.
+- **FR-076 [Planned]** Speaker gateway and camera-assisted identification shall have separately versioned acceptance tests for microphone quality, identity confidence, privacy and end-to-end playback.
+- **FR-077 [Decision]** Confirm actual Declan-named conversation, STT, TTS and voice-bridge IDs before removing legacy defaults from source.
+
+## 8. Learning, resilience and governance
+
+- **FR-080 [Source]** Learning suggestions and corrections shall be reviewable, validated and constrained to safe command forms.
+- **FR-081 [Source]** Settings, voice data, usage budgets and learning evidence shall remain private and survive integration updates.
+- **FR-082 [Source]** Read-only reviews shall not perform household actions or trigger paid TTS requests without explicit approval.
+- **FR-083 [Planned]** Each new requirement shall have an ID, acceptance criteria, traceable tests and a documented failure/rollback case.
+- **FR-084 [Planned]** Track independently: implemented in source, passed CI, verified on real HA devices, and deployed to production.
+- **FR-085 [Planned]** New PRs shall reference changed requirement IDs and update the spec/roadmap when behaviour changes; owner approval is required for merge and deployment.
+
+## 9. Proposed roadmap (not implemented by this specification)
+
+| Roadmap ID | Candidate feature | Dependency / acceptance gate |
+| --- | --- | --- |
+| RM-01 | Complete Jarvis-to-Declan reference migration | Approve inventory; inspect live registry and storage; idempotent migrations and rollback |
+| RM-02 | Standardise all routine outcomes | Agree result schema; test Movie Time, Good Morning/Night and errors |
+| RM-03 | Improve command recognition and multi-turn corrections | Repeatable voice transcripts, regression suite and no unintended actions |
+| RM-04 | Improve speaker identification on all satellites | Verify bridge/gateway deployment, confidence, unknown-speaker handling and privacy |
+| RM-05 | Expand music preferences and household feedback | Verify blacklist/weighting against live Music Assistant playback |
+| RM-06 | Improve local STT from consented correction evidence | Review data provenance, privacy, evaluation metrics and rollback |
+| RM-07 | Dashboard for requirements, diagnostics and test coverage | Stable feature inventory, automated traceability and owner review |
+| RM-08 | End-to-end Home Assistant acceptance suite | Explicit hardware/provider tests beyond mocked CI |
+
+## 10. Conflicts reconciled in this documentation PR
+
+- **C-01** Visitor presence was incorrectly documented as a direct persona selector. **Resolved in README and guest-persona guide**: only Guest Mode chooses persona.
+- **C-02** Quiet hours were incorrectly documented as forcing plain replies. **Resolved**: they do not override Guest Mode; volume policy remains an owner decision.
+- **C-03** Old branding docs claimed Jarvis domains/IDs must always remain and that work is committed directly to main. **Resolved**: active integration is `declan_local`; remaining references are inventoried for a later controlled migration, and work uses PRs.
+- **C-04** Source implementation and live deployment are not equivalent. **Resolved in this draft** by separate status categories; live verification is still outstanding.
+- **C-05** Routine response contract remains inconsistent. **Open**: FR-063 requires owner agreement.
+- **C-06** Speaker bridge/gateway experiments have different maturity. **Open**: verify deployed components and classify each before acceptance.
+
+## 11. Owner review checklist
+
+1. Approve Guest Mode-only persona and privacy-safe fallback.
+2. Approve automatic guest handover remaining opt-in and able to toggle Guest Mode.
+3. Specify quiet-hours audio behaviour, if any.
+4. Review [Jarvis inventory](legacy-jarvis-reference-audit.md), especially conversation, TTS, STT and voice bridge IDs.
+5. Agree the routine result schema and whether external HA scripts are included.
+6. Confirm which speaker/voice subsystems are live versus experimental.
+7. Agree requirement governance and release/rollback gates.
+
+**Baseline remains DRAFT until explicitly approved.** Once agreed, mark the approved revision and record change decisions; do not silently change requirements to match future implementation.
+
+### Source index
+`custom_components/declan_local/`: `agent.py`, `audience.py`, `personality.py`, `guest_authority.py`, `planner.py`, `parser.py`, `music_controller.py`, `music_blacklist.py`, `spotify_discovery.py`, `voice_cache.py`, `voice_budget.py`, `speaker_identity.py`, `websocket.py`, `settings.py`; `tests/`; `deployment/voice-bridge/`; `deployment/wyoming-gateway/`; `docs/`.
