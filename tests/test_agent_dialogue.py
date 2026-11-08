@@ -159,11 +159,12 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
             UserInput('Dinner on, no I mean movie time'))
         self.assertEqual(len(self.hass.services.calls),1)
         self.assertEqual(self.hass.services.calls[0][0][:2],('script','declan_local_movie'))
-        from jarvis_test.personality import CONTEXT_LINES
-        # This fixture has no configured Guest Mode helper, so it safely
-        # defaults to Guest. The same inherited test runs in fallback coverage.
-        self.assertTrue(any(line in result.response.speech for line in CONTEXT_LINES['Guest']['self_correction']))
-        self.assertIn('Routine request sent.',result.response.speech)
+        # The mocked script returns no response_context, so the agent cannot
+        # know whether Movie Time started or ended. Its factual uncertainty
+        # message must not be replaced by a playful correction prefix.
+        self.assertIn('Movie Time request processed.', result.response.speech)
+        self.assertIn('Check the projector state.', result.response.speech)
+        self.assertNotIn('Routine request sent.', result.response.speech)
 
     async def test_incomplete_correction_runs_nothing(self):
         result=await self.agent.async_handle(UserInput('Lights on, scratch that'))
