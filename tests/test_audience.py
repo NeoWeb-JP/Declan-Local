@@ -96,7 +96,8 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(await self.module.confirmation(self.hass, None, 'Lights off.', 'off'), self.module.CATALOG['Home']['off'] + self.module.SAVAGE_LINES['off'] + self.module.BRUTAL_LINES['off'] + self.module.NUCLEAR_LINES['off'])
         self.hass = house()
         self.hass.data['declan_local']['settings']['personality_script'] = 'script.legacy'
-        self.hass.states = types.SimpleNamespace(get=lambda entity: types.SimpleNamespace(state='on'))
+        original = self.hass.states.get
+        self.hass.states.get = lambda entity: types.SimpleNamespace(state='on') if entity == 'script.legacy' else original(entity)
         self.hass.services.async_call.return_value = {'personality': 'Night', 'response': 'PRIVATE'}
         self.assertIn(await self.module.confirmation(self.hass, None, 'Lights off.', 'off'), self.module.CATALOG['Home']['off'] + self.module.SAVAGE_LINES['off'] + self.module.BRUTAL_LINES['off'] + self.module.NUCLEAR_LINES['off'])
 
