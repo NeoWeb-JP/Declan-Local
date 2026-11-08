@@ -127,3 +127,16 @@ The owner confirmed **only the Assist pipeline named `Declan` is used**. Therefo
 - **Do not equate unused pipelines with unused providers:** Keep underlying STT/TTS integration entities until dependencies, fallback settings and any direct service calls have been checked.
 - **Implementation follow-up:** Remove the hardcoded `conversation.jarvis_local_test` sidebar fallback in favour of the confirmed `conversation.declan` or a validated configured agent; do not change registry unique IDs in a documentation-only PR.
 - **Operational boundary:** No HA pipeline, entity, provider or automation has been deleted or disabled by this PR. Any actual cleanup requires a separate approved change in the live HA environment.
+
+## I. Live Declan Voice Manager options (owner-supplied, 2026-11-08)
+
+Read-only inspection of `core.config_entries` for the `declan_local` entry titled `Home Voice Assistant` confirmed that its `data` has no TTS options, but its **options** explicitly specify:
+
+| Setting | Live value | Decision |
+| --- | --- | --- |
+| `primary_tts` | `tts.elevenlabs_text_to_speech` | Retain |
+| `fallback_tts` | `tts.jarvis_xtts` | Broken/stale candidate: absent from supplied entity registry; validate replacement |
+| `cache_enabled` | `True` | Retain |
+| `category_fallback` | `True` | Retain |
+
+Source `tts.py` and `config_flow.py` both also default to `tts.jarvis_xtts`. The live options override defaults, so **changing the source default alone will not repair the existing HA installation**. The registered `tts.piper` is a potential local fallback, subject to successful playback and compatibility test. Owner has not yet approved or performed a live option change. Preserve caching and category fallback settings. Avoid editing `.storage` directly while Home Assistant runs; use the integration's supported options flow.
