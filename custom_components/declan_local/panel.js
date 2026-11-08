@@ -923,7 +923,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
   async saveSettings() {
     if(this.savingSettings || this.savingMediaSearch)return;
     const data={switch_lights:{},satellite_media_players:{}};
-    for(const select of this.root.querySelectorAll('.settings-fields select'))data[select.dataset.key]=select.value;
+    for(const select of this.root.querySelectorAll('.settings-page select[data-key]'))data[select.dataset.key]=select.value;
     for(const row of this.root.querySelectorAll('.switch-fields > div')) {
       const name=row.querySelector('.switch-name').value.trim().toLowerCase().replace(/\s+/g,' '), entity=row.querySelector('.switch-entity').value;
       if(!name || !entity || Object.hasOwn(data.switch_lights,name)){this.root.querySelector('.settings-message').textContent='Each switch needs a unique spoken name and a selected entity.';return;}
