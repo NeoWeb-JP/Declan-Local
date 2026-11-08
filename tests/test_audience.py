@@ -33,7 +33,7 @@ class AudienceTests(unittest.TestCase):
             for authority in ('on', 'off', 'unknown', 'unavailable', None):
                 with self.subTest(visitor=visitor, authority=authority):
                     hass = house(visitor, authority)
-                    self.assertEqual(audience.mode(hass), 'Home' if visitor == authority == 'off' else 'Guest')
+                    self.assertEqual(audience.mode(hass), 'Home' if authority == 'off' else 'Guest')
                     hass.services.async_call.assert_not_called()
 
     def test_no_configuration_is_private_by_default(self):
@@ -78,7 +78,7 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_only_home_and_guest_local_catalogue_without_script_calls(self):
         self.assertEqual(set(self.module.CATALOG), {'Home', 'Guest'})
-        for visitors, expected in (('off', 'Home'), ('on', 'Guest'), ('unavailable', 'Guest')):
+        for visitors, expected in (('off', 'Home'), ('on', 'Home'), ('unavailable', 'Home')):
             self.hass = house(visitors)
             line = await self.module.confirmation(self.hass, None, 'Lights on.', 'on')
             self.assertIn(line, self.module.CATALOG[expected]['on'] + (self.module.SAVAGE_LINES['on'] + self.module.BRUTAL_LINES['on'] + self.module.NUCLEAR_LINES['on'] if expected == 'Home' else []))
@@ -87,7 +87,7 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
     async def test_live_visitor_change_cannot_reuse_home_history(self):
         home = await self.module.confirmation(self.hass, None, 'Done.', 'off')
         self.assertIn(home, self.module.CATALOG['Home']['off'] + self.module.SAVAGE_LINES['off'] + self.module.BRUTAL_LINES['off'] + self.module.NUCLEAR_LINES['off'])
-        self.hass.states = house('on').states
+        self.hass.states = house('on', 'on').states
         guest = await self.module.confirmation(self.hass, None, 'Done.', 'off')
         self.assertIn(guest, self.module.CATALOG['Guest']['off'])
 
@@ -101,7 +101,7 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.module.confirmation(self.hass, None, 'Lights off.', 'off'), 'Lights off.')
 
     async def test_legacy_home_choice_cannot_override_visitors(self):
-        self.hass = house('on')
+        self.hass = house('on', 'on')
         original = self.hass.states.get
         self.hass.data['declan_local']['settings']['personality_script'] = 'script.legacy'
         self.hass.states.get = lambda entity: types.SimpleNamespace(state='on') if entity == 'script.legacy' else original(entity)
@@ -123,7 +123,7 @@ class PersonaTests(unittest.IsolatedAsyncioTestCase):
         original = self.hass.states.get
         self.hass.states.get = lambda entity: types.SimpleNamespace(state='on') if entity == 'script.phonetic' else original(entity)
         async def convert(*args, **kwargs):
-            self.hass.states = house('on').states
+            self.hass.states = house('on', 'on').states
             return {'text': 'PRIVATE_HOME_TRANSLITERATION'}
         self.hass.services.async_call.side_effect = convert
         self.assertEqual(await self.module.confirmation(self.hass, None, 'Lights on.', 'on'), 'Lights on.')
