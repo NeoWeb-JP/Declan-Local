@@ -27,7 +27,7 @@
 ## 2. Personality and privacy
 
 - **FR-010 [Source]** **Only Guest Mode selects the persona**: `off` = savage Home; `on` = playful Guest; missing/unknown/unavailable = privacy-safe Guest.
-- **FR-011 [Source]** Visitors, staying declarations, speaker identity, owner presence and quiet hours shall not directly choose a persona. Automatic handover may change the Guest Mode helper, which in turn changes the persona.
+- **FR-011 [Source]** Visitors, speaker identity, owner presence and quiet hours shall not directly choose a persona. **Owner-approved change:** a confirmed overnight-staying declaration shall enable the configured Guest Mode helper, which then selects the Guest persona; the declaration itself does not become an independent persona selector. Automatic handover may also change the helper under its own eligibility rules.
 - **FR-012 [Source]** Home speech may include strong personal banter for Jaco and Edd; Guest speech may roast visitors lightly but shall avoid private host details, intimate jokes and personalised host greetings.
 - **FR-013 [Source]** Serious safety, security, medical, operational failure and factual messages shall be clear, accurate and not replaced by jokes.
 - **FR-014 [Source]** Quiet hours shall not turn off sass or override Guest Mode. Any volume/delivery policy shall be defined separately.
@@ -53,7 +53,8 @@
 
 ## 4. Guest handover and authority
 
-- **FR-040 [Source]** Staying declarations, manual guest handover, status and cancellation shall remain separate from the personality selector.
+- **FR-040 [Source]** Staying declarations, manual guest handover, status and cancellation shall remain separate from the personality selector. A confirmed overnight-staying declaration now enables the existing Guest Mode helper for privacy-safe speech, but **does not grant guest authority**, populate the names-in-charge helper or invoke a manual/automatic handover.
+- **FR-047 [Owner-approved policy; implementation pending]** On an explicit, confirmed declaration that named guests are staying overnight (for example, “Mike and Kathy are staying with us”), Declan shall record the staying guests using the configured staying helpers and **automatically turn on Guest Mode** so the Guest persona and privacy safeguards apply immediately, even while owners are home. This action shall not authorise guests, populate or overwrite the names-in-charge helper, trigger an authority handover or weaken restricted-action policies (FR-046). Track whether Guest Mode was enabled by the staying declaration so that clearing staying guests can release only that declaration-owned change; never switch off Guest Mode that was independently enabled or is still needed by an active manual/automatic handover. Preserve ownership across restart and failed helper writes, and require explicit owner-approved semantics for overlapping causes before implementation. Unavailable helpers must fail safely and be reported without claiming success.
 - **FR-041 [Source]** Automatic handover shall remain opt-in and require healthy distinct helpers, confirmed staying guests and both owners `not_home` for at least 120 seconds.
 - **FR-042 [Source]** The automatic controller shall copy authorised guest names, raise the dedicated away-simulation suspension signal and enable Guest Mode, rechecking eligibility between writes.
 - **FR-043 [Source]** On owner return or loss of eligibility, only automatically owned authority and suspension changes shall be revoked; manual handover shall survive.
@@ -118,7 +119,7 @@
 
 ## 10. Conflicts reconciled in this documentation PR
 
-- **C-01** Visitor presence was incorrectly documented as a direct persona selector. **Resolved in README and guest-persona guide**: only Guest Mode chooses persona.
+- **C-01** Visitor presence was incorrectly documented as a direct persona selector. **Reconciled by owner decision**: only the Guest Mode helper chooses persona; a confirmed overnight-staying declaration shall now turn that helper on without granting authority (FR-011, FR-040, FR-047). Existing guest-persona guide still describes the prior declaration behaviour and must be updated during implementation/documentation alignment.
 - **C-02** Quiet hours were incorrectly documented as forcing plain replies. **Resolved by owner decision**: retain Guest/Home persona, reduce volume and shorten non-critical speech; restrict proactive announcements/broadcasts to configurable selected Shows (initially master-bedroom Echo Show only). Implementation remains to be verified; direct requests are explicitly answered on the originating satellite at reduced volume (FR-017–018).
 - **C-03** Old branding docs claimed Jarvis domains/IDs must always remain and that work is committed directly to main. **Resolved**: active integration is `declan_local`; remaining references are inventoried for a later controlled migration, and work uses PRs.
 - **C-04** Source implementation and live deployment are not equivalent. **Resolved in this draft** by separate status categories; live verification is still outstanding.
@@ -128,6 +129,7 @@
 - **C-08** The owner disabled unused STT/TTS integrations and reports Declan routines still work. This is operational evidence, not proof of startup behaviour or absence of all dependencies. Keep disabled entries recoverable until a normal restart and observation period.
 
 ## 11. Owner review checklist
+- **Overnight guests approved:** confirmed staying declarations automatically enable Guest Mode without granting authority or overriding names in charge (FR-047). Implement and test provenance-safe release and overlapping reasons for Guest Mode; align existing guest-persona guide later.
 
 1. Approve Guest Mode-only persona and privacy-safe fallback.
 2. Approve automatic guest handover remaining opt-in and able to toggle Guest Mode.
