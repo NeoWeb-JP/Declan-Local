@@ -205,7 +205,7 @@ class JarvisAgent(conversation.ConversationEntity):
             timer_request=None if stop_requested else parse_timer(command_text)
             pending=self._pending_clarifications.get(memory_key) if not request_preview else None
             resolution,entity_id=clarification_resolve(pending,command_text) if pending else (None,None)
-            social = social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data.setdefault('declan_local',{}).setdefault('social_history',{})) if not pending else None
+            social = social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data.setdefault('declan_local',{}).setdefault('social_history',{}), mode=audience_mode(self.hass)) if not pending else None
             if information_request is not None:
                 if not request_preview:
                     self._pending_clarifications.pop(memory_key,None)
@@ -360,7 +360,7 @@ class JarvisAgent(conversation.ConversationEntity):
                                 continue
                             if step['kind'] == 'text':
                                 if step.get('label') == 'answer greeting':
-                                    replies.append(social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data['declan_local']['social_history']))
+                                    replies.append(social_reply(command_text, voice_profile if audience_mode(self.hass) == 'Home' else None, self.hass.data['declan_local']['social_history'], mode=audience_mode(self.hass)))
                                 else:
                                     replies.append(step['response'])
                                 continue
@@ -470,8 +470,9 @@ class JarvisAgent(conversation.ConversationEntity):
                                 # External routine speech may contain private Home banter.
                                 # Do not relay it verbatim to guests or during quiet hours.
                                 routine_speech = (reply or {}).get('speech') or 'Routine request sent.'
-                                if audience_mode(self.hass) == 'Guest' or plain_responses(self.hass):
-                                    routine_speech = 'Routine request sent.'
+                                if audience_mode(self.hass) == 'Guest':
+                                    routine_speech = await confirmation(self.hass, user_input.context,
+                                        'Routine request sent.', action='general')
                                 replies.append(routine_speech)
                                 continue
                             if step['kind'] == 'dinner_routine':
@@ -507,7 +508,7 @@ class JarvisAgent(conversation.ConversationEntity):
                                         routine_reply = await confirmation(
                                             self.hass, user_input.context, 'Routine request sent.', action=action)
                                 if step['name']=='declan_local_good_morning':
-                                    if audience_mode(self.hass) == 'Guest' or plain_responses(self.hass):
+                                    if audience_mode(self.hass) == 'Guest':
                                         routine_reply=await confirmation(self.hass,user_input.context,'Good morning. The morning routine is underway.',action='morning')
                                     else:
                                         routine_reply=morning_reply(voice_profile, cfg.get('profiles', {}), self.hass.data.setdefault('declan_local', {}).setdefault('morning_history', {}))
