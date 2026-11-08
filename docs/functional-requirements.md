@@ -122,3 +122,6 @@
 
 ### Source index
 `custom_components/declan_local/`: `agent.py`, `audience.py`, `personality.py`, `guest_authority.py`, `planner.py`, `parser.py`, `music_controller.py`, `music_blacklist.py`, `spotify_discovery.py`, `voice_cache.py`, `voice_budget.py`, `speaker_identity.py`, `websocket.py`, `settings.py`; `tests/`; `deployment/voice-bridge/`; `deployment/wyoming-gateway/`; `docs/`.
+ 
+
+**Operational note (2026-11-08):** Owner disabled all separate HA Wyoming integration entries and deleted all Assist pipelines except `Declan`; normal Declan commands/routines continue working. This supports direct bridge operation but does not prove startup behaviour or exercise OpenAI STT. Do not restore removed test pipelines as a migration prerequisite.
