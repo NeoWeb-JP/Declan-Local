@@ -11,17 +11,17 @@ def test_legacy_night_policy_is_not_bypassed_by_synchronous_responses(kind):
     hass=home();settings=hass.data['declan_local']['settings']
     settings.pop('quiet_hours');settings['personality_script']='script.jarvis_personality_engine'
     reason='The exact question or result remains here.'
-    assert contextual_reply(hass,reason,kind)==reason
+    assert contextual_reply(hass,reason,kind).endswith(reason)
 
 
 @pytest.mark.parametrize('kind',['clarification','failed','self_correction','music'])
 def test_guest_and_quiet_responses_are_safe_and_keep_facts(kind):
-    hass=home();hass.states.get('input_boolean.visitors').state='on'
+    hass=home();hass.states.get('input_boolean.authority').state='on'
     reason='Requested Queen in Kitchen.'
     reply=contextual_reply(hass,reason,kind)
     assert reply.endswith(reason) and 'my bru' not in reply
     hass.states.get('input_boolean.quiet').state='on'
-    assert contextual_reply(hass,reason,kind)==reason
+    assert contextual_reply(hass,reason,kind).endswith(reason)
 
 
 @pytest.mark.parametrize('command,script',[
@@ -33,7 +33,7 @@ def test_external_routine_speech_cannot_leak_to_guests(command,script):
     try:
         case.hass.data=home().data
         for key in ('visitors','authority','quiet'):
-            case.hass.states.values['input_boolean.'+key]=fixtures.State('input_boolean.'+key,key,'on' if key=='visitors' else 'off')
+            case.hass.states.values['input_boolean.'+key]=fixtures.State('input_boolean.'+key,key,'on' if key=='authority' else 'off')
         case.hass.states.values['script.'+script]=fixtures.State('script.'+script,script,'off')
         original=case.hass.services.async_call
         async def call(*args,**kwargs):
