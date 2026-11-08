@@ -93,6 +93,7 @@ class Stops(unittest.TestCase):
                     'satellite_media_players':{satellite:'media_player.bedroom'}}}},
                     services=types.SimpleNamespace(async_call=call))
                 agent=types.SimpleNamespace(hass=hass,_lock=asyncio.Lock(),
+                    _speaker_memory=types.SimpleNamespace(resolve=lambda *a, **kw: None),
                     _recent_lights={k:{'at':monotonic()} for k in (key,other)},
                     _previous_failed={}, _pending_clarifications={k:{'at':monotonic()} for k in (pending_key,other)})
                 await agent._lock.acquire()
