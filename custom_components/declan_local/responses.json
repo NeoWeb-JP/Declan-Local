@@ -73,7 +73,9 @@
     "movie_end": [
       "Movie Time over. Back to reality, gentlemen. My condolences.",
       "Cinema closed. I trust the film was worth the negotiations.",
-      "Projector winding down. Your next argument can begin shortly."
+      "Projector winding down. Your next argument can begin shortly.",
+      "Movie Time finished. The house is back to normal.",
+      "Cinema mode ended. The projector can have a rest."
     ]
   },
   "Guest": {
@@ -135,7 +137,10 @@
     ],
     "welcome_edd": [
       "Welcome home, Edd. Hope you've had a good day.",
-      "Good to see you home, Edd. Welcome back."
+      "Good to see you home, Edd. Welcome back.",
+      "Welcome home, Edd. The house has been waiting for your return.",
+      "Edd, welcome back. I trust your day was less chaotic than mine.",
+      "Welcome back, Edd. Everything is ready for you."
     ],
     "movie_end": [
       "Cinema closed. I hope the guests survived the plot.",
