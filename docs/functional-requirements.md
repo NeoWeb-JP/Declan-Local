@@ -59,6 +59,8 @@
 - **FR-044 [Source]** Restart/reconfiguration shall preserve ownership provenance and avoid deleting manually set authority.
 - **FR-045 [Decision]** The external occupancy-simulation automation must independently respect the suspension helper; verify this in the live HA configuration.
 
+- **FR-046 [Owner-approved policy; implementation pending]** Guest Mode shall permit ordinary household controls, including lights, music, television/media, heating and ordinary routines, subject to existing Home Assistant permissions and configured device availability. Guest Mode shall **not** by itself authorise security-sensitive actions, access to private or sensitive household information, or changes to Declan/Home Assistant settings. Security controls, sensitive information and configuration changes shall remain restricted; an explicit guest handover shall not implicitly override those restrictions. Guest Mode selects persona/privacy policy, while guest authority and any future per-action authorisation remain separate concerns. Enforcement, trusted-user identification and acceptance tests are future implementation work; this requirement does not assert that access control is already enforced.
+
 ## 5. Music and media
 
 - **FR-050 [Source]** Music playback shall use configured Music Assistant players and Spotify playlist URIs, with category, artist/title, room, transport and volume handling where supported.
