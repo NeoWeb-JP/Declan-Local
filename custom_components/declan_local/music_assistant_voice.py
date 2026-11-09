@@ -5,7 +5,7 @@ import re
 from .settings import get
 
 
-def _destinations(hass):
+def music_destinations(hass):
     configured = get(hass, 'music_players', {})
     if not isinstance(configured, dict):
         return {}
@@ -17,14 +17,14 @@ def _destinations(hass):
 
 
 def _room_pattern(hass):
-    names = _destinations(hass)
+    names = music_destinations(hass)
     return '|'.join(re.escape(name) for name in sorted(names, key=len, reverse=True)) or r'(?!)'
 
 
 def _player(hass, room, area):
     room = (room or getattr(area, 'name', '') or '').casefold().strip()
     room = ' '.join(room.split())
-    destinations = _destinations(hass)
+    destinations = music_destinations(hass)
     if not room or room not in destinations:
         raise ValueError('Which configured music destination should I use? Nothing was run.')
     entity = destinations[room]

@@ -12,7 +12,6 @@ from .media_search_adapters import search as search_media
 from .settings import get
 from .speaker_identity import unwrap, bridge_profile, SatelliteSpeakerMemory
 from .visual_observation import inspect_speaker_camera
-from .morning import morning_reply
 from .social import social_reply
 from .timers import parse as parse_timer
 from .followup import followup, followup_steps, additional_room
@@ -24,12 +23,13 @@ from .audience import mode as audience_mode
 from .transcript import correct, recognition_diagnostic
 from .corrections import final_request
 from .cross_corrections import corrected_followup
-from .verify import movie_result, play_verified_playlist, verify
+from .verify import play_verified_playlist, verify
 from .device_control import apply_lighting, lighting_report
 from .discovery import lighting, display_name
 from homeassistant.components import conversation
 from homeassistant.helpers import intent
 from homeassistant.exceptions import HomeAssistantError
+from .ha_conversation_fallback import delegate_unmatched, match_sentence_trigger
 from .planner import plan
 from .status import answer
 from .information_dialogue import parse as parse_information, read as read_information
@@ -210,6 +210,19 @@ class JarvisAgent(conversation.ConversationEntity):
             return conversation.ConversationResult(
                 response=result, conversation_id=conversation_id,
                 continue_conversation=False)
+        sentence_api = getattr(conversation, 'async_handle_sentence_triggers', None)
+        if sentence_api and original_text.strip() and not (
+            request_preview or correction_error or self_corrected or cross_corrected
+        ):
+            delegated = await match_sentence_trigger(
+                self.hass, user_input, original_text, sentence_api
+            )
+            if delegated is not None:
+                self._pending_clarifications.pop(memory_key, None)
+                self._recent_lights.pop(memory_key, None)
+                self._information_topics.pop(memory_key, None)
+                return delegated
+
         frigate_url=get(self.hass, 'frigate_url', '')
         if frigate_url and getattr(user_input, 'satellite_id', None):
             await inspect_speaker_camera(self.hass, user_input.satellite_id, frigate_url)
@@ -311,7 +324,8 @@ class JarvisAgent(conversation.ConversationEntity):
             # Never retry validation, correction, clarification or compound failures:
             # doing so could execute an action that Declan deliberately rejected.
             if (
-                correction_error is None
+                sentence_api is None
+                and correction_error is None
                 and not request_preview
                 and not self_corrected
                 and not cross_corrected
@@ -319,7 +333,6 @@ class JarvisAgent(conversation.ConversationEntity):
                 and str(err).endswith('Try "help" for supported requests.')
                 and not re.search(r'\s+(?:and then|then|and)\s+|;', original_text, re.I)
             ):
-                from .ha_conversation_fallback import delegate_unmatched
                 # STT corrections and planner normalisation must not alter the
                 # phrase used by Home Assistant's conversation trigger.
                 delegated = await delegate_unmatched(self.hass, user_input, original_text)
@@ -502,44 +515,6 @@ class JarvisAgent(conversation.ConversationEntity):
                             if step['kind'] == 'music':
                                 await self.hass.services.async_call('script',step['name'],step['data'],blocking=True,context=user_input.context)
                                 replies.append('I requested '+step['data']['music']+' in '+step['data']['location']+'.')
-                                continue
-                            if step['kind'] == 'configured_routine':
-                                entity_id=step['entity_id']
-                                domain,service=entity_id.split('.',1)
-                                if domain == 'script':
-                                    reply=await self.hass.services.async_call(
-                                        'script',service,step.get('data',{}),blocking=True,
-                                        return_response=True,context=user_input.context)
-                                elif domain == 'automation':
-                                    await self.hass.services.async_call(
-                                        'automation','trigger',{'skip_condition':False},
-                                        target={'entity_id':entity_id},blocking=True,
-                                        context=user_input.context)
-                                    reply=None
-                                else:
-                                    raise ValueError('The selected Home Assistant routine has an unsupported domain.')
-                                status=(reply or {}).get('status') if isinstance(reply,dict) else None
-                                step['routine_status']=status if status in {'success','partial','failed','busy'} else 'unknown'
-                                if status == 'success':
-                                    replies.append(await confirmation(
-                                        self.hass,user_input.context,'The configured routine completed.',action='general'))
-                                elif status == 'partial':
-                                    outcome='partial'
-                                    failure='The configured routine only partly completed.'
-                                    replies.append('The configured routine only partly completed. Check Home Assistant for the affected steps.')
-                                elif status == 'failed':
-                                    outcome='failed'
-                                    failure='The configured Home Assistant routine reported failure.'
-                                    replies.append('The configured routine failed. Check the affected devices before retrying.')
-                                elif status == 'busy':
-                                    outcome='failed'
-                                    failure='The configured Home Assistant routine was busy and did not start.'
-                                    replies.append('The configured routine is already running. I did not start another run.')
-                                else:
-                                    step['unverified']=True
-                                    outcome='partial'
-                                    failure='The routine was triggered, but its completion could not be confirmed.'
-                                    replies.append('I triggered the configured routine, but could not confirm that it finished.')
                                 continue
                             if step['kind'] == 'status':
                                 replies.append(answer(self.hass, step['text']))

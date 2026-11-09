@@ -14,11 +14,11 @@ def answer(hass, text):
         value = hass.states.get(entity)
         return value if value and value.state not in {"unknown", "unavailable"} else None
     if text in {"help", "what can you do", "what commands do you support"}:
-        return ("After a lighting command, you can say set them to 30 percent, a bit brighter, or turn them off for two minutes in the same conversation. I can control individual lights by name or alias, set kitchen lights to 30 percent, dim or brighten room lights, answer are the kitchen lights on, and list what lights are in the kitchen. I can discover lights and rooms: say discover lights, list rooms, or list zones. Say turn off the kitchen to control its lights, or replace kitchen with a configured area name. I can run good morning, good night, and start, end or toggle movie time. "
+        return ("After a lighting command, you can say set them to 30 percent, a bit brighter, or turn them off for two minutes in the same conversation. I can control individual lights by name or alias, set kitchen lights to 30 percent, dim or brighten room lights, answer are the kitchen lights on, and list what lights are in the kitchen. I can discover lights and rooms: say discover lights, list rooms, or list zones. Say turn off the kitchen to control its lights, or replace kitchen with a configured area name. Home Assistant handles routines configured with sentence triggers. "
                 "You can also ask: are the lights on, what's the heating set to, "
                 "is the heating on, is the car plugged in, or what's the car battery level. "
                 "You can combine up to four requests, including one household routine. Say preview followed by a command to check it without running anything. "
-                "Say find Desperate Housewives, where can I watch a title, or start movie time and play a title to search only. Film and TV search does not start routines or playback.")
+                "Ask where you can watch a title to search for it. Film and TV search does not start routines or playback.")
     if text in {"what's the weather", "what is the weather", "what's the weather like",
                 "what is the weather like", "how's the weather", "how is the weather",
                 "tell me the weather", "weather", "weather please"}:

@@ -5,7 +5,6 @@ from .music_assistant_voice import plan_music, plan_stop_music, plan_music_trans
 from .room_brightness import room_brightness
 from .lighting_preferences import preference_request
 from .media import media_plan
-from .configured_routines import plan as configured_routine
 from .status import answer
 from .discovery import lighting
 from .named_switches import named_switch
@@ -30,9 +29,6 @@ def plan(hass, text, area=None):
             text = text[len(prefix):].strip()
             break
     text = text.strip(' "\'')
-    routine_step=configured_routine(hass,text)
-    if routine_step is not None:
-        return [routine_step], preview
     guest_text = raw_text
     if preview:
         guest_text = re.sub(r'^(?:what would you do if i said |preview |dry run )', '', guest_text, flags=re.I)

@@ -7,7 +7,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.storage import Store
 
-from .music_assistant_voice import ROOMS
+from .music_assistant_voice import music_destinations
 
 KEY = "declan_local.music_blacklist"
 URI = re.compile(r"(?:spotify:track:|open\.spotify\.com/track/)([A-Za-z0-9]{22})")
@@ -52,10 +52,20 @@ class MusicBlacklist:
     async def start(self):
         saved = await self.store.async_load()
         self.entries = saved.get("tracks", {}) if isinstance(saved, dict) and isinstance(saved.get("tracks"), dict) else {}
-        self.unsubscribe = async_track_state_change_event(
-            self.hass, list(set(ROOMS.values())), self._on_change)
+        self.refresh_destinations()
+
+    def refresh_destinations(self):
+        self._unsubscribe()
+        players = sorted(set(music_destinations(self.hass).values()))
+        if players:
+            self.unsubscribe = async_track_state_change_event(
+                self.hass, players, self._on_change
+            )
 
     async def stop(self):
+        self._unsubscribe()
+
+    def _unsubscribe(self):
         if self.unsubscribe:
             self.unsubscribe()
             self.unsubscribe = None
