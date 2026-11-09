@@ -23,12 +23,20 @@ async def async_register(hass):
     history_store = Store(hass, 1, "jarvis_local.music_history")
     preference_store = Store(hass, 1, "declan_local.music_preferences")
     lock = asyncio.Lock()
+    # Warmed lazily, then reused for voice playback. All writes are under lock.
+    cached_catalogue = None
+    cached_history = None
+    cached_weights = None
 
     async def load():
+        nonlocal cached_catalogue
+        if cached_catalogue is not None:
+            return cached_catalogue
         saved = await catalogue_store.async_load()
         if isinstance(saved, dict):
             found = {key: (saved.get(key) or {}).get("discovered", []) for key in QUERIES}
-            return curate(saved, found)
+            cached_catalogue = curate(saved, found)
+            return cached_catalogue
         def read():
             with open(hass.config.path("declan_music_playlists.json"), encoding="utf-8") as stream:
                 return json.load(stream)
@@ -42,15 +50,18 @@ async def async_register(hass):
             if isinstance(item, dict):
                 pins[category] = {"favourites": item.get("favourites", item.get("playlists", [])),
                                   "excluded": item.get("excluded", [])}
-        return curate(pins, {})
+        cached_catalogue = curate(pins, {})
+        return cached_catalogue
 
     async def refresh(call=None):
+        nonlocal cached_catalogue
         async with lock:
             try:
                 client_id, secret = await credentials(hass)
                 discovered = await search(hass, client_id, secret)
                 updated = curate(await load(), discovered, capacity=25)
                 await catalogue_store.async_save(updated)
+                cached_catalogue = updated
                 _LOGGER.info("Declan refreshed %d Spotify music categories", len(updated))
             except (OSError, KeyError, ValueError, aiohttp.ClientError, asyncio.TimeoutError) as exc:
                 _LOGGER.warning("Spotify discovery failed (%s); previous catalogue retained", type(exc).__name__)
@@ -58,6 +69,7 @@ async def async_register(hass):
                     raise HomeAssistantError("Spotify discovery failed; check API credentials and access") from exc
 
     async def edit(call):
+        nonlocal cached_catalogue
         category = call.data["category"].lower().strip().replace(" ", "_")
         selected = uri(call.data["playlist"])
         if category not in QUERIES or not selected:
@@ -74,15 +86,19 @@ async def async_register(hass):
             item["playlists"] = [x for x in item["favourites"] + item["discovered"]
                                  if x not in item["excluded"]]
             await catalogue_store.async_save(catalogue)
+            cached_catalogue = catalogue
 
     async def prefer(call):
+        nonlocal cached_weights
         playlist = uri(call.data["playlist"])
         if not playlist:
             raise HomeAssistantError("A valid Spotify playlist URI is required")
         operation = call.data["operation"]
         async with lock:
-            saved = await preference_store.async_load() or {}
-            weights = saved.get("playlists", {})
+            if cached_weights is None:
+                saved = await preference_store.async_load() or {}
+                cached_weights = saved.get("playlists", {})
+            weights = dict(cached_weights)
             if not isinstance(weights, dict):
                 weights = {}
             current = max(1, min(5, int(weights.get(playlist, 1))))
@@ -90,8 +106,10 @@ async def async_register(hass):
                                  else max(1, current - 1) if operation == "dislike"
                                  else 1)
             await preference_store.async_save({"playlists": weights})
+            cached_weights = weights
 
     async def play(call):
+        nonlocal cached_history, cached_weights
         category = call.data["category"].lower().strip().replace(" ", "_")
         room = call.data["room"]
         if category not in QUERIES or room not in ROOMS:
@@ -103,9 +121,13 @@ async def async_register(hass):
         async with lock:
             catalogue = await load()
             pool = {name: item["playlists"] for name, item in catalogue.items()}
-            history = await history_store.async_load() or {}
-            saved_preferences = await preference_store.async_load() or {}
-            weights = saved_preferences.get("playlists", {})
+            if cached_history is None:
+                cached_history = await history_store.async_load() or {}
+            if cached_weights is None:
+                saved_preferences = await preference_store.async_load() or {}
+                cached_weights = saved_preferences.get("playlists", {})
+            history = cached_history
+            weights = cached_weights
             try:
                 selected = choose_playlist(category, pool, history, weights=weights)
             except ValueError as exc:
@@ -126,7 +148,9 @@ async def async_register(hass):
                     "playback may still start. No automatic retry was made."
                 ) from exc
             # This records an accepted request, not verified audible playback.
-            await history_store.async_save(updated_history(category, selected, history))
+            next_history = updated_history(category, selected, history)
+            await history_store.async_save(next_history)
+            cached_history = next_history
 
     hass.services.async_register(DOMAIN, "play_music_category", play,
         schema=vol.Schema({vol.Required("category"): str,
