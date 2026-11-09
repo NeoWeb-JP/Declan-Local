@@ -129,13 +129,14 @@ async def async_register(hass):
             await preference_store.async_save({"playlists": weights})
             cached_weights = weights
 
-    async def observe_player(category, room, entity):
-        """Observe player state after dispatch, without delaying voice replies."""
+    async def observe_player(category, room, entity, was_playing):
+        """Report a new playing transition separately from an existing state."""
         for attempt in range(9):
             state = hass.states.get(entity)
             if state is not None and state.state == "playing":
+                status = "already_playing" if was_playing else "player_started"
                 hass.bus.async_fire("declan_music_playback", {
-                    "category": category, "room": room, "status": "player_playing",
+                    "category": category, "room": room, "status": status,
                 })
                 return
             if attempt < 8:
@@ -154,6 +155,7 @@ async def async_register(hass):
         state = hass.states.get(entity)
         if state is None or state.state in ("unavailable", "unknown"):
             raise HomeAssistantError("Music player unavailable")
+        was_playing = state.state == "playing"
         started = perf_counter()
         # Serialize the same category through selection, dispatch and history
         # persistence. Other categories can dispatch while this one waits.
@@ -204,7 +206,7 @@ async def async_register(hass):
                 await history_store.async_save(next_history)
                 cached_history = next_history
             hass.bus.async_fire("declan_music_dispatch", {"category": category, "room": room, "status": "accepted"})
-            hass.async_create_task(observe_player(category, room, entity))
+            hass.async_create_task(observe_player(category, room, entity, was_playing))
             _LOGGER.info(
                 "Declan music dispatch accepted category=%s room=%s selection_ms=%d dispatch_ms=%d",
                 category, room, selection_ms, dispatch_ms,
