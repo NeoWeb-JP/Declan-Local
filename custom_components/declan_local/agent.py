@@ -4,6 +4,7 @@ import logging
 import re
 from time import perf_counter, monotonic
 from uuid import uuid4
+from .satellite_priority import SatellitePriority
 from .satellite_stop import is_spoken_stop, stop_player
 from .understanding import normalize_request
 from .media_search import parse_search
@@ -48,6 +49,7 @@ class JarvisAgent(conversation.ConversationEntity):
     def __init__(self, hass):
         self.hass = hass
         self._lock = asyncio.Lock()
+        self._satellite_priority = SatellitePriority()
         self._recent_lights = {}
         self._pending_clarifications = {}
         self._voice_markers = {}
@@ -61,6 +63,13 @@ class JarvisAgent(conversation.ConversationEntity):
         return ['en']
 
     async def async_process(self, user_input):
+        satellite = getattr(user_input, 'satellite_id', None)
+        if not await self._satellite_priority.allow(satellite, user_input.text):
+            return conversation.ConversationResult(
+                response=intent.IntentResponse(language=user_input.language),
+                conversation_id=user_input.conversation_id,
+                continue_conversation=False,
+            )
         return await self.async_handle(user_input)
 
     async def async_handle(self, user_input, area_override=None):

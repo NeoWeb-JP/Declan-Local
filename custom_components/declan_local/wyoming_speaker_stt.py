@@ -5,6 +5,7 @@ Accepts Wyoming speaker events before or shortly after Transcript.
 import asyncio
 import logging
 import math
+from time import monotonic
 from collections.abc import AsyncIterable
 from homeassistant.components import stt
 from wyoming.client import AsyncTcpClient
@@ -12,14 +13,19 @@ from wyoming.asr import Transcribe, Transcript
 from wyoming.audio import AudioStart, AudioChunk, AudioStop
 from wyoming.error import Error
 from .speaker_models import SpeakerTranscript
+from .satellite_priority import CaptureLevel
 _LOGGER=logging.getLogger(__name__)
 
-async def upload(client,stream):
+async def upload(client,stream,level=None):
     async for data in stream:
+        if level is not None:
+            level.add(data)
         await client.write_event(AudioChunk(rate=16000,width=2,channels=1,audio=data).event())
+    if level is not None:
+        level.finished_at = monotonic()
     await client.write_event(AudioStop().event())
 
-async def receive(client):
+async def receive(client,level=None):
     identity = None
     speaker_event_seen = False
     speaker_unknown = False
@@ -78,8 +84,11 @@ async def receive(client):
              else 'speaker_before_transcript' if speaker_event_seen
              else 'speaker_missing'),
         )
+        capture = None
+        if level is not None and level.finished_at is not None and level.count:
+            capture = (level.finished_at, level.rms)
         return stt.SpeechResult(
-            SpeakerTranscript(transcript, identity),
+            SpeakerTranscript(transcript, identity, capture),
             stt.SpeechResultState.SUCCESS,
         )
     _LOGGER.info(
@@ -109,8 +118,9 @@ class DeclanWyomingVoiceBridge(stt.SpeechToTextEntity):
             async with AsyncTcpClient(self.host,self.port) as client:
                 await client.write_event(Transcribe(language=metadata.language).event())
                 await client.write_event(AudioStart(rate=16000,width=2,channels=1).event())
-                upload_task=asyncio.create_task(upload(client,stream))
-                receive_task=asyncio.create_task(receive(client))
+                level = CaptureLevel()
+                upload_task=asyncio.create_task(upload(client,stream,level))
+                receive_task=asyncio.create_task(receive(client,level))
                 try:
                     done,_=await asyncio.wait((upload_task,receive_task),return_when=asyncio.FIRST_COMPLETED)
                     if receive_task in done:return receive_task.result()
