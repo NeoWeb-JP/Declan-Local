@@ -45,3 +45,11 @@ Reviewed source in `NeoWeb-JP/Declan-Local` at `main` and PR #46's documented so
 This initial audit uses a targeted source inspection, file-tree comparison and test-file inventory. It is **not a line-by-line audit of every NOW requirement**, and test-file presence is not test success. It does not prove which commit is deployed in HA. Before changing code, obtain the installed integration version/commit, configured Assist pipeline, two-satellite traces, Music Assistant player states and CI outcomes; then classify each exact FR ID individually with source locations and executable acceptance tests.
 
 **No code changes, CI execution, merge or deployment.**
+
+## Deployment baseline update — owner confirmation, 9 November 2026
+
+The owner confirms that the **currently installed Declan is Release 0.52.0 from current `main`**, updated immediately before this check-in. Treat **`main` / Release 0.52.0 as the reported live code baseline**, not PR #46's documentation branch. This is owner-reported deployment provenance; the installed Git commit SHA and live integration diagnostics have not been independently captured.
+
+**Reclassification:** the absence of `satellite_priority.py` on the PR #46 documentation branch is **not a missing live feature**. That file exists on `main`, so FR-045AP's NOW arbitration slice is an **implemented candidate with owner-reported passing hardware checks**; remaining failover, diagnostic and privacy scenarios require verification. The earlier P0-01 branch comparison remains a **documentation/branch hygiene task**, not a release-blocking missing-code task.
+
+**Updated audit sequence:** evaluate all NOW requirements against Release 0.52.0 source on `main`; identify exact implemented paths and tests; classify incomplete functionality; request HA Assist traces only for live acceptance evidence. Do not assume a file in a documentation branch represents the deployed version. No deployment action authorised.
