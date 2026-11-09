@@ -61,6 +61,16 @@ def _sentence_candidates(text):
 
     if any(marker in text for marker in ('"', "“", "”", ";", "{", "}", "[", "]", "://")):
         return
+    # Only repair this known transcription when it is the entire request.
+    # Embedded phrases and negated requests must keep their original meaning.
+    if re.fullmatch(
+        r"(?:u+m+\s+)+moving\s+(?:u+m+\s+)+time",
+        normalized,
+        flags=re.IGNORECASE,
+    ):
+        yield "movie time"
+        return
+
     parts = re.split(r",\s+|\.{2,}\s+", text.strip())
     if not 2 <= len(parts) <= 4:
         return
