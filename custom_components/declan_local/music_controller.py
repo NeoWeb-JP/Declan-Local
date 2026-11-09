@@ -3,7 +3,7 @@ import asyncio
 import json
 import logging
 from datetime import timedelta
-from time import perf_counter
+from time import monotonic, perf_counter
 
 import aiohttp
 import voluptuous as vol
@@ -13,7 +13,7 @@ from homeassistant.helpers.storage import Store
 
 from .music_assistant_voice import ROOMS
 from .music_variety import choose_playlist, updated_history
-from .spotify_discovery import QUERIES, curate, credentials, search, uri
+from .spotify_discovery import QUERIES, SpotifyRateLimited, curate, credentials, search, uri
 
 _LOGGER = logging.getLogger(__name__)
 DOMAIN = "declan_local"
@@ -31,6 +31,7 @@ async def async_register(hass):
     cached_catalogue = None
     cached_history = None
     cached_weights = None
+    discovery_retry_at = 0.0
 
     async def load():
         nonlocal cached_catalogue
@@ -58,10 +59,15 @@ async def async_register(hass):
         return cached_catalogue
 
     async def refresh(call=None):
-        nonlocal cached_catalogue
+        nonlocal cached_catalogue, discovery_retry_at
         # Spotify discovery can take seconds. Never hold the playback/cache
         # lock while waiting on remote API calls.
         async with refresh_lock:
+            if monotonic() < discovery_retry_at:
+                _LOGGER.info("Spotify discovery skipped during rate-limit cooldown")
+                if call is not None:
+                    raise HomeAssistantError("Spotify discovery is rate limited; try again later")
+                return
             try:
                 client_id, secret = await credentials(hass)
                 discovered = await search(hass, client_id, secret)
@@ -71,7 +77,13 @@ async def async_register(hass):
                     updated = curate(await load(), discovered, capacity=25)
                     await catalogue_store.async_save(updated)
                     cached_catalogue = updated
+                discovery_retry_at = 0.0
                 _LOGGER.info("Declan refreshed %d Spotify music categories", len(updated))
+            except SpotifyRateLimited as exc:
+                discovery_retry_at = monotonic() + exc.retry_after
+                _LOGGER.warning("Spotify discovery rate limited; retry no sooner than %d seconds", exc.retry_after)
+                if call is not None:
+                    raise HomeAssistantError("Spotify discovery rate limited; existing playlists retained") from exc
             except (OSError, KeyError, ValueError, aiohttp.ClientError, asyncio.TimeoutError) as exc:
                 _LOGGER.warning("Spotify discovery failed (%s); previous catalogue retained", type(exc).__name__)
                 if call is not None:
