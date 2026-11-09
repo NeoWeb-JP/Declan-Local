@@ -6,7 +6,7 @@ from time import perf_counter, monotonic
 from uuid import uuid4
 from .satellite_priority import SatellitePriority
 from .satellite_stop import is_spoken_stop, stop_player
-from .understanding import normalize_request
+from .understanding import clean_spoken_request, normalize_request
 from .media_search import parse_search
 from .media_search_adapters import search as search_media
 from .settings import get
@@ -145,6 +145,11 @@ class JarvisAgent(conversation.ConversationEntity):
             cross_error=err
         else:
             cross_error=None
+        if getattr(user_input, 'device_id', None) or satellite_id:
+            cleaned = clean_spoken_request(command_text)
+            if cleaned != command_text:
+                corrections.append('removed spoken hesitations or repeated opening')
+                command_text = cleaned
         command_text=resolve_alias(self.hass,command_text)
         command_text,language_changes=normalize_request(command_text)
         corrections.extend(language_changes)

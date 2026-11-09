@@ -17,6 +17,28 @@ def normalize_punctuation(text):
     return "".join(segments).strip()
 
 
+_HESITATION = re.compile(r"\b(?:u+m+|u+h+|e+rm+|h+m{2,})\b", re.IGNORECASE)
+_REPEATED_PREFIX = re.compile(
+    r"^((?:[^\W\d_]+\s+){0,3}[^\W\d_]+)\s+(?=\1(?:\s|$))",
+    re.IGNORECASE,
+)
+
+
+def clean_spoken_request(text):
+    """Remove hesitation sounds and an immediate restart without guessing words."""
+    if any(marker in text for marker in ('"', "“", "”", ";", "{", "}", "[", "]", "://")):
+        return text
+    if len(_QUOTED_VALUE.split(text)) != 1:
+        return text
+    text = normalize_punctuation(text)
+    text = " ".join(_HESITATION.sub(" ", text).split())
+    # A restart repeats the beginning of the request. Keep the whole remaining
+    # clause, including negation, targets, numbers and conjunctions.
+    while match := _REPEATED_PREFIX.match(text):
+        text = text[match.end():]
+    return text
+
+
 def normalize_request(text):
     original = text
     text = re.sub(r"\s+", " ", normalize_punctuation(text.replace("’", "'"))).strip()

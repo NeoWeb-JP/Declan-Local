@@ -11,7 +11,7 @@ import re
 from homeassistant.components import conversation
 from homeassistant.helpers import intent
 
-from .understanding import normalize_punctuation
+from .understanding import clean_spoken_request, normalize_punctuation
 
 _LOGGER = logging.getLogger(__name__)
 BUILTIN_AGENT = "conversation.home_assistant"
@@ -61,15 +61,9 @@ def _sentence_candidates(text):
 
     if any(marker in text for marker in ('"', "“", "”", ";", "{", "}", "[", "]", "://")):
         return
-    # Only repair this known transcription when it is the entire request.
-    # Embedded phrases and negated requests must keep their original meaning.
-    if re.fullmatch(
-        r"(?:u+m+\s+)+moving\s+(?:u+m+\s+)+time",
-        normalized,
-        flags=re.IGNORECASE,
-    ):
-        yield "movie time"
-        return
+    cleaned = clean_spoken_request(text)
+    if cleaned and cleaned not in (text, normalized):
+        yield cleaned
 
     parts = re.split(r",\s+|\.{2,}\s+", text.strip())
     if not 2 <= len(parts) <= 4:
@@ -80,10 +74,10 @@ def _sentence_candidates(text):
         words = fragment.casefold().split()
         if not words or len(words) >= len(tail_words) or tail_words[:len(words)] != words:
             return
-    if tail != normalized:
+    if tail not in (normalized, cleaned):
         yield tail
     clean_tail = normalize_punctuation(tail)
-    if clean_tail and clean_tail not in (tail, normalized):
+    if clean_tail and clean_tail not in (tail, normalized, cleaned):
         yield clean_tail
 
 
