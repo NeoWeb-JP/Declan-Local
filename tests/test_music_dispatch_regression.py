@@ -45,4 +45,4 @@ def test_category_dispatch_is_bounded_and_history_follows_dispatch():
                for n in service_calls)
     source = (ROOT / 'music_controller.py').read_text()
     assert source.index('await asyncio.wait_for(', source.index('async def play(call)')) < source.index(
-        'await history_store.async_save(updated_history', source.index('async def play(call)'))
+        'await history_store.async_save(next_history)', source.index('async def play(call)'))
