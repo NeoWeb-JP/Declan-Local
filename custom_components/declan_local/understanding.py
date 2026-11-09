@@ -54,6 +54,19 @@ def normalize_request(text):
     wrapped = bool(re.match(polite, text, re.I))
     text = re.sub(polite, "", text, flags=re.I)
     text = re.sub(r"^please\s+", "", text, flags=re.I)
+    text = re.sub(
+        r"^(?:(?:i(?:'d| would) like you to)|(?:i was wondering if you (?:could|would)))\s+",
+        "", text, flags=re.I,
+    )
+    question = re.fullmatch(r"(?:tell|show) me\s+((?:what|where|when|how|who|which)\b.+)", text, re.I)
+    if question:
+        text = question[1]
+        # Indirect questions put the linking verb after the subject.
+        indirect = re.fullmatch(r"(what|where|when|who)\s+(.+?)\s+(is|are|was|were)", text, re.I)
+        if indirect and len(_QUOTED_VALUE.split(text)) == 1:
+            text = f"{indirect[1]} {indirect[3]} {indirect[2]}"
+        elif re.fullmatch(r"what time it is", text, re.I):
+            text = "what time is it"
     # Bounded verb forms only; negatives and trailing clauses remain intact.
     if wrapped:
         text = re.sub(r"^turning\b", "turn", text, flags=re.I)

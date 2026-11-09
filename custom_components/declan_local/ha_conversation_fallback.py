@@ -11,7 +11,7 @@ import re
 from homeassistant.components import conversation
 from homeassistant.helpers import intent
 
-from .understanding import clean_spoken_request, normalize_punctuation
+from .understanding import clean_spoken_request, normalize_punctuation, normalize_request
 
 _LOGGER = logging.getLogger(__name__)
 BUILTIN_AGENT = "conversation.home_assistant"
@@ -65,6 +65,10 @@ def _sentence_candidates(text):
     if cleaned and cleaned not in (text, normalized):
         yield cleaned
 
+    unwrapped, _ = normalize_request(cleaned)
+    if unwrapped and unwrapped not in (text, normalized, cleaned):
+        yield unwrapped
+
     parts = re.split(r",\s+|\.{2,}\s+", text.strip())
     if not 2 <= len(parts) <= 4:
         return
@@ -74,10 +78,10 @@ def _sentence_candidates(text):
         words = fragment.casefold().split()
         if not words or len(words) >= len(tail_words) or tail_words[:len(words)] != words:
             return
-    if tail not in (normalized, cleaned):
+    if tail not in (normalized, cleaned, unwrapped):
         yield tail
     clean_tail = normalize_punctuation(tail)
-    if clean_tail and clean_tail not in (tail, normalized, cleaned):
+    if clean_tail and clean_tail not in (tail, normalized, cleaned, unwrapped):
         yield clean_tail
 
 
