@@ -96,7 +96,7 @@ def test_movie_time_respects_script_outcome(context, expected):
         with patch.object(dialogue.module, 'confirmation', personality.confirmation), patch.object(personality, 'CATALOG', catalog):
             result=complete(case.agent.async_handle(dialogue.UserInput('movie time')))
         if expected is None:
-            assert result.response.speech == 'Screen is moving'
+            assert result.response.speech == "I couldn't confirm the Movie Time result. Check the projector."
         else:
             assert result.response.speech in catalog['Guest'][expected]
     finally:
