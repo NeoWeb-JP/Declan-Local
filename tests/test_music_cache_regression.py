@@ -113,7 +113,13 @@ def test_player_observation_is_nonblocking_and_does_not_claim_playlist_verified(
                    and n.name == "observe_player")
     assert any(isinstance(n, ast.Compare) and isinstance(n.left, ast.Attribute)
                and n.left.attr == "state" for n in ast.walk(observe))
-    assert '"status": "player_playing"' in SOURCE
+    assert '"player_started"' in SOURCE
+    assert '"already_playing"' in SOURCE
     assert '"status": "unconfirmed"' in SOURCE
-    assert "hass.async_create_task(observe_player(category, room, entity))" in SOURCE
+    assert "hass.async_create_task(observe_player(category, room, entity, was_playing))" in SOURCE
     assert "playlist_verified" not in SOURCE
+
+
+def test_playback_observation_captures_baseline_before_dispatch():
+    assert 'was_playing = state.state == "playing"' in SOURCE
+    assert 'status = "already_playing" if was_playing else "player_started"' in SOURCE
