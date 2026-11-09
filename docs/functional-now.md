@@ -19,6 +19,10 @@ Source IDs refer to the [archived requirements](functional-requirements.md). Exi
 
 **Implemented for the NOW slice.** The owner reported passing the three two-satellite checks on 9 November 2026, covering a single action and reply, winner changes when speaking nearer each satellite, and closely spaced commands. This is owner-reported hardware evidence for the tested setup. The code commit and CI status were not supplied. The full archived FR-045AP remains broader, including selection without comparable audio, failover, diagnostics and privacy behaviour.
 
+## Follow-up context status
+
+**FR-031 NOW slice implemented in the local review patch.** Focused checks passed for lighting and information context after two minutes, the rolling five-minute expiry, preview behaviour, and speaker and session isolation. Satellite verification of conversation ID continuity remains open.
+
 ## Release evidence
 
 - Exercise each scenario through Assist with the configured household devices. Record source implementation, CI and live results separately.
