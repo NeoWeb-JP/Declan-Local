@@ -6,7 +6,6 @@ import sys
 import types
 from unittest.mock import AsyncMock
 
-import pytest
 
 ROOT = Path(__file__).resolve().parents[1] / "custom_components" / "declan_local"
 spec = importlib.util.spec_from_file_location("declan_music_verify", ROOT / "verify.py")
@@ -20,8 +19,7 @@ class State:
         self.attributes = attributes
 
 
-@pytest.mark.asyncio
-async def test_repeated_playlist_request_reports_existing_playing_state():
+def test_repeated_playlist_request_reports_existing_playing_state():
     player = State(media_playlist_uri="spotify://playlist/" + "a" * 22)
     call = AsyncMock()
     hass = types.SimpleNamespace(
@@ -31,9 +29,9 @@ async def test_repeated_playlist_request_reports_existing_playing_state():
     errors = sys.modules.setdefault("homeassistant.exceptions", types.ModuleType("homeassistant.exceptions"))
     errors.HomeAssistantError = getattr(errors, "HomeAssistantError", type("HomeAssistantError", (Exception,), {}))
     playlist = player.attributes["media_playlist_uri"]
-    result = await verify.play_verified_playlist(
+    result = asyncio.run(verify.play_verified_playlist(
         hass, "media_player.kitchen", {"media_id": playlist, "media_type": "playlist"}, None
-    )
+    ))
     assert result == "playing"
     call.assert_awaited_once()
 
