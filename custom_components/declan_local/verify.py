@@ -49,7 +49,6 @@ async def play_verified_playlist(hass, entity_id, data, context):
     from homeassistant.exceptions import HomeAssistantError
 
     requested = data["media_id"].strip().casefold()
-    already_playing = _playing_playlist(hass.states.get(entity_id), requested)
     try:
         await asyncio.wait_for(
             hass.services.async_call(
