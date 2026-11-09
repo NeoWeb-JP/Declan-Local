@@ -91,3 +91,15 @@ def test_discovery_cooldown_preserves_catalogue_and_skips_requests():
     assert "if monotonic() < discovery_retry_at:" in SOURCE
     assert "return" in SOURCE.split("if monotonic() < discovery_retry_at:", 1)[1].split("try:", 1)[0]
     assert "cached_catalogue = updated" in SOURCE
+
+
+def test_dispatch_outcomes_are_reported_without_playlist_identifiers():
+    assert SOURCE.count('hass.bus.async_fire("declan_music_dispatch"') == 3
+    assert '"status": "accepted"' in SOURCE
+    assert '"status": "failed"' in SOURCE
+    assert '"status": "unknown_timeout"' in SOURCE
+    for line in SOURCE.splitlines():
+        if 'hass.bus.async_fire("declan_music_dispatch"' in line:
+            assert '"category": category' in line
+            assert '"room": room' in line
+            assert 'selected' not in line
