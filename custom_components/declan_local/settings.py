@@ -46,18 +46,19 @@ async def load(hass):
     return data
 
 async def save(hass, data):
-    if not isinstance(data, dict) or set(data)-set(FIELDS)-{'switch_lights', 'satellite_media_players', 'frigate_url'}:
+    if not isinstance(data, dict) or set(data)-set(FIELDS)-{'switch_lights', 'satellite_media_players', 'music_players', 'routines', 'frigate_url'}:
         raise ValueError('Invalid settings fields')
     cleaned={}
     for key, domain in FIELDS.items():
         previous=hass.data.get('declan_local', {}).get('settings', {}).get(key, '')
-        value=data.get(key, previous if key in PRIVACY_FIELDS else '')
+        value=data.get(key, previous)
         if not isinstance(value, str):
             raise ValueError('Invalid '+key)
         if value:
-            unchanged = key in PRIVACY_FIELDS and value == previous
-            if not value.startswith(domain+'.') or (hass.states.get(value) is None and not unchanged):
-                raise ValueError('Choose an existing '+domain+' entity for '+key)
+            allowed_domains = domain.split('|')
+            unchanged = value == previous
+            if not any(value.startswith(item+'.') for item in allowed_domains) or (hass.states.get(value) is None and not unchanged):
+                raise ValueError('Choose an existing '+ ' or '.join(allowed_domains) +' entity for '+key)
             cleaned[key]=value
     cleaned['frigate_url'] = validate_frigate_url(data.get('frigate_url',
         hass.data.get('declan_local', {}).get('settings', {}).get('frigate_url', '')))
@@ -90,6 +91,67 @@ async def save(hass, data):
         if hass.states.get(satellite) is None or hass.states.get(player) is None:
             raise ValueError('Choose an existing Assist satellite and media player for each new mapping')
     cleaned['satellite_media_players']=dict(players)
+    previous=hass.data.get('declan_local', {}).get('settings', {}).get('music_players', {})
+    music_players=data.get('music_players', previous)
+    if not isinstance(music_players, dict) or len(music_players)>100:
+        raise ValueError('Invalid music destination mappings')
+    cleaned_music_players={}
+    for label, entity in music_players.items():
+        if not isinstance(label, str) or not label.strip() or len(label)>80:
+            raise ValueError('Each music destination needs a short room name')
+        label=' '.join(label.casefold().split())
+        if label in cleaned_music_players:
+            raise ValueError('Music destination names must be unique')
+        if not isinstance(entity, str) or not entity.startswith('media_player.'):
+            raise ValueError('Each music destination needs a media_player entity')
+        unchanged=isinstance(previous, dict) and previous.get(label)==entity
+        if hass.states.get(entity) is None and not unchanged:
+            raise ValueError('Choose an existing media_player for each new music destination')
+        cleaned_music_players[label]=entity
+    cleaned['music_players']=cleaned_music_players
+
+    previous=hass.data.get('declan_local', {}).get('settings', {}).get('routines', [])
+    routines=data.get('routines', previous)
+    if not isinstance(routines, list) or len(routines)>100:
+        raise ValueError('Invalid routine configuration')
+    cleaned_routines=[]
+    used_phrases=set()
+    for routine in routines:
+        if not isinstance(routine, dict) or set(routine)-{'name','phrases','entity_id','data'}:
+            raise ValueError('Invalid routine configuration')
+        name=routine.get('name')
+        entity=routine.get('entity_id')
+        phrases=routine.get('phrases')
+        variables=routine.get('data', {})
+        if not isinstance(name,str) or not name.strip() or len(name)>100:
+            raise ValueError('Each routine needs a name')
+        if not isinstance(entity,str) or not (entity.startswith('script.') or entity.startswith('automation.')):
+            raise ValueError('Each routine must select a Home Assistant script or automation')
+        prior = next((item for item in previous if isinstance(item,dict) and item.get('name')==name and item.get('entity_id')==entity), None) if isinstance(previous,list) else None
+        if hass.states.get(entity) is None and prior is None:
+            raise ValueError('Choose an existing script or automation for each new routine')
+        if not isinstance(phrases,list) or not phrases or len(phrases)>50:
+            raise ValueError('Each routine needs one or more spoken phrases')
+        if not isinstance(variables,dict) or len(variables)>50:
+            raise ValueError('Routine variables must be a small object')
+        if entity.startswith('automation.') and variables:
+            raise ValueError('Routine variables can only be sent to scripts')
+        normalized=[]
+        for phrase in phrases:
+            if not isinstance(phrase,str) or not phrase.strip() or len(phrase)>160:
+                raise ValueError('Routine phrases must be 1 to 160 characters')
+            phrase=' '.join(phrase.casefold().strip().split()).strip(' .!?')
+            if phrase in used_phrases:
+                raise ValueError('Routine phrases must be unique')
+            used_phrases.add(phrase)
+            normalized.append(phrase)
+        cleaned_routines.append({
+            'name':name.strip(),
+            'phrases':normalized,
+            'entity_id':entity,
+            'data':variables,
+        })
+    cleaned['routines']=cleaned_routines
     privacy_ids=[cleaned[key] for key in ('guest_mode', 'visitors_present', 'quiet_hours', 'guests_staying', 'guest_auto_enable', 'guest_away_suspend') if cleaned.get(key)]
     if len(privacy_ids) != len(set(privacy_ids)):
         raise ValueError('Guest authority, visitor presence and quiet hours need separate helpers')
