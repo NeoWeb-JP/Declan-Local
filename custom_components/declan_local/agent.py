@@ -89,13 +89,13 @@ class JarvisAgent(conversation.ConversationEntity):
         self._brightness_undo={k:v for k,v in getattr(self,'_brightness_undo',{}).items() if now-v['at'] < 120}
         self._recent_lights = {
             key: value for key, value in self._recent_lights.items()
-            if now - value['at'] < _CONTEXT_IDLE_SECONDS
+            if now - value['at'] < 300
         }
         self._previous_failed={k:v for k,v in self._previous_failed.items() if now-v['at'] < 90}
         self._pending_clarifications={k:v for k,v in self._pending_clarifications.items() if now-v['at'] < 120}
         self._information_topics = {
             key: value for key, value in getattr(self, '_information_topics', {}).items()
-            if now - value['at'] < _CONTEXT_IDLE_SECONDS
+            if now - value['at'] < 300
         }
         self._information_runs=getattr(self,'_information_runs',{})
         continue_conversation=False
