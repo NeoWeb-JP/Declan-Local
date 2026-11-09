@@ -25,6 +25,8 @@ async def async_register(hass):
     preference_store = Store(hass, 1, "declan_local.music_preferences")
     lock = asyncio.Lock()
     refresh_lock = asyncio.Lock()
+    # Keep requests within a category ordered, without blocking other categories.
+    category_locks = {category: asyncio.Lock() for category in QUERIES}
     # Warmed lazily, then reused for voice playback. All writes are under lock.
     cached_catalogue = None
     cached_history = None
@@ -126,24 +128,25 @@ async def async_register(hass):
         if state is None or state.state in ("unavailable", "unknown"):
             raise HomeAssistantError("Music player unavailable")
         started = perf_counter()
-        async with lock:
-            catalogue = await load()
-            pool = {name: item["playlists"] for name, item in catalogue.items()}
-            if cached_history is None:
-                cached_history = await history_store.async_load() or {}
-            if cached_weights is None:
-                saved_preferences = await preference_store.async_load() or {}
-                cached_weights = saved_preferences.get("playlists", {})
-            history = cached_history
-            weights = cached_weights
-            try:
-                selected = choose_playlist(category, pool, history, weights=weights)
-            except ValueError as exc:
-                raise HomeAssistantError(str(exc)) from exc
+        # Serialize the same category through selection, dispatch and history
+        # persistence. Other categories can dispatch while this one waits.
+        async with category_locks[category]:
+            async with lock:
+                catalogue = await load()
+                pool = {name: item["playlists"] for name, item in catalogue.items()}
+                if cached_history is None:
+                    cached_history = await history_store.async_load() or {}
+                if cached_weights is None:
+                    saved_preferences = await preference_store.async_load() or {}
+                    cached_weights = saved_preferences.get("playlists", {})
+                try:
+                    selected = choose_playlist(category, pool, cached_history, weights=cached_weights)
+                except ValueError as exc:
+                    raise HomeAssistantError(str(exc)) from exc
             selection_ms = round((perf_counter() - started) * 1000)
             dispatch_started = perf_counter()
-            # Wait only for the service dispatch, not for audible playback.
-            # Failed or timed-out dispatches must not count as played selections.
+            # The shared lock is released during the bounded Music Assistant
+            # call. A timeout is ambiguous, so do not retry automatically.
             try:
                 await asyncio.wait_for(
                     hass.services.async_call(
@@ -161,13 +164,16 @@ async def async_register(hass):
                     "Music Assistant did not confirm the playback request in time; "
                     "playback may still start. No automatic retry was made."
                 ) from exc
-            # This records an accepted request, not verified audible playback.
-            next_history = updated_history(category, selected, history)
-            await history_store.async_save(next_history)
-            cached_history = next_history
+            dispatch_ms = round((perf_counter() - dispatch_started) * 1000)
+            # Record accepted requests under the shared lock using the latest
+            # history, so concurrent categories cannot overwrite each other.
+            async with lock:
+                next_history = updated_history(category, selected, cached_history)
+                await history_store.async_save(next_history)
+                cached_history = next_history
             _LOGGER.info(
                 "Declan music dispatch accepted category=%s room=%s selection_ms=%d dispatch_ms=%d",
-                category, room, selection_ms, round((perf_counter() - dispatch_started) * 1000),
+                category, room, selection_ms, dispatch_ms,
             )
 
     hass.services.async_register(DOMAIN, "play_music_category", play,
