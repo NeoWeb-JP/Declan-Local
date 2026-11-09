@@ -49,7 +49,6 @@ async def play_verified_playlist(hass, entity_id, data, context):
     from homeassistant.exceptions import HomeAssistantError
 
     requested = data["media_id"].strip().casefold()
-    already_playing = _playing_playlist(hass.states.get(entity_id), requested)
     try:
         await asyncio.wait_for(
             hass.services.async_call(
@@ -65,10 +64,10 @@ async def play_verified_playlist(hass, entity_id, data, context):
 
     for attempt in range(9):
         matches = _playing_playlist(hass.states.get(entity_id), requested)
-        if matches and not already_playing:
+        # A repeated request for the same reported playlist is still a valid
+        # playing state. Do not require an artificial stop/start transition.
+        if matches:
             return "playing"
-        if not matches:
-            already_playing = False
         if attempt < 8:
             await asyncio.sleep(0.25)
     return "unverified"

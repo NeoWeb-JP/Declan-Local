@@ -89,13 +89,13 @@ class JarvisAgent(conversation.ConversationEntity):
         self._brightness_undo={k:v for k,v in getattr(self,'_brightness_undo',{}).items() if now-v['at'] < 120}
         self._recent_lights = {
             key: value for key, value in self._recent_lights.items()
-            if now - value['at'] < _CONTEXT_IDLE_SECONDS
+            if now - value['at'] < 300
         }
         self._previous_failed={k:v for k,v in self._previous_failed.items() if now-v['at'] < 90}
         self._pending_clarifications={k:v for k,v in self._pending_clarifications.items() if now-v['at'] < 120}
         self._information_topics = {
-            key: value for key, value in self._information_topics.items()
-            if now - value['at'] < _CONTEXT_IDLE_SECONDS
+            key: value for key, value in getattr(self, '_information_topics', {}).items()
+            if now - value['at'] < 300
         }
         self._information_runs=getattr(self,'_information_runs',{})
         continue_conversation=False
@@ -177,6 +177,9 @@ class JarvisAgent(conversation.ConversationEntity):
         if is_spoken_stop(command_text):
             self._pending_clarifications.pop(memory_key, None)
             self._recent_lights.pop(memory_key, None)
+            # Legacy lighting context used the speaker/satellite key alone.
+            # Clear both key formats for this dialogue, never other speakers.
+            self._recent_lights.pop(memory_key[1], None)
             self._information_topics.pop(memory_key, None)
             self._information_runs.pop(memory_key, None)
             stop_report = await stop_player(self.hass, user_input)
