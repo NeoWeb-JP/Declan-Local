@@ -7,6 +7,19 @@ from test_agent_dialogue import Dialogue as _Dialogue, UserInput, module
 
 
 class ConversationTriggerFallback(_Dialogue):
+    async def test_only_final_correction_reaches_native_sentence_matcher(self):
+        native = types.SimpleNamespace(response=types.SimpleNamespace(speech="Movie Time started"))
+        with patch.object(module.conversation, "async_handle_sentence_triggers", create=True), patch.object(
+            module, "match_sentence_trigger", AsyncMock(return_value=native)
+        ) as match:
+            reply = await self.agent.async_handle(
+                UserInput("Start Dinner Time. Actually, start Movie Time")
+            )
+        self.assertIs(reply, native)
+        match.assert_awaited_once()
+        self.assertEqual(match.await_args.args[2].casefold(), "start movie time")
+        self.assertEqual(self.hass.services.calls, [])
+
     async def test_native_sentence_match_wins_over_local_light_command(self):
         native = types.SimpleNamespace(response=types.SimpleNamespace(speech="HA reply"))
         sentence_api = AsyncMock()

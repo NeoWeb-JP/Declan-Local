@@ -216,11 +216,10 @@ class JarvisAgent(conversation.ConversationEntity):
                 response=result, conversation_id=conversation_id,
                 continue_conversation=False)
         sentence_api = getattr(conversation, 'async_handle_sentence_triggers', None)
-        if sentence_api and original_text.strip() and not (
-            request_preview or correction_error or self_corrected or cross_corrected
-        ):
+        sentence_text = command_text if self_corrected or cross_corrected else original_text
+        if sentence_api and sentence_text.strip() and not (request_preview or correction_error):
             delegated = await match_sentence_trigger(
-                self.hass, user_input, original_text, sentence_api
+                self.hass, user_input, sentence_text, sentence_api
             )
             if delegated is not None:
                 self._pending_clarifications.pop(memory_key, None)
