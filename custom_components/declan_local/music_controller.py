@@ -3,6 +3,7 @@ import asyncio
 import json
 import logging
 from datetime import timedelta
+from time import perf_counter
 
 import aiohttp
 import voluptuous as vol
@@ -23,6 +24,7 @@ async def async_register(hass):
     history_store = Store(hass, 1, "jarvis_local.music_history")
     preference_store = Store(hass, 1, "declan_local.music_preferences")
     lock = asyncio.Lock()
+    refresh_lock = asyncio.Lock()
     # Warmed lazily, then reused for voice playback. All writes are under lock.
     cached_catalogue = None
     cached_history = None
@@ -55,13 +57,18 @@ async def async_register(hass):
 
     async def refresh(call=None):
         nonlocal cached_catalogue
-        async with lock:
+        # Spotify discovery can take seconds. Never hold the playback/cache
+        # lock while waiting on remote API calls.
+        async with refresh_lock:
             try:
                 client_id, secret = await credentials(hass)
                 discovered = await search(hass, client_id, secret)
-                updated = curate(await load(), discovered, capacity=25)
-                await catalogue_store.async_save(updated)
-                cached_catalogue = updated
+                # Merge against the latest catalogue under lock so edits made
+                # during discovery are not overwritten by stale favourites.
+                async with lock:
+                    updated = curate(await load(), discovered, capacity=25)
+                    await catalogue_store.async_save(updated)
+                    cached_catalogue = updated
                 _LOGGER.info("Declan refreshed %d Spotify music categories", len(updated))
             except (OSError, KeyError, ValueError, aiohttp.ClientError, asyncio.TimeoutError) as exc:
                 _LOGGER.warning("Spotify discovery failed (%s); previous catalogue retained", type(exc).__name__)
@@ -118,6 +125,7 @@ async def async_register(hass):
         state = hass.states.get(entity)
         if state is None or state.state in ("unavailable", "unknown"):
             raise HomeAssistantError("Music player unavailable")
+        started = perf_counter()
         async with lock:
             catalogue = await load()
             pool = {name: item["playlists"] for name, item in catalogue.items()}
@@ -132,6 +140,8 @@ async def async_register(hass):
                 selected = choose_playlist(category, pool, history, weights=weights)
             except ValueError as exc:
                 raise HomeAssistantError(str(exc)) from exc
+            selection_ms = round((perf_counter() - started) * 1000)
+            dispatch_started = perf_counter()
             # Wait only for the service dispatch, not for audible playback.
             # Failed or timed-out dispatches must not count as played selections.
             try:
@@ -143,6 +153,10 @@ async def async_register(hass):
                     timeout=3,
                 )
             except asyncio.TimeoutError as exc:
+                _LOGGER.warning(
+                    "Declan music dispatch timed out category=%s room=%s selection_ms=%d dispatch_ms=%d",
+                    category, room, selection_ms, round((perf_counter() - dispatch_started) * 1000),
+                )
                 raise HomeAssistantError(
                     "Music Assistant did not confirm the playback request in time; "
                     "playback may still start. No automatic retry was made."
@@ -151,6 +165,10 @@ async def async_register(hass):
             next_history = updated_history(category, selected, history)
             await history_store.async_save(next_history)
             cached_history = next_history
+            _LOGGER.info(
+                "Declan music dispatch accepted category=%s room=%s selection_ms=%d dispatch_ms=%d",
+                category, room, selection_ms, round((perf_counter() - dispatch_started) * 1000),
+            )
 
     hass.services.async_register(DOMAIN, "play_music_category", play,
         schema=vol.Schema({vol.Required("category"): str,
