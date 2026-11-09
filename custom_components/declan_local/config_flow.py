@@ -6,7 +6,6 @@ from homeassistant.components import tts
 
 DOMAIN = "declan_local"
 PRIMARY = "tts.elevenlabs_text_to_speech"
-FALLBACK = "tts.jarvis_xtts"
 
 
 class JarvisConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -33,11 +32,6 @@ class VoiceOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         current = self.config_entry.options
         if user_input is not None:
-            if user_input["primary_tts"] == user_input["fallback_tts"]:
-                return self.async_show_form(
-                    step_id="init", data_schema=self._schema(current),
-                    errors={"base": "same_provider"},
-                )
             if not user_input.get("openai_stt_api_key"):
                 user_input["openai_stt_api_key"] = current.get("openai_stt_api_key", "")
             return self.async_create_entry(title="", data=user_input)
@@ -58,7 +52,6 @@ class VoiceOptionsFlow(config_entries.OptionsFlow):
         voice_id = current.get("elevenlabs_voice", "")
         schema = {
             vol.Required("primary_tts", default=current.get("primary_tts", PRIMARY)): str,
-            vol.Required("fallback_tts", default=current.get("fallback_tts", FALLBACK)): str,
             vol.Required("wyoming_bridge_enabled", default=current.get("wyoming_bridge_enabled", False)): bool,
             vol.Optional("wyoming_bridge_host", default=current.get("wyoming_bridge_host", "")): str,
             vol.Required("wyoming_bridge_port", default=current.get("wyoming_bridge_port", 10300)):
