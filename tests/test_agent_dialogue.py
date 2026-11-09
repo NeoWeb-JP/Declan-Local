@@ -163,7 +163,7 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         # know whether Movie Time started or ended. Its factual uncertainty
         # message must not be replaced by a playful correction prefix.
         self.assertIn("I couldn't confirm the Movie Time result", result.response.speech)
-        self.assertIn('Check the projector state.', result.response.speech)
+        self.assertIn('Check the projector.', result.response.speech)
         self.assertNotIn('Routine request sent.', result.response.speech)
 
     async def test_incomplete_correction_runs_nothing(self):
