@@ -32,7 +32,9 @@ def test_unsupported_player_is_refused():
 def test_real_agent_shuffle_preview_and_dispatch():
     case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
     try:
-        case.hass.states.values.update(hass().states.values)
+        configured = hass()
+        case.hass.states.values.update(configured.states.values)
+        case.hass.data.setdefault('declan_local', {})['settings'] = configured.data['declan_local']['settings']
         area=case.hass.areas.entries['kitchen']
         complete(case.agent.async_handle(dialogue.UserInput('preview shuffle on'),area))
         assert case.hass.services.calls==[]
