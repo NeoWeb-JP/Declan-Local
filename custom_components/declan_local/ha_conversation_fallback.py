@@ -6,6 +6,7 @@ back into Declan, and never retry an unsuccessful delegation.
 """
 from dataclasses import replace
 import logging
+import re
 
 from homeassistant.components import conversation
 from homeassistant.helpers import intent
@@ -50,6 +51,32 @@ async def delegate_unmatched(hass, user_input, text):
     return result
 
 
+
+def _sentence_candidates(text):
+    """Yield exact matches first, then recover a repeated opening fragment."""
+    yield text
+    normalized = normalize_punctuation(text)
+    if normalized and normalized != text:
+        yield normalized
+
+    if any(marker in text for marker in ('"', "“", "”", ";", "{", "}", "[", "]", "://")):
+        return
+    parts = re.split(r",\s+|\.{2,}\s+", text.strip())
+    if not 2 <= len(parts) <= 4:
+        return
+    tail = parts[-1].strip()
+    tail_words = tail.casefold().split()
+    for fragment in parts[:-1]:
+        words = fragment.casefold().split()
+        if not words or len(words) >= len(tail_words) or tail_words[:len(words)] != words:
+            return
+    if tail != normalized:
+        yield tail
+    clean_tail = normalize_punctuation(tail)
+    if clean_tail and clean_tail not in (tail, normalized):
+        yield clean_tail
+
+
 async def match_sentence_trigger(hass, user_input, text, handle_sentence):
     """Ask HA to match configured sentences without running built-in intents."""
     from homeassistant.helpers import chat_session
@@ -60,13 +87,13 @@ async def match_sentence_trigger(hass, user_input, text, handle_sentence):
     with chat_session.async_get_chat_session(hass, user_input.conversation_id) as session:
         with conversation.async_get_chat_log(hass, session) as chat_log:
             try:
-                speech = await handle_sentence(hass, native_input, chat_log)
-                if speech is None:
-                    normalized = normalize_punctuation(text)
-                    if normalized and normalized != text:
-                        speech = await handle_sentence(
-                            hass, replace(native_input, text=normalized), chat_log
-                        )
+                speech = None
+                for candidate in _sentence_candidates(text):
+                    speech = await handle_sentence(
+                        hass, replace(native_input, text=candidate), chat_log
+                    )
+                    if speech is not None:
+                        break
             except Exception:
                 # The automation may have started before reporting an error.
                 _LOGGER.exception("Home Assistant sentence handling failed")
