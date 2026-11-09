@@ -66,17 +66,16 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.calls,[])
         self.assertEqual(self.usage.snapshot()['last_source'],'elevenlabs_cached')
 
-    async def test_primary_failure_falls_back_for_entire_original_message(self):
+    async def test_primary_phrase_failure_does_not_try_secondary_provider(self):
         text='I requested country in kitchen.'
         async def fail(hass,**kwargs):
             self.calls.append((kwargs['provider_entity_id'],kwargs['text']))
             if kwargs['provider_entity_id']=='tts.elevenlabs':raise self.module.HomeAssistantError('offline')
             return 'wav',audio(2000)
         with patch.object(self.module,'generate_from_existing_tts',fail):
-            result=await self.manager.async_get_tts_audio(text,'en',{})
-        self.assertEqual(self.calls,[('tts.elevenlabs','i requested'),('tts.xtts',text)])
-        self.assertEqual(result[1],audio(2000))
-        self.assertEqual(self.usage.snapshot()['last_source'],'xtts_generated')
+            with self.assertRaises(self.module.HomeAssistantError):
+                await self.manager.async_get_tts_audio(text,'en',{})
+        self.assertEqual(self.calls,[('tts.elevenlabs','i requested')])
 
     async def test_conversion_failure_uses_original_full_sentence(self):
         async def broken(*args):raise ValueError('bad audio')
@@ -159,36 +158,20 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
         self.entry.options.update(fallback_tts='tts.jarvis_xtts', phrase_library_enabled=False)
         return provider
 
-    async def test_real_default_xtts_fallback_and_its_separate_cache(self):
+    async def test_real_primary_failure_ignores_stored_xtts_fallback(self):
+        self.entry.options['fallback_tts'] = 'tts.jarvis_xtts'
         provider = self.real_provider()
-        async def fetch(hass, source):
-            self.calls.append(source)
-            if source[0] == 'tts.elevenlabs':
-                raise self.module.HomeAssistantError('offline')
-            return 'wav', audio(2000)
-        provider.tts.async_get_media_source_audio = fetch
-        result = await self.manager.async_get_tts_audio('Test fallback.', 'en', {})
-        self.assertEqual(result, ('wav', audio(2000)))
-        self.assertEqual(self.calls, [('tts.elevenlabs', 'Test fallback.'), ('tts.jarvis_xtts', 'Test fallback.')])
-        self.calls.clear()
-        await self.manager.async_get_tts_audio('Test fallback.', 'en', {})
-        self.assertEqual(self.calls, [('tts.elevenlabs', 'Test fallback.')])
-        self.assertEqual(self.usage.snapshot()['last_source'], 'xtts_cached')
-        self.assertEqual(self.usage.snapshot()['provider_failures'], {'primary': 2})
-        self.assertEqual(self.usage.snapshot()['cache_hit_pct'], 50.0)
 
-    async def test_real_hung_primary_times_out_then_uses_default_xtts(self):
-        provider = self.real_provider()
         async def fetch(hass, source):
             self.calls.append(source)
-            if source[0] == 'tts.elevenlabs':
-                await asyncio.Event().wait()
-            return 'wav', audio()
+            raise self.module.HomeAssistantError('offline')
+
         provider.tts.async_get_media_source_audio = fetch
-        with patch.object(provider, 'PROVIDER_TIMEOUT_SECONDS', 0.02):
-            result = await self.manager.async_get_tts_audio('Bounded request.', 'en', {})
-        self.assertEqual(result, ('wav', audio()))
-        self.assertEqual([source[0] for source in self.calls], ['tts.elevenlabs', 'tts.jarvis_xtts'])
+        with self.assertRaisesRegex(self.module.HomeAssistantError, 'no cached alternative'):
+            await self.manager.async_get_tts_audio('Test outage.', 'en', {})
+        self.assertEqual(self.calls, [('tts.elevenlabs', 'Test outage.')])
+        self.assertEqual(self.usage.snapshot()['provider_failures'], {'primary': 1})
+
 
     async def test_real_provider_rejects_renamed_manager_and_preserves_cancellation(self):
         provider = self.real_provider()
@@ -203,7 +186,7 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
             await self.manager.async_get_tts_audio('Cancelled request.', 'en', {})
         self.assertEqual(self.usage.snapshot()['provider_failures'], {})
 
-    async def test_real_both_providers_hung_report_failure_with_deadlines(self):
+    async def test_real_hung_primary_reports_failure_with_deadline(self):
         provider = self.real_provider()
         async def fetch(hass, source):
             self.calls.append(source)
@@ -211,10 +194,10 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
         provider.tts.async_get_media_source_audio = fetch
         with patch.object(provider, 'PROVIDER_TIMEOUT_SECONDS', 0.02):
             with self.assertRaises(self.module.HomeAssistantError):
-                await self.manager.async_get_tts_audio('Both stalled.', 'en', {})
-        self.assertEqual([source[0] for source in self.calls], ['tts.elevenlabs', 'tts.jarvis_xtts'])
+                await self.manager.async_get_tts_audio('Primary stalled.', 'en', {})
+        self.assertEqual([source[0] for source in self.calls], ['tts.elevenlabs'])
         self.assertEqual(self.usage.snapshot()['total'], 0)
-        self.assertEqual(self.usage.snapshot()['provider_failures'], {'primary': 1, 'fallback': 1})
+        self.assertEqual(self.usage.snapshot()['provider_failures'], {'primary': 1})
 
     async def test_provider_exception_details_are_not_logged(self):
         async def fail(hass, **kwargs):
@@ -224,7 +207,7 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaises(self.module.HomeAssistantError):
                     await self.manager.async_get_tts_audio('Private message.', 'en', {})
         self.assertNotIn('PRIVATE_SPEECH_OR_KEY', '\n'.join(logs.output))
-        self.assertEqual(self.usage.snapshot()['provider_failures'], {'primary': 1, 'fallback': 1})
+        self.assertEqual(self.usage.snapshot()['provider_failures'], {'primary': 1})
 
     async def test_cached_alternative_honors_guest_mode_privacy(self):
         catalogue={'Home':{'on':['PRIVATE_HOME_A','PRIVATE_HOME_B']},
@@ -241,15 +224,16 @@ class ManagerTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(private)
         self.assertEqual(guest,('wav',audio()))
 
-    async def test_primary_budget_applies_to_admin_and_runtime_without_blocking_saved_or_local_audio(self):
+    async def test_primary_budget_applies_to_admin_and_runtime_without_blocking_saved_audio(self):
         self.entry.options.update(primary_daily_character_limit=5,phrase_library_enabled=False)
         await self.manager.prepare_phrase('hello','sentence')
         self.assertEqual(len(self.calls),1)
         await self.manager.async_get_tts_audio('hello','en',{})
         self.assertEqual(len(self.calls),1)
         with self.assertRaises(ValueError):await self.manager.prepare_phrase('another','sentence')
-        await self.manager.async_get_tts_audio('another','en',{})
-        self.assertEqual(self.calls[-1],('tts.xtts','another'))
+        with self.assertRaises(self.module.HomeAssistantError):
+            await self.manager.async_get_tts_audio('another','en',{})
+        self.assertEqual(len(self.calls),1)
         self.assertEqual(self.manager.budget_snapshot()['primary_attempts'],1)
 
     async def test_catalogue_review_is_read_only_and_missing_preparation_is_exact_reusable_audio(self):
