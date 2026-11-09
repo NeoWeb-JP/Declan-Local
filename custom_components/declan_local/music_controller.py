@@ -168,6 +168,7 @@ async def async_register(hass):
                     timeout=3,
                 )
             except asyncio.TimeoutError as exc:
+                hass.bus.async_fire("declan_music_dispatch", {"category": category, "room": room, "status": "unknown_timeout"})
                 _LOGGER.warning(
                     "Declan music dispatch timed out category=%s room=%s selection_ms=%d dispatch_ms=%d",
                     category, room, selection_ms, round((perf_counter() - dispatch_started) * 1000),
@@ -176,6 +177,10 @@ async def async_register(hass):
                     "Music Assistant did not confirm the playback request in time; "
                     "playback may still start. No automatic retry was made."
                 ) from exc
+            except Exception:
+                hass.bus.async_fire("declan_music_dispatch", {"category": category, "room": room, "status": "failed"})
+                _LOGGER.exception("Declan music dispatch failed category=%s room=%s", category, room)
+                raise
             dispatch_ms = round((perf_counter() - dispatch_started) * 1000)
             # Record accepted requests under the shared lock using the latest
             # history, so concurrent categories cannot overwrite each other.
@@ -183,6 +188,7 @@ async def async_register(hass):
                 next_history = updated_history(category, selected, cached_history)
                 await history_store.async_save(next_history)
                 cached_history = next_history
+            hass.bus.async_fire("declan_music_dispatch", {"category": category, "room": room, "status": "accepted"})
             _LOGGER.info(
                 "Declan music dispatch accepted category=%s room=%s selection_ms=%d dispatch_ms=%d",
                 category, room, selection_ms, dispatch_ms,
