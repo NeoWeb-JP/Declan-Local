@@ -33,11 +33,8 @@ async def immediate_wait(awaitable, seconds=8):
 
 
 class Parsing(unittest.TestCase):
-    def test_movie_context_is_one_read_only_search(self):
-        request = media.parse_search("start movie time and play Desperate house wives")
-        self.assertEqual(request["kind"], "media_search")
-        self.assertEqual(request["query"], "Desperate house wives")
-        self.assertTrue(request["movie_context"])
+    def test_movie_routine_phrase_is_not_a_builtin_search_alias(self):
+        self.assertIsNone(media.parse_search("start movie time and play Desperate house wives"))
 
     def test_search_phrases_and_year(self):
         for phrase in ("find Desperate Housewives", "where can I watch Desperate Housewives",

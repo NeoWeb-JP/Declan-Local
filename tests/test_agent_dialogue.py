@@ -79,25 +79,15 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(call[0][:2] == ('light','turn_off') for call in followup_calls))
         self.assertEqual({entity for call in followup_calls for entity in call[0][2]['entity_id']},{'light.office','light.bedroom'})
 
-    async def test_guest_mode_suppresses_private_morning(self):
-        self.hass.data={'declan_local':{'settings':{'visitors_present':'input_boolean.visitors','guest_mode':'input_boolean.authority'},
-            'voice_id_config':{'profiles':{'jaco':{'name':'Jaco','morning_responses':['PRIVATE_INTIMATE_GREETING']}}}}}
-        self.hass.states.values['input_boolean.visitors']=fixtures.State('input_boolean.visitors','Visitors','off')
-        self.hass.states.values['input_boolean.authority']=fixtures.State('input_boolean.authority','Authority','off')
-        self.hass.states.values['script.declan_local_good_morning']=fixtures.State('script.declan_local_good_morning','Morning','off')
-        async def routine(*args, **kwargs):
-            self.hass.services.calls.append((args, kwargs))
-            return {'response':'PRIVATE_SCRIPT_GREETING'}
-        with patch.object(self.agent._speaker_memory, 'resolve', lambda *args, **kwargs:'Jaco'), patch.object(self.hass.services, 'async_call', routine):
-            home=await self.agent.async_handle(UserInput('good morning'))
-            self.assertIn('PRIVATE_INTIMATE_GREETING',home.response.speech)
-            for state in ('on','unknown','unavailable'):
-                self.hass.states.values['input_boolean.authority'].state=state
-                guest=await self.agent.async_handle(UserInput('good morning'))
-                self.assertNotIn('PRIVATE',guest.response.speech)
-                self.assertNotIn('Jaco',guest.response.speech)
-        self.assertTrue(all(call[0][:2] == ('script','declan_local_good_morning') for call in self.hass.services.calls))
-        self.assertEqual(self.hass.states.values['input_boolean.authority'].state,'unavailable')
+    async def test_household_phrase_without_native_match_does_not_call_script(self):
+        self.hass.states.values['script.declan_local_good_morning'] = fixtures.State(
+            'script.declan_local_good_morning', 'Morning', 'off')
+        with patch.object(conv, 'async_handle_sentence_triggers', create=True), patch.object(
+            module, 'match_sentence_trigger', AsyncMock(return_value=None)
+        ):
+            result = await self.agent.async_handle(UserInput('good morning'))
+        self.assertIn('did not understand', result.response.speech)
+        self.assertEqual(self.hass.services.calls, [])
 
     async def test_staying_declaration_preview_and_dispatch_without_embedded_actions(self):
         ids={'guest_mode':'input_boolean.permission','guest_names':'input_text.in_charge',
@@ -153,18 +143,9 @@ class Dialogue(unittest.IsolatedAsyncioTestCase):
         await self.agent.async_handle(UserInput('turn office and missing light on'))
         self.assertEqual(self.hass.services.calls,[])
     async def test_in_sentence_correction_runs_only_final_command(self):
-        self.hass.states.values['script.declan_local_movie']=fixtures.State(
-            'script.declan_local_movie','Movie Mode','off')
-        result=await self.agent.async_handle(
-            UserInput('Dinner on, no I mean movie time'))
-        self.assertEqual(len(self.hass.services.calls),1)
-        self.assertEqual(self.hass.services.calls[0][0][:2],('script','declan_local_movie'))
-        # The mocked script returns no response_context, so the agent cannot
-        # know whether Movie Time started or ended. Its factual uncertainty
-        # message must not be replaced by a playful correction prefix.
-        self.assertIn("I couldn't confirm the Movie Time result", result.response.speech)
-        self.assertIn('Check the projector.', result.response.speech)
-        self.assertNotIn('Routine request sent.', result.response.speech)
+        await self.agent.async_handle(UserInput('turn on office, no I mean turn off kitchen'))
+        self.assertEqual(len(self.hass.services.calls), 1)
+        self.assertEqual(self.hass.services.calls[0][0][:2], ('light', 'turn_off'))
 
     async def test_incomplete_correction_runs_nothing(self):
         result=await self.agent.async_handle(UserInput('Lights on, scratch that'))

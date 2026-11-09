@@ -1,6 +1,6 @@
 """All acknowledgment paths preserve quiet/privacy policy and factual responses."""
 import pytest
-from unittest.mock import patch
+from music_fixtures import configure_music
 import test_agent_dialogue as dialogue
 import test_commands as fixtures
 from test_context_personality_batch import home,complete
@@ -25,32 +25,11 @@ def test_guest_and_quiet_responses_are_safe_and_keep_facts(kind):
     assert contextual_reply(hass,reason,kind).endswith(reason)
 
 
-@pytest.mark.parametrize('command,script',[
-    ('start movie time','declan_local_movie'),
-    ('good night','declan_local_good_night'),
-    ('good morning','declan_local_good_morning')])
-def test_external_routine_speech_cannot_leak_to_guests(command,script):
-    case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
-    try:
-        case.hass.data=home().data
-        for key in ('visitors','authority','quiet'):
-            case.hass.states.values['input_boolean.'+key]=fixtures.State('input_boolean.'+key,key,'on' if key=='authority' else 'off')
-        case.hass.states.values['script.'+script]=fixtures.State('script.'+script,script,'off')
-        original=case.hass.services.async_call
-        async def call(*args,**kwargs):
-            await original(*args,**kwargs)
-            return {'response':'PRIVATE HOME BANTER must never reach guests'}
-        case.hass.services.async_call=call
-        result=complete(case.agent.async_handle(dialogue.UserInput(command)))
-        assert 'PRIVATE HOME' not in result.response.speech
-        assert case.hass.services.calls[0][0][0]=='script'
-    finally:case.doCleanups()
-
-
 def test_quiet_music_correction_keeps_request_fact_without_success_claim():
     case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
     try:
         case.hass.data=home().data
+        configure_music(case.hass)
         for key in ('visitors','authority','quiet'):
             case.hass.states.values['input_boolean.'+key]=fixtures.State('input_boolean.'+key,key,'on' if key=='quiet' else 'off')
         player='media_player.kitchen_declan_voice_assistant'
@@ -64,40 +43,3 @@ def test_quiet_music_correction_keeps_request_fact_without_success_claim():
         assert 'Now playing' not in result.response.speech
         assert case.hass.services.calls[-1][0][0]=='music_assistant'
     finally:case.doCleanups()
-
-
-
-@pytest.mark.parametrize('context,expected',[
-    ('movie_start', 'movie'),
-    ('movie_end', 'movie_end'),
-    ('movie_busy', None),
-])
-def test_movie_time_respects_script_outcome(context, expected):
-    case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
-    try:
-        case.hass.data=home().data
-        for key in ('visitors','authority','quiet'):
-            case.hass.states.values['input_boolean.'+key]=fixtures.State(
-                'input_boolean.'+key,key,'on' if key=='authority' else 'off')
-        case.hass.states.values['script.declan_local_movie']=fixtures.State(
-            'script.declan_local_movie','movie','off')
-        original=case.hass.services.async_call
-        async def call(*args,**kwargs):
-            await original(*args,**kwargs)
-            return {'response_context':context,
-                    'response':'Screen is moving' if context=='movie_busy' else 'Routine completed'}
-        case.hass.services.async_call=call
-        # The shared dialogue fixture replaces confirmation with a plain
-        # acknowledgement. Restore the real implementation for this test.
-        from jarvis_test import personality
-        import json
-        from pathlib import Path
-        catalog = json.loads((Path(__file__).resolve().parents[1] / 'custom_components' / 'declan_local' / 'responses.json').read_text(encoding='utf-8'))
-        with patch.object(dialogue.module, 'confirmation', personality.confirmation), patch.object(personality, 'CATALOG', catalog):
-            result=complete(case.agent.async_handle(dialogue.UserInput('movie time')))
-        if expected is None:
-            assert result.response.speech == "I couldn't confirm the Movie Time result. Check the projector."
-        else:
-            assert result.response.speech in catalog['Guest'][expected]
-    finally:
-        case.doCleanups()

@@ -3,10 +3,22 @@ import types
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from test_agent_dialogue import Dialogue, UserInput, module
+from test_agent_dialogue import Dialogue as _Dialogue, UserInput, module
 
 
-class ConversationTriggerFallback(Dialogue):
+class ConversationTriggerFallback(_Dialogue):
+    async def test_native_sentence_match_wins_over_local_light_command(self):
+        native = types.SimpleNamespace(response=types.SimpleNamespace(speech="HA reply"))
+        sentence_api = AsyncMock()
+        with patch.object(module.conversation, "async_handle_sentence_triggers", sentence_api, create=True), patch.object(
+            module, "match_sentence_trigger", AsyncMock(return_value=native)
+        ) as match:
+            reply = await self.agent.async_handle(UserInput("turn off kitchen"))
+        self.assertIs(reply, native)
+        match.assert_awaited_once()
+        self.assertEqual(match.await_args.args[2], "turn off kitchen")
+        self.assertEqual(self.hass.services.calls, [])
+
     async def test_registered_automation_phrases_delegate_and_return_speech(self):
         phrases = [
             "give me a house status",

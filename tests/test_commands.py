@@ -39,6 +39,7 @@ class States:
     def async_all(self, domain):return [s for s in self.values.values() if s.entity_id.startswith(domain+'.')]
 class Hass:
     def __init__(self):
+        self.data = {}
         self.hidden=set()
         self.states=States([State('light.office','Office'),State('light.kitchen','Kitchen Lamp'),State('light.bedroom','Bedroom Lamp'),State('light.hidden','Hidden')])
         self.areas=Registry({key:types.SimpleNamespace(id=key,name=name,aliases=set()) for key,name in [('office','Office'),('kitchen','Kitchen'),('bedroom','Bedroom')]})
