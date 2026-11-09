@@ -503,57 +503,47 @@ class JarvisAgent(conversation.ConversationEntity):
                                 await self.hass.services.async_call('script',step['name'],step['data'],blocking=True,context=user_input.context)
                                 replies.append('I requested '+step['data']['music']+' in '+step['data']['location']+'.')
                                 continue
-                            if step['kind'] == 'sexy_routine':
-                                reply = await self.hass.services.async_call(
-                                    'script', 'declan_sexy_time',
-                                    {'operation': step['operation']}, blocking=True,
-                                    return_response=True, context=user_input.context)
-                                # External routine speech may contain private Home banter.
-                                # Do not relay it verbatim to guests or during quiet hours.
-                                routine_speech = (reply or {}).get('speech') or 'Routine request sent.'
-                                if audience_mode(self.hass) == 'Guest':
-                                    routine_speech = await confirmation(self.hass, user_input.context,
-                                        'Routine request sent.', action='general')
-                                replies.append(routine_speech)
-                                continue
-                            if step['kind'] == 'dinner_routine':
-                                await self.hass.services.async_call(
-                                    'script', 'turn_on', {},
-                                    target={'entity_id': step['entity_id']},
-                                    blocking=True, context=user_input.context)
-                                replies.append('Dinner Time routine started.')
+                            if step['kind'] == 'configured_routine':
+                                entity_id=step['entity_id']
+                                domain,service=entity_id.split('.',1)
+                                if domain == 'script':
+                                    reply=await self.hass.services.async_call(
+                                        'script',service,step.get('data',{}),blocking=True,
+                                        return_response=True,context=user_input.context)
+                                elif domain == 'automation':
+                                    await self.hass.services.async_call(
+                                        'automation','trigger',{'skip_condition':False},
+                                        target={'entity_id':entity_id},blocking=True,
+                                        context=user_input.context)
+                                    reply=None
+                                else:
+                                    raise ValueError('The selected Home Assistant routine has an unsupported domain.')
+                                status=(reply or {}).get('status') if isinstance(reply,dict) else None
+                                step['routine_status']=status if status in {'success','partial','failed','busy'} else 'unknown'
+                                if status == 'success':
+                                    replies.append(await confirmation(
+                                        self.hass,user_input.context,'The configured routine completed.',action='general'))
+                                elif status == 'partial':
+                                    outcome='partial'
+                                    failure='The configured routine only partly completed.'
+                                    replies.append('The configured routine only partly completed. Check Home Assistant for the affected steps.')
+                                elif status == 'failed':
+                                    outcome='failed'
+                                    failure='The configured Home Assistant routine reported failure.'
+                                    replies.append('The configured routine failed. Check the affected devices before retrying.')
+                                elif status == 'busy':
+                                    outcome='failed'
+                                    failure='The configured Home Assistant routine was busy and did not start.'
+                                    replies.append('The configured routine is already running. I did not start another run.')
+                                else:
+                                    step['unverified']=True
+                                    outcome='partial'
+                                    failure='The routine was triggered, but its completion could not be confirmed.'
+                                    replies.append('I triggered the configured routine, but could not confirm that it finished.')
                                 continue
                             if step['kind'] == 'status':
                                 replies.append(answer(self.hass, step['text']))
                                 continue
-                            reply = await self.hass.services.async_call(
-                                'script', step['name'], step['data'], blocking=True,
-                                return_response=True, context=user_input.context)
-                            if step['name'] == 'declan_local_movie':
-                                movie_status, action, routine_reply = movie_result(reply)
-                                step['routine_status'] = movie_status
-                                if movie_status == 'success':
-                                    routine_reply = await confirmation(
-                                        self.hass, user_input.context, routine_reply, action=action)
-                                elif movie_status == 'unknown':
-                                    step['unverified'] = True
-                                else:
-                                    outcome = movie_status
-                                    failure = routine_reply
-                                replies.append(routine_reply)
-                                continue
-                            if step.get('kind')=='action' or (reply or {}).get('response'):
-                                routine_reply=(reply or {}).get('response') or 'Routine request sent.'
-                                if step['name'] != 'declan_local_good_morning':
-                                    action = 'bedtime' if step['name'] == 'declan_local_good_night' else 'general'
-                                    routine_reply = await confirmation(
-                                        self.hass, user_input.context, 'Routine request sent.', action=action)
-                                if step['name']=='declan_local_good_morning':
-                                    if audience_mode(self.hass) == 'Guest':
-                                        routine_reply=await confirmation(self.hass,user_input.context,'Good morning. The morning routine is underway.',action='morning')
-                                    else:
-                                        routine_reply=morning_reply(voice_profile, cfg.get('profiles', {}), self.hass.data.setdefault('declan_local', {}).setdefault('morning_history', {}))
-                                replies.append(routine_reply)
                     except (HomeAssistantError, ValueError) as err:
                         outcome='failed'
                         failure=str(err)
