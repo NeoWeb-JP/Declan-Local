@@ -83,3 +83,11 @@ def test_category_dispatch_does_not_hold_shared_cache_lock():
                for scope in shared_scopes for call in dispatches)
     assert any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
                and n.func.id == "updated_history" for n in ast.walk(shared_scopes[-1]))
+
+
+def test_discovery_cooldown_preserves_catalogue_and_skips_requests():
+    assert "except SpotifyRateLimited as exc:" in SOURCE
+    assert "discovery_retry_at = monotonic() + exc.retry_after" in SOURCE
+    assert "if monotonic() < discovery_retry_at:" in SOURCE
+    assert "return" in SOURCE.split("if monotonic() < discovery_retry_at:", 1)[1].split("try:", 1)[0]
+    assert "cached_catalogue = updated" in SOURCE
