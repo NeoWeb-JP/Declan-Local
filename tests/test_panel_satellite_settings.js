@@ -18,11 +18,12 @@ vm.runInNewContext(fs.readFileSync('custom_components/declan_local/panel.js','ut
 const bedroom='assist_satellite.bedroom',kitchen='assist_satellite.kitchen';
 function fixture(){
  const panel=new Panel(),els={};
- for(const name of ['satellite-fields','satellite-empty','add-satellite','settings-message','settings-fields','switch-fields','profile-fields','profile-message','save-settings','check-satellite-mappings','satellite-check-message','satellite-check-results'])els['.'+name]=new Element();
+ for(const name of ['satellite-fields','satellite-empty','add-satellite','settings-message','settings-fields','settings-guest-fields','settings-music-fields','settings-advanced-fields','music-player-fields','switch-fields','profile-fields','profile-message','save-settings','check-satellite-mappings','satellite-check-message','satellite-check-results'])els['.'+name]=new Element();
  const controls=()=>[...els['.satellite-fields'].querySelectorAll('select'),...els['.satellite-fields'].querySelectorAll('button'),els['.add-satellite'],els['.save-settings'],els['.check-satellite-mappings']];
  panel.root={querySelector:s=>els[s],querySelectorAll:s=>{
    if(s==='.satellite-row')return els['.satellite-fields'].children;
-   if(s==='.settings-fields select')return els['.settings-fields'].querySelectorAll('select');
+   if(s==='.settings-page select[data-key]')return Object.values(els).flatMap(el=>el.querySelectorAll('select')).filter(el=>el.dataset.key);
+   if(s==='.music-player-row')return els['.music-player-fields'].children;
    if(s==='.switch-fields > div')return [];
    if(s.startsWith('.settings-card'))return controls();
    throw Error('Unexpected selector '+s);
@@ -31,6 +32,7 @@ function fixture(){
  panel._hass={states:Object.fromEntries([bedroom,kitchen,'media_player.bedroom','media_player.kitchen','weather.home'].map(id=>[id,{entity_id:id,attributes:{friendly_name:'Name <safe>'}}])),
  callWS:async request=>{calls.push(request);}};
  panel.loadInfo=async()=>{};
+ panel.selectSettingsPage=()=>{};
  panel.showSettings=open=>{panel.open=open;};
  panel.renderMediaSearchSettings=()=>{};
  return {panel,els,calls,controls};
@@ -39,7 +41,7 @@ function fixture(){
  const {panel,els,calls,controls}=fixture();
  panel.settings={weather:'weather.home',satellite_media_players:{[bedroom]:'media_player.bedroom'}};
  await panel.openSettings();
- const fields=els['.settings-fields'].querySelectorAll('select');
+ const fields=els['.settings-guest-fields'].querySelectorAll('select');
  for(const key of ['visitors_present','quiet_hours','guests_staying','guest_staying_names','guest_auto_enable','guest_owner_one','guest_owner_two','guest_away_suspend']){
    assert(fields.some(field=>field.dataset.key===key),'Guest policy selector is visible: '+key);
  }
