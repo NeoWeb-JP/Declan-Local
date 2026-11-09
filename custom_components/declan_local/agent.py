@@ -24,7 +24,7 @@ from .audience import mode as audience_mode
 from .transcript import correct, recognition_diagnostic
 from .corrections import final_request
 from .cross_corrections import corrected_followup
-from .verify import verify
+from .verify import play_verified_playlist, verify
 from .device_control import apply_lighting, lighting_report
 from .discovery import lighting, display_name
 from homeassistant.components import conversation
@@ -473,6 +473,25 @@ class JarvisAgent(conversation.ConversationEntity):
                                 replies.append('Requested a different ' + step['category'] + ' playlist in ' + step['room'] + '.')
                                 continue
                             if step['kind'] == 'music_assistant_play':
+                                if step['data'].get('media_type') == 'playlist':
+                                    playback = await play_verified_playlist(
+                                        self.hass, step['entity_id'], step['data'], user_input.context,
+                                    )
+                                    room = step['target_label']
+                                    if playback == 'playing':
+                                        speech = 'Playing the requested playlist in ' + room + '.'
+                                    elif playback == 'failed':
+                                        outcome = 'failed'
+                                        failure = 'Music Assistant could not start the requested playlist.'
+                                        speech = failure
+                                    else:
+                                        step['unverified'] = True
+                                        if playback == 'dispatch_unknown':
+                                            speech = 'Music Assistant did not respond in time. I could not confirm playback in ' + room + '.'
+                                        else:
+                                            speech = 'I requested the playlist in ' + room + ', but could not confirm playback.'
+                                    replies.append(speech)
+                                    continue
                                 await self.hass.services.async_call('music_assistant', 'play_media', step['data'], target={'entity_id': step['entity_id']}, blocking=False, context=user_input.context)
                                 replies.append(contextual_reply(self.hass,
                                     'Requested ' + step['data']['media_id'] + ' in ' + step['target_label'] + '.', 'music'))
