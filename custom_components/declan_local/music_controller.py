@@ -110,10 +110,22 @@ async def async_register(hass):
                 selected = choose_playlist(category, pool, history, weights=weights)
             except ValueError as exc:
                 raise HomeAssistantError(str(exc)) from exc
-            await hass.services.async_call(
-                "music_assistant", "play_media",
-                {"media_id": selected, "media_type": "playlist"},
-                target={"entity_id": entity}, blocking=False, context=call.context)
+            # Wait only for the service dispatch, not for audible playback.
+            # Failed or timed-out dispatches must not count as played selections.
+            try:
+                await asyncio.wait_for(
+                    hass.services.async_call(
+                        "music_assistant", "play_media",
+                        {"media_id": selected, "media_type": "playlist"},
+                        target={"entity_id": entity}, blocking=True, context=call.context),
+                    timeout=3,
+                )
+            except asyncio.TimeoutError as exc:
+                raise HomeAssistantError(
+                    "Music Assistant did not confirm the playback request in time; "
+                    "playback may still start. No automatic retry was made."
+                ) from exc
+            # This records an accepted request, not verified audible playback.
             await history_store.async_save(updated_history(category, selected, history))
 
     hass.services.async_register(DOMAIN, "play_music_category", play,
