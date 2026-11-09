@@ -76,6 +76,10 @@ Declan accepts more conversational phrasing, including “Hey Declan, could you 
 
 Say **“start movie time and play Desperate house wives”** or **“where can I watch Desperate Housewives?”** to search HA media folders, connected Jellyfin, then UK streaming listings. This phase searches only: it does not run movie time or start playback. The sidebar also has **Find films and TV**. Choose Netflix, Prime Video, Disney+ and Paramount+ in **Settings → Film and TV search**; an optional private TMDB read access token enables catalogue availability and rental/purchase alternatives. Listings are supplied by JustWatch via TMDB and do not verify your paid accounts or subscription plans. See [media search setup and speech limits](docs/media-search.md).
 
+## Functional documentation
+
+Start with the [NOW local voice MVP](docs/functional-now.md). The [FUTURE index](docs/functional-future.md) tracks deferred work, and the [specification index](docs/functional-specification-index.md) links the original requirements and decisions.
+
 ## Current scope
 
 This is an early prototype. Some features require existing helper entities and scripts. The voice and sidebar interface must be verified on your own Home Assistant installation.

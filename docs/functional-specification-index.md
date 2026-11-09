@@ -1,6 +1,18 @@
-# PR #46 functional specification: master navigation and review status
+# Declan functional documentation
 
-**Draft, for owner review. Documentation-only.** This index links existing baseline requirements and newly committed optimisation appendices. It does not approve implementation, merge, deployment, purchases or live Home Assistant changes.
+**Draft for owner review.**
+
+- [NOW — Local voice MVP](functional-now.md) defines the active Alexa-replacement scope and acceptance scenarios.
+- [FUTURE — Deferred functional work](functional-future.md) indexes homelab operations, predictive optimisation and advanced governance.
+
+## Archive and supporting references
+
+The original requirements, identifiers, source decisions and roadmaps are preserved in place. Historical priorities and review work below are archival. Use NOW for current MVP scope.
+
+- [OD-06 authentication policy](functional-authentication-od06.md)
+- [Owner review](functional-specification-owner-review.md)
+- [Baseline traceability](functional-requirements-traceability.md) and [optimisation traceability](functional-optimisation-traceability.md)
+- [Acceptance cases](functional-requirements-acceptance-cases.md), [definition register](functional-requirements-definition-register.md) and [ID migration proposals](functional-requirement-id-migration.md)
 
 ## Documents
 | File | Purpose | Status |
@@ -30,7 +42,7 @@
 - No fabricated success, measured savings, health, availability or source verification.
 - Preserve existing entity IDs, settings and compatibility until an approved migration is independently verified.
 
-## Remaining review work
+## Historical review work
 - Compare all earlier detailed planning conversations against baseline and appendices; identify exact missing acceptance cases.
 - Convert duplicate/shared responsibilities into canonical schemas without erasing domain-specific safeguards.
 - Resolve outstanding owner decisions in [reconciliation appendix](functional-requirements-reconciliation.md).
