@@ -10,6 +10,8 @@ import logging
 from homeassistant.components import conversation
 from homeassistant.helpers import intent
 
+from .understanding import normalize_punctuation
+
 _LOGGER = logging.getLogger(__name__)
 BUILTIN_AGENT = "conversation.home_assistant"
 
@@ -59,6 +61,12 @@ async def match_sentence_trigger(hass, user_input, text, handle_sentence):
         with conversation.async_get_chat_log(hass, session) as chat_log:
             try:
                 speech = await handle_sentence(hass, native_input, chat_log)
+                if speech is None:
+                    normalized = normalize_punctuation(text)
+                    if normalized and normalized != text:
+                        speech = await handle_sentence(
+                            hass, replace(native_input, text=normalized), chat_log
+                        )
             except Exception:
                 # The automation may have started before reporting an error.
                 _LOGGER.exception("Home Assistant sentence handling failed")

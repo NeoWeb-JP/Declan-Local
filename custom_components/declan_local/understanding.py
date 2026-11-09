@@ -2,9 +2,24 @@
 import re
 
 
+_QUOTED_VALUE = re.compile(r'''("(?:\\.|[^"\\])*(?:"|$)|(?<!\w)'(?:\\.|[^'\\])*'(?!\w))''')
+_INCIDENTAL_PUNCTUATION = re.compile(r"(?<!\d)[,.!?]+(?=\s|$)|(?<!\d),(?=[^\W\d_])")
+
+
+def normalize_punctuation(text):
+    """Remove transcription punctuation without merging words or editing values."""
+    if any(marker in text for marker in ("{", "}", "[", "]", "://", ";")):
+        return text
+    segments = _QUOTED_VALUE.split(text)
+    for index in range(0, len(segments), 2):
+        segment = _INCIDENTAL_PUNCTUATION.sub(" ", segments[index])
+        segments[index] = re.sub(r"\s+", " ", segment)
+    return "".join(segments).strip()
+
+
 def normalize_request(text):
     original = text
-    text = re.sub(r"\s+", " ", text.replace("’", "'")).strip()
+    text = re.sub(r"\s+", " ", normalize_punctuation(text.replace("’", "'"))).strip()
     # Assistant names and leading hesitation words are not target names.
     text = re.sub(r"^(?:(?:um|uh|erm)[, ]+)+", "", text, flags=re.I)
     text = re.sub(r"^(?:hey[ ,]+)?(?:declan|jarvis)[ ,:.!?]+", "", text, flags=re.I)
