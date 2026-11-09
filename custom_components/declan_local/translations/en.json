@@ -25,7 +25,11 @@
           "cache_revision": "Voice cache revision",
           "elevenlabs_voice": "ElevenLabs voice",
           "primary_daily_character_limit": "Daily primary character limit (UTC; 0 means unlimited)",
-          "primary_credit_estimate_per_character": "Estimated credits per primary character (0 means unknown)"
+          "primary_credit_estimate_per_character": "Estimated credits per primary character (0 means unknown)",
+          "openai_intent_enabled": "Use OpenAI to interpret unmatched requests"
+        },
+        "data_description": {
+          "openai_intent_enabled": "Sends unmatched command text to OpenAI using the transcription API key. Suggested actions require a new explicit command."
         }
       }
     },

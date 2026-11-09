@@ -56,6 +56,7 @@ class VoiceOptionsFlow(config_entries.OptionsFlow):
             vol.Optional("wyoming_bridge_host", default=current.get("wyoming_bridge_host", "")): str,
             vol.Required("wyoming_bridge_port", default=current.get("wyoming_bridge_port", 10300)):
                 vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+            vol.Required("openai_intent_enabled", default=current.get("openai_intent_enabled", False)): bool,
             vol.Required("openai_stt_enabled", default=current.get("openai_stt_enabled", False)): bool,
             vol.Required("openai_stt_model", default=current.get("openai_stt_model", "gpt-transcribe")):
                 vol.In(["gpt-transcribe", "gpt-4o-mini-transcribe"]),

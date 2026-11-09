@@ -350,6 +350,30 @@ class JarvisAgent(conversation.ConversationEntity):
                 return await self.async_handle(replace(user_input, text=recovered),area_override)
             speech = str(err)
             failure=str(err)
+            if (
+                correction_error is None
+                and not request_preview
+                and not self_corrected
+                and not cross_corrected
+                and not self._pending_clarifications.get(memory_key)
+                and speech.startswith('I did not understand "')
+                and len(original_text.split()) >= 5
+            ):
+                from .intent_interpreter import extract_request
+
+                proposed = await extract_request(self.hass, original_text)
+                if proposed:
+                    candidate, _ = normalize_request(proposed)
+                    information = parse_information(candidate)
+                    if information and information['topic'] == 'time' and not information['preview']:
+                        speech, available = await read_information(
+                            self.hass, information, user_input.context
+                        )
+                        outcome = 'completed' if available else 'failed'
+                        failure = None if available else speech
+                    else:
+                        # Model suggestions cannot dispatch device actions or HA routines.
+                        speech = f'Did you mean “{proposed}”? If so, say that request on its own.'
         else:
             if preview:
                 outcome='preview'
