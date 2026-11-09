@@ -40,7 +40,7 @@ def test_full_three_turn_sequence_and_preview():
         count=len(case.hass.services.calls)
         command('do the same in the office',device='other')
         assert len(case.hass.services.calls)==count
-        for memory in case.agent._recent_lights.values():memory['at']-=121
+        for memory in case.agent._recent_lights.values():memory['at']-=301
         command('do the same in the office')
         assert len(case.hass.services.calls)==count
     finally:case.doCleanups()
