@@ -2,6 +2,7 @@
 import base64
 import json
 import re
+from datetime import datetime, timedelta, timezone
 
 import aiohttp
 
@@ -19,6 +20,26 @@ QUERIES = {
     "massage": ("relaxing massage music", "spa massage instrumental"),
 }
 MAX_PLAYLISTS = 25
+
+
+class SpotifyRateLimited(Exception):
+    """Spotify declined discovery; retry only after the supplied delay."""
+
+    def __init__(self, retry_after):
+        self.retry_after = retry_after
+        super().__init__("Spotify discovery rate limited")
+
+
+def check_rate_limit(response):
+    """Do not retry a 429 inside the discovery run."""
+    if response.status != 429:
+        return
+    raw = response.headers.get("Retry-After", "60")
+    try:
+        delay = max(1, min(86400, int(raw)))
+    except (ValueError, TypeError):
+        delay = 60
+    raise SpotifyRateLimited(delay)
 
 
 def uri(value):
@@ -67,6 +88,7 @@ async def search(hass, client_id, client_secret):
     async with session.post("https://accounts.spotify.com/api/token",
                             data={"grant_type": "client_credentials"},
                             headers={"Authorization": "Basic " + basic}, timeout=timeout) as response:
+        check_rate_limit(response)
         response.raise_for_status()
         token = (await response.json())["access_token"]
     result = {}
@@ -76,6 +98,7 @@ async def search(hass, client_id, client_secret):
             async with session.get("https://api.spotify.com/v1/search",
                                    params={"q": term, "type": "playlist", "limit": 10},
                                    headers={"Authorization": "Bearer " + token}, timeout=timeout) as response:
+                check_rate_limit(response)
                 response.raise_for_status()
                 payload = await response.json()
             for item in (payload.get("playlists") or {}).get("items") or []:
