@@ -22,7 +22,7 @@ The original requirements, identifiers, source decisions and roadmaps are preser
 | [functional-optimisation-requirements.md](functional-optimisation-requirements.md) | Original text of 17 optimisation requirements/checkpoint comments | Newly committed; draft |
 | [functional-optimisation-governance.md](functional-optimisation-governance.md) | Original text of six governance, contracts, testing, roadmap and owner-decision checkpoints | Newly committed; draft |
 | [functional-now-music-reliability.md](functional-now-music-reliability.md) | Release 0.52.0 music reliability requirements and live test matrix | Draft; documentation only |
-| [functional-now-routine-outcomes.md](functional-now-routine-outcomes.md) | Shared NOW routine execution and outcome contract for Good Morning, Good Night and Movie Time | Draft; proposed contract |
+| [functional-now-routine-outcomes.md](functional-now-routine-outcomes.md) | Generic result contract for routines selected from native HA scripts or automations; routine logic stays in HA | Draft; proposed contract |
 | [functional-requirements-reconciliation.md](functional-requirements-reconciliation.md) | Four cross-file reconciliation, master-index, crosswalk and corrected decision checkpoints | Newly committed; draft |
 | [legacy-jarvis-reference-audit.md](legacy-jarvis-reference-audit.md) | Legacy identifier inventory, migration risks and questions | Draft; do not bulk rename |
 | [guest-persona.md](guest-persona.md) | Guest Mode-only persona, visitor/staying state and handover | Existing PR documentation |
