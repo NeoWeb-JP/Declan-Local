@@ -165,7 +165,7 @@ class AgentInformation(unittest.IsolatedAsyncioTestCase):
         self.assertIn('Were you asking',other.response.speech)
         preview=await self.agent.async_handle(env.UserInput('preview weather tomorrow'))
         self.assertIn('Preview only',preview.response.speech)
-        self.clock=221
+        self.clock=321
         expired=await self.agent.async_handle(env.UserInput('and tomorrow'))
         self.assertIn('Were you asking',expired.response.speech)
         self.assertEqual(self.hass.services.calls,[])
