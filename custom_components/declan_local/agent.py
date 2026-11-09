@@ -40,6 +40,7 @@ from .lighting_preferences import prepare_preference, save_preference
 from datetime import datetime, timezone
 
 _LOGGER = logging.getLogger(__name__)
+_CONTEXT_IDLE_SECONDS = 5 * 60
 
 class JarvisAgent(conversation.ConversationEntity):
     _attr_supported_features = conversation.ConversationEntityFeature.CONTROL
@@ -86,10 +87,16 @@ class JarvisAgent(conversation.ConversationEntity):
         memory_key=context_key(user_input,conversation_id,area_override=area_override)
         now=monotonic()
         self._brightness_undo={k:v for k,v in getattr(self,'_brightness_undo',{}).items() if now-v['at'] < 120}
-        self._recent_lights={k:v for k,v in self._recent_lights.items() if now-v['at'] < 120}
+        self._recent_lights = {
+            key: value for key, value in self._recent_lights.items()
+            if now - value['at'] < _CONTEXT_IDLE_SECONDS
+        }
         self._previous_failed={k:v for k,v in self._previous_failed.items() if now-v['at'] < 90}
         self._pending_clarifications={k:v for k,v in self._pending_clarifications.items() if now-v['at'] < 120}
-        self._information_topics={k:v for k,v in getattr(self,'_information_topics',{}).items() if now-v['at'] < 120}
+        self._information_topics = {
+            key: value for key, value in self._information_topics.items()
+            if now - value['at'] < _CONTEXT_IDLE_SECONDS
+        }
         self._information_runs=getattr(self,'_information_runs',{})
         continue_conversation=False
         followup_used=False
@@ -112,7 +119,6 @@ class JarvisAgent(conversation.ConversationEntity):
             command_text,voice_profile=unwrap(command_text,cfg.get('secret'),cfg.get('profiles',{}),self._voice_markers)
             if not command_text:command_text=''
         memory_key=context_key(user_input,conversation_id,voice_profile,area_override)
-        recent_key=memory_key
         memory_key=(conversation_id, memory_key)
         original_text=str(command_text)
 
@@ -146,6 +152,10 @@ class JarvisAgent(conversation.ConversationEntity):
         if cross_corrected:
             corrections.append('corrected previous failed command')
         request_preview=command_text.lower().startswith(('preview ', 'dry run ', 'what would you do if i said '))
+        if not request_preview:
+            for cache in (self._recent_lights, self._information_topics):
+                if (context := cache.get(memory_key)) is not None:
+                    context['at'] = now
         try:
             if correction_error is not None:
                 raise correction_error
@@ -166,7 +176,7 @@ class JarvisAgent(conversation.ConversationEntity):
         # Bypass the action lock so running routines cannot delay a stop.
         if is_spoken_stop(command_text):
             self._pending_clarifications.pop(memory_key, None)
-            self._recent_lights.pop(recent_key, None)
+            self._recent_lights.pop(memory_key, None)
             self._information_topics.pop(memory_key, None)
             self._information_runs.pop(memory_key, None)
             stop_report = await stop_player(self.hass, user_input)
@@ -225,13 +235,13 @@ class JarvisAgent(conversation.ConversationEntity):
             elif media_request is not None:
                 if not request_preview:
                     self._pending_clarifications.pop(memory_key,None)
-                    self._recent_lights.pop(recent_key,None)
+                    self._recent_lights.pop(memory_key,None)
                 steps=[media_request]
                 preview=media_request['preview']
                 resolved_text=command_text
             elif stop_requested:
                 self._pending_clarifications.pop(memory_key,None)
-                self._recent_lights.pop(recent_key,None)
+                self._recent_lights.pop(memory_key,None)
                 steps=[{'kind':'text','response':'Cancelled. Nothing was run.' if pending and resolution == 'cancel' else '','label':'stop pending conversation'}]
             elif social is not None:
                 steps=[{'kind':'text','response':social,'label':'answer greeting'}]
@@ -257,7 +267,7 @@ class JarvisAgent(conversation.ConversationEntity):
                 ambiguous=clarification_request(self.hass,command_text,area)
                 if ambiguous:
                     ambiguous['at']=now
-                    previous=self._recent_lights.get(recent_key)
+                    previous=self._recent_lights.get(memory_key)
                     if previous and len(previous['ids']) == 1:
                         ambiguous['previous_id']=previous['ids'][0]
                     self._pending_clarifications[memory_key]=ambiguous
@@ -267,14 +277,14 @@ class JarvisAgent(conversation.ConversationEntity):
                 else:
                     continuation=followup(command_text)
                     if continuation is not None:
-                        previous=self._recent_lights.get(recent_key)
+                        previous=self._recent_lights.get(memory_key)
                         if previous is None:
                             raise ValueError('Which lights do you mean? Please name the room or lights.')
                         resolved_text,preview=continuation
                         steps=followup_steps(self.hass,resolved_text,previous['ids'])
                         followup_used=True
                     else:
-                        previous=self._recent_lights.get(recent_key)
+                        previous=self._recent_lights.get(memory_key)
                         extra=context_followup(command_text, previous) or additional_room(command_text, previous.get('action') if previous else None)
                         resolved_text=apply_room(extra or command_text,area,self.hass)
                         undo_text=resolved_text.lower().strip(' .?!')
@@ -338,7 +348,7 @@ class JarvisAgent(conversation.ConversationEntity):
                                 replies.append(await save_preference(self.hass,step))
                                 continue
                             if step['kind'] == 'information':
-                                self._recent_lights.pop(recent_key,None)
+                                self._recent_lights.pop(memory_key,None)
                                 token=object()
                                 self._information_runs[memory_key]=token
                                 try:
@@ -549,13 +559,13 @@ class JarvisAgent(conversation.ConversationEntity):
                         step.get('kind') in {'light','switch_light','brightness','action','guest'} or step.get('unverified') for step in steps):
                     remembered=verified_lighting_context(steps,monotonic())
                     if remembered:
-                        self._recent_lights[recent_key]=remembered
+                        self._recent_lights[memory_key]=remembered
                         while len(self._recent_lights)>64:
                             del self._recent_lights[next(iter(self._recent_lights))]
                     else:
-                        self._recent_lights.pop(recent_key,None)
+                        self._recent_lights.pop(memory_key,None)
         if outcome in {'failed','rejected'}:
-            self._recent_lights.pop(recent_key,None)
+            self._recent_lights.pop(memory_key,None)
             self._information_topics.pop(memory_key,None)
         elif outcome in {'completed','partial'} and not any(s.get('kind')=='information' for s in steps):
             self._information_topics.pop(memory_key,None)
