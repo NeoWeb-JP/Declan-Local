@@ -58,3 +58,28 @@ def test_remote_discovery_does_not_hold_playback_lock():
 def test_music_timings_exclude_playlist_identifiers():
     assert "selection_ms=%d dispatch_ms=%d" in SOURCE
     assert "category, room, selection_ms" in SOURCE
+
+
+def test_category_dispatch_does_not_hold_shared_cache_lock():
+    tree = ast.parse(SOURCE)
+    register = next(n for n in tree.body if isinstance(n, ast.AsyncFunctionDef)
+                    and n.name == "async_register")
+    play = next(n for n in register.body if isinstance(n, ast.AsyncFunctionDef)
+                and n.name == "play")
+    category_scope = next(n for n in ast.walk(play) if isinstance(n, ast.AsyncWith)
+                          and any(isinstance(item.context_expr, ast.Subscript)
+                                  and isinstance(item.context_expr.value, ast.Name)
+                                  and item.context_expr.value.id == "category_locks"
+                                  for item in n.items))
+    dispatches = [n for n in ast.walk(category_scope)
+                  if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                  and n.func.attr == "async_call"]
+    assert len(dispatches) == 1
+    shared_scopes = [n for n in ast.walk(category_scope) if isinstance(n, ast.AsyncWith)
+                     and any(isinstance(item.context_expr, ast.Name)
+                             and item.context_expr.id == "lock" for item in n.items)]
+    assert len(shared_scopes) == 2
+    assert all(not any(call is child for child in ast.walk(scope))
+               for scope in shared_scopes for call in dispatches)
+    assert any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+               and n.func.id == "updated_history" for n in ast.walk(shared_scopes[-1]))
