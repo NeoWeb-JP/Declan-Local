@@ -72,3 +72,23 @@ async def play_verified_playlist(hass, entity_id, data, context):
         if attempt < 8:
             await asyncio.sleep(0.25)
     return "unverified"
+
+
+def movie_result(reply):
+    """Interpret Movie Time results without speaking untrusted script text."""
+    if not isinstance(reply, dict):
+        reply = {}
+    action = {"movie_start": "movie", "movie_end": "movie_end"}.get(
+        str(reply.get("response_context")),
+    )
+    status = reply.get("status", "success" if action else "unknown")
+    if status == "success" and action:
+        speech = "Movie Time started." if action == "movie" else "Movie Time ended."
+        return "success", action, speech
+    if status == "partial":
+        return "partial", None, "Movie Time only partly completed. Check the affected devices."
+    if status == "failed":
+        return "failed", None, "Movie Time failed. Check the devices before retrying."
+    if status == "busy":
+        return "busy", None, "Movie Time is already running."
+    return "unknown", None, "I couldn't confirm the Movie Time result. Check the projector."

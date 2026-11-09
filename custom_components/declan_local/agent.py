@@ -24,7 +24,7 @@ from .audience import mode as audience_mode
 from .transcript import correct, recognition_diagnostic
 from .corrections import final_request
 from .cross_corrections import corrected_followup
-from .verify import play_verified_playlist, verify
+from .verify import movie_result, play_verified_playlist, verify
 from .device_control import apply_lighting, lighting_report
 from .discovery import lighting, display_name
 from homeassistant.components import conversation
@@ -526,25 +526,25 @@ class JarvisAgent(conversation.ConversationEntity):
                             reply = await self.hass.services.async_call(
                                 'script', step['name'], step['data'], blocking=True,
                                 return_response=True, context=user_input.context)
+                            if step['name'] == 'declan_local_movie':
+                                movie_status, action, routine_reply = movie_result(reply)
+                                step['routine_status'] = movie_status
+                                if movie_status == 'success':
+                                    routine_reply = await confirmation(
+                                        self.hass, user_input.context, routine_reply, action=action)
+                                elif movie_status == 'unknown':
+                                    step['unverified'] = True
+                                else:
+                                    outcome = movie_status
+                                    failure = routine_reply
+                                replies.append(routine_reply)
+                                continue
                             if step.get('kind')=='action' or (reply or {}).get('response'):
                                 routine_reply=(reply or {}).get('response') or 'Routine request sent.'
                                 if step['name'] != 'declan_local_good_morning':
-                                    if step['name'] == 'declan_local_movie':
-                                        # The HA routine owns toggle state and reports the outcome.
-                                        # Never turn a busy/error/already-on result into a success.
-                                        movie_context = (reply or {}).get('response_context')
-                                        if movie_context in {'movie_start', 'movie_end'}:
-                                            action = 'movie' if movie_context == 'movie_start' else 'movie_end'
-                                            routine_reply = await confirmation(
-                                                self.hass, user_input.context, routine_reply, action=action)
-                                        elif movie_context is None:
-                                            # Older HA scripts may return speech only. For a
-                                            # toggle we cannot infer which direction it took.
-                                            routine_reply = 'Movie Time request processed. Check the projector state.'
-                                    else:
-                                        action = 'bedtime' if step['name'] == 'declan_local_good_night' else 'general'
-                                        routine_reply = await confirmation(
-                                            self.hass, user_input.context, 'Routine request sent.', action=action)
+                                    action = 'bedtime' if step['name'] == 'declan_local_good_night' else 'general'
+                                    routine_reply = await confirmation(
+                                        self.hass, user_input.context, 'Routine request sent.', action=action)
                                 if step['name']=='declan_local_good_morning':
                                     if audience_mode(self.hass) == 'Guest':
                                         routine_reply=await confirmation(self.hass,user_input.context,'Good morning. The morning routine is underway.',action='morning')
