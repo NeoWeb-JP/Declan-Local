@@ -1,5 +1,6 @@
 """Cross-turn correction and music transport regression checks."""
 from types import SimpleNamespace
+from music_fixtures import configure_music
 import pytest
 
 from custom_components.declan_local.cross_corrections import corrected_followup
@@ -16,8 +17,8 @@ def test_correction_only_after_failure_and_explicit_full_request():
 
 
 def test_music_transport_uses_configured_player_and_area():
-    hass = SimpleNamespace(states={'media_player.kitchen_declan_voice_assistant':
-                                   SimpleNamespace(state='idle')})
+    hass = configure_music(SimpleNamespace(states={'media_player.kitchen_declan_voice_assistant':
+                                   SimpleNamespace(state='idle')}))
     area = SimpleNamespace(name='Kitchen')
     assert plan_music_transport(hass, 'pause music', area)['name'] == 'media_pause'
     assert plan_music_transport(hass, 'resume music', area)['name'] == 'media_play'
@@ -27,7 +28,7 @@ def test_music_transport_uses_configured_player_and_area():
 
 
 def test_music_transport_rejects_unknown_room_or_unavailable_player():
-    hass = SimpleNamespace(states={})
+    hass = configure_music(SimpleNamespace(states={}))
     with pytest.raises(ValueError):
         plan_music_transport(hass, 'skip music')
     with pytest.raises(ValueError):

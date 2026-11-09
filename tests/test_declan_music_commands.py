@@ -1,5 +1,6 @@
 """Music Assistant command routing regressions (no playback side effects)."""
 from types import SimpleNamespace
+from music_fixtures import configure_music
 import pytest
 from custom_components.declan_local.music_assistant_voice import plan_music
 
@@ -9,7 +10,7 @@ class States:
         return SimpleNamespace(state="idle")
 
 
-HASS = SimpleNamespace(states=States())
+HASS = configure_music(SimpleNamespace(states=States()))
 
 
 def test_named_room_and_natural_prefix():
@@ -30,5 +31,5 @@ def test_explicit_room_overrides_satellite():
 
 
 def test_no_room_context_requires_clarification():
-    with pytest.raises(ValueError, match="Which room"):
+    with pytest.raises(ValueError, match="configured music destination"):
         plan_music(HASS, "play Queen")

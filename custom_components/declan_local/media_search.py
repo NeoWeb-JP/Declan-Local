@@ -25,12 +25,7 @@ def parse_search(text):
             preview = True
             text = text[len(prefix):].strip()
             break
-    # Consume this entire request before the generic routine/music planner.
-    # For this phase the movie-time context does NOT run a household routine.
-    movie_context = re.fullmatch(
-        r"(?:(?:start|turn on|enable) (?:the )?)?(?:movie time|cinema time|cinema mode)"
-        r"\s+(?:and then|and|then)\s+(?:play|watch|find|search for)\s+(.+)", text, re.I)
-    match = movie_context or re.fullmatch(
+    match = re.fullmatch(
         r"(?:where can i (?:watch|stream|find)|(?:search|look) (?:my |the )?"
         r"(?:ha media library|media library|jellyfin|streaming services) for|"
         r"(?:search|look) for|find|watch|stream|"
@@ -54,7 +49,7 @@ def parse_search(text):
         title = title[:year_match.start()].strip()
     return {
         "kind": "media_search", "query": title, "year": year,
-        "movie_context": bool(movie_context), "preview": preview,
+        "preview": preview,
         "label": 'search libraries and UK streaming availability for "' + title + '"',
     }
 
@@ -127,5 +122,5 @@ def summarize(report):
         lines.append("Availability data: JustWatch via TMDB.")
     if report.get("recommendation_url"):
         lines.append("See the search results for a link to check other legal viewing options.")
-    lines.append("Search only. I have not started movie time or played anything.")
+    lines.append("Search only. No playback was started.")
     return " ".join(lines)

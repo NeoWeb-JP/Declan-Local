@@ -1,6 +1,7 @@
 """Playlist preference selection and voice safety tests."""
 import random
 from types import SimpleNamespace
+from music_fixtures import configure_music
 
 import pytest
 from custom_components.declan_local.music_variety import choose_playlist
@@ -22,16 +23,16 @@ def test_recent_exclusion_still_applies():
 
 
 def test_voice_requires_verified_playlist_uri():
-    hass = SimpleNamespace(states=SimpleNamespace(get=lambda entity:
-        SimpleNamespace(state="playing", attributes={"media_title": "Song"})))
+    hass = configure_music(SimpleNamespace(states=SimpleNamespace(get=lambda entity:
+        SimpleNamespace(state="playing", attributes={"media_title": "Song"}))))
     with pytest.raises(ValueError, match="cannot identify"):
         plan_playlist_preference(hass, "i love this playlist", SimpleNamespace(name="Kitchen"))
 
 
 def test_voice_accepts_verified_playlist_uri():
     playlist = "spotify:playlist:" + "A"*22
-    hass = SimpleNamespace(states=SimpleNamespace(get=lambda entity:
-        SimpleNamespace(state="playing", attributes={"playlist_uri": playlist})))
+    hass = configure_music(SimpleNamespace(states=SimpleNamespace(get=lambda entity:
+        SimpleNamespace(state="playing", attributes={"playlist_uri": playlist}))))
     result = plan_playlist_preference(hass, "i like this playlist", SimpleNamespace(name="Kitchen"))
     assert result["playlist"] == playlist
     assert result["operation"] == "like"

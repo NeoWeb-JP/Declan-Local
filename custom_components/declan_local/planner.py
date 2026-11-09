@@ -5,7 +5,6 @@ from .music_assistant_voice import plan_music, plan_stop_music, plan_music_trans
 from .room_brightness import room_brightness
 from .lighting_preferences import preference_request
 from .media import media_plan
-from .parser import parse
 from .status import answer
 from .discovery import lighting
 from .named_switches import named_switch
@@ -13,12 +12,6 @@ from .room_context import apply_room
 from .guests import recognize as guest_recognize, build as guest_build
 from .understanding import normalize_request
 from .media_search import parse_search
-
-LABELS = {
-    'declan_local_good_morning': 'run the morning routine',
-    'declan_local_good_night': 'run the bedtime routine and announce in the bedroom',
-    'declan_local_movie': 'request movie mode',
-}
 
 def plan(hass, text, area=None):
     text, _ = normalize_request(text)
@@ -36,22 +29,6 @@ def plan(hass, text, area=None):
             text = text[len(prefix):].strip()
             break
     text = text.strip(' "\'')
-    sexy = re.fullmatch(r'(?:(start|activate|end|stop) )?sexy time[.!?]?', text)
-    if sexy:
-        operation = 'end' if sexy.group(1) in {'end', 'stop'} else 'start'
-        entity_id = 'script.declan_sexy_time'
-        state = hass.states.get(entity_id)
-        if state is None or state.state in {'unknown', 'unavailable'}:
-            raise ValueError('The Sexy Time routine is unavailable. Nothing was run.')
-        return [{'kind': 'sexy_routine', 'operation': operation,
-                 'label': operation + ' the Sexy Time routine'}], preview
-    if text.rstrip('.!?') == 'dinner time':
-        entity_id = 'script.dinner_time'
-        state = hass.states.get(entity_id)
-        if state is None or state.state in {'unknown', 'unavailable'}:
-            raise ValueError('The Dinner Time routine is unavailable. Nothing was run.')
-        return [{'kind': 'dinner_routine', 'entity_id': entity_id,
-                 'label': 'run the Dinner Time routine'}], preview
     guest_text = raw_text
     if preview:
         guest_text = re.sub(r'^(?:what would you do if i said |preview |dry run )', '', guest_text, flags=re.I)
@@ -120,19 +97,7 @@ def plan(hass, text, area=None):
         if light_step is not None:
             steps.append(light_step)
             continue
-        command = parse(part)
-        if command is not None:
-            name, data = command
-            entity = hass.states.get('script.' + name)
-            if entity is None or entity.state in {'unknown', 'unavailable'}:
-                raise ValueError('A required shared routine is unavailable. Nothing was run.')
-            if entity.state == 'on':
-                raise ValueError('A requested routine is already running. Nothing was run.')
-            label = LABELS[name]
-            if name.endswith('movie'):
-                label += ': ' + data['requested_action']
-            steps.append({'kind':'action', 'name':name, 'data':data, 'label':label})
-        elif answer(hass, part) is not None:
+        if answer(hass, part) is not None:
             steps.append({'kind':'status', 'text':part, 'label':'answer: ' + part})
         else:
             raise ValueError('I did not understand "' + part + '". Nothing was run. Try "help" for supported requests.')

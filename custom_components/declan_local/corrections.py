@@ -4,7 +4,7 @@ import re
 _EXPLICIT = re.compile(
     r"\b(?:no[ ,]+i[ ,]+mean(?:t)?|sorry[ ,]+i[ ,]+meant|scratch[ ,]+that|"
     r"no[ ,]+actually|actually[ ,]+i[ ,]+meant)\b", re.I)
-_START = r"(?:turn|switch|set|adjust|dim|brighten|make|start|end|stop|cancel|be quiet|shut up|good morning|good night|movie time|cinema time|dinner on|preview|dry run)\b"
+_START = r"(?:turn|switch|set|adjust|dim|brighten|make|play|find|search|start|end|stop|cancel|be quiet|shut up|good morning|good night|movie time|cinema time|dinner on|preview|dry run)\b"
 _SHORT = re.compile(r"\b(?:actually|rather|sorry)(?!\s+than\b)(?=[ ,]+(?:" + _START + r"|(?:the |maybe |probably |just |only )))", re.I)
 _NO_STOP = re.compile(r"\bno(?=[ ,]+(?:stop|cancel|be quiet|shut up)\b)", re.I)
 _NO_RELATIVE = re.compile(r"\bno(?=[ ,]+(?:make|adjust|set) (?:it|them)\b)", re.I)
@@ -22,6 +22,7 @@ def final_request(text):
                     lambda m: ' ' * len(m[0]), body)
     markers = [(m, False) for m in _EXPLICIT.finditer(masked)]
     markers += [(m, True) for m in _SHORT.finditer(masked)]
+    markers += [(m, True) for m in re.finditer(r"\bactually[ ,]+no\b", masked, re.I)]
     markers += [(m, False) for m in _NO_STOP.finditer(masked)]
     markers += [(m, True) for m in _NO_RELATIVE.finditer(masked)]
     if not markers:
@@ -35,7 +36,7 @@ def final_request(text):
     # A target-only correction inherits only a clearly stated on/off action.
     # This happens before planning, so the superseded action never runs.
     fragment = re.fullmatch(r'(?:just |only |the )?(.+)', command, re.I)
-    if fragment and not re.match(r'^(?:turn|switch|set|adjust|dim|brighten|make|start|end|stop|cancel|be quiet|shut up|good morning|good night|movie time|cinema time|dinner on|preview|dry run)\b', command, re.I):
+    if fragment and not re.match(r'^(?:turn|switch|set|adjust|dim|brighten|make|play|find|search|start|end|stop|cancel|be quiet|shut up|good morning|good night|movie time|cinema time|dinner on|preview|dry run)\b', command, re.I):
         earlier = body[:marker.start()].strip(' ,;.!?')
         action = re.fullmatch(r'(?:please )?(?:turn|switch) (on|off) (?:the )?(.+)', earlier, re.I)
         target = re.sub(r'^(?:just |only |the )+', '', command, flags=re.I).strip()
@@ -46,7 +47,7 @@ def final_request(text):
             command = 'turn ' + action[1].lower() + ' ' + target
     # A fragment after a correction is not a complete actionable request.
     # Do not execute an earlier command or guess a target/action.
-    if not re.match(r'^(?:turn|switch|set|adjust|dim|brighten|make|start|end|stop|cancel|be quiet|shut up|good morning|good night|movie time|cinema time|dinner on|preview|dry run)\b', command, re.I):
+    if not re.match(r'^(?:turn|switch|set|adjust|dim|brighten|make|play|find|search|start|end|stop|cancel|be quiet|shut up|good morning|good night|movie time|cinema time|dinner on|preview|dry run)\b', command, re.I):
         raise ValueError('Please state the full corrected command. Nothing was run.')
     if prefix and not _PREVIEW.match(command):
         command = prefix + command

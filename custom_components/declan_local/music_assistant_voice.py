@@ -1,27 +1,37 @@
-"""Music Assistant playback and controls routed to the same known room player."""
+"""Music Assistant playback and controls use administrator-configured HA destinations."""
 import math
 import re
 
-ROOMS = {
-    'kitchen': 'media_player.kitchen_declan_voice_assistant',
-    'bedroom': 'media_player.bedroom_declan_voice_assistant',
-    'living room': 'media_player.living_room_declan',
-    'lounge': 'media_player.living_room_declan',
-    'downstairs': 'media_player.downstairs_2',
-    'everywhere': 'media_player.everywhere_2',
-}
-_ROOM_PATTERN='|'.join(re.escape(name) for name in sorted(ROOMS,key=len,reverse=True))
+from .settings import get
+
+
+def music_destinations(hass):
+    configured = get(hass, 'music_players', {})
+    if not isinstance(configured, dict):
+        return {}
+    return {
+        ' '.join(str(label).casefold().split()): entity_id
+        for label, entity_id in configured.items()
+        if isinstance(label, str) and isinstance(entity_id, str)
+    }
+
+
+def _room_pattern(hass):
+    names = music_destinations(hass)
+    return '|'.join(re.escape(name) for name in sorted(names, key=len, reverse=True)) or r'(?!)'
 
 
 def _player(hass, room, area):
-    room=(room or getattr(area,'name','') or '').lower().strip()
-    room={'master bedroom':'bedroom'}.get(room,room)
-    if room not in ROOMS:
-        raise ValueError('Which room should I control the music in? Please name a configured room. Nothing was run.')
-    entity=ROOMS[room];state=hass.states.get(entity)
-    if state is None or state.state in {'unknown','unavailable'}:
-        raise ValueError('The music player for '+room+' is unavailable. Nothing was run.')
-    return room,entity,state
+    room = (room or getattr(area, 'name', '') or '').casefold().strip()
+    room = ' '.join(room.split())
+    destinations = music_destinations(hass)
+    if not room or room not in destinations:
+        raise ValueError('Which configured music destination should I use? Nothing was run.')
+    entity = destinations[room]
+    state = hass.states.get(entity)
+    if state is None or state.state in {'unknown', 'unavailable'}:
+        raise ValueError('The configured music player for '+room+' is unavailable. Nothing was run.')
+    return room, entity, state
 
 
 def _support(state, name):
@@ -44,7 +54,7 @@ def plan_music(hass,text,area=None):
     if not prefix:return None
     request=raw[prefix.end():]
     request=re.sub(r'\s+please$','',request,flags=re.I)
-    match=re.fullmatch(r'(.+?)\s+(?:(?:in|on|through)\s+(?:the\s+)?)?('+_ROOM_PATTERN+r')',request,re.I)
+    match=re.fullmatch(r'(.+?)\s+(?:(?:in|on|through)\s+(?:the\s+)?)?('+_room_pattern(hass)+r')',request,re.I)
     if match:query,room=match.groups()
     else:query,room=request,None
     # An explicit unknown destination must not silently play in the source room.
@@ -85,7 +95,7 @@ def plan_music(hass,text,area=None):
 
 def plan_stop_music(hass,text,area=None):
     match=re.fullmatch(r'(?:please )?(?:(?:stop|turn off)(?: the)? music|music off)'
-        r'(?: (?:(?:in|on) (?:the )?)?('+_ROOM_PATTERN+r'))?(?: please)?[.!?]?',text.strip(),re.I)
+        r'(?: (?:(?:in|on) (?:the )?)?('+_room_pattern(hass)+r'))?(?: please)?[.!?]?',text.strip(),re.I)
     if not match:return None
     room,entity,state=_player(hass,match[1],area)
     _support(state,'STOP')
@@ -105,7 +115,7 @@ def plan_music_transport(hass,text,area=None):
 
     match=re.fullmatch(r'(?:please )?(pause|resume|continue|skip|next|previous|restart)'
         r'(?: (?:the |this )?(?:music|song|track|it))?'
-        r'(?: (?:(?:in|on) (?:the )?)?('+_ROOM_PATTERN+r'))?(?: please)?[.!?]?',text.strip(),re.I)
+        r'(?: (?:(?:in|on) (?:the )?)?('+_room_pattern(hass)+r'))?(?: please)?[.!?]?',text.strip(),re.I)
     if not match:return None
     room,entity,state=_player(hass,match[2],area)
     action=match[1].lower()

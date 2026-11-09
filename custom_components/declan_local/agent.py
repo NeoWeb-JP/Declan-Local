@@ -6,13 +6,12 @@ from time import perf_counter, monotonic
 from uuid import uuid4
 from .satellite_priority import SatellitePriority
 from .satellite_stop import is_spoken_stop, stop_player
-from .understanding import normalize_request
+from .understanding import clean_spoken_request, normalize_request
 from .media_search import parse_search
 from .media_search_adapters import search as search_media
 from .settings import get
 from .speaker_identity import unwrap, bridge_profile, SatelliteSpeakerMemory
 from .visual_observation import inspect_speaker_camera
-from .morning import morning_reply
 from .social import social_reply
 from .timers import parse as parse_timer
 from .followup import followup, followup_steps, additional_room
@@ -24,12 +23,13 @@ from .audience import mode as audience_mode
 from .transcript import correct, recognition_diagnostic
 from .corrections import final_request
 from .cross_corrections import corrected_followup
-from .verify import movie_result, play_verified_playlist, verify
+from .verify import play_verified_playlist, verify
 from .device_control import apply_lighting, lighting_report
 from .discovery import lighting, display_name
 from homeassistant.components import conversation
 from homeassistant.helpers import intent
 from homeassistant.exceptions import HomeAssistantError
+from .ha_conversation_fallback import delegate_unmatched, match_sentence_trigger
 from .planner import plan
 from .status import answer
 from .information_dialogue import parse as parse_information, read as read_information
@@ -145,6 +145,11 @@ class JarvisAgent(conversation.ConversationEntity):
             cross_error=err
         else:
             cross_error=None
+        if getattr(user_input, 'device_id', None) or satellite_id:
+            cleaned = clean_spoken_request(command_text)
+            if cleaned != command_text:
+                corrections.append('removed spoken hesitations or repeated opening')
+                command_text = cleaned
         command_text=resolve_alias(self.hass,command_text)
         command_text,language_changes=normalize_request(command_text)
         corrections.extend(language_changes)
@@ -210,6 +215,18 @@ class JarvisAgent(conversation.ConversationEntity):
             return conversation.ConversationResult(
                 response=result, conversation_id=conversation_id,
                 continue_conversation=False)
+        sentence_api = getattr(conversation, 'async_handle_sentence_triggers', None)
+        sentence_text = command_text if self_corrected or cross_corrected else original_text
+        if sentence_api and sentence_text.strip() and not (request_preview or correction_error):
+            delegated = await match_sentence_trigger(
+                self.hass, user_input, sentence_text, sentence_api
+            )
+            if delegated is not None:
+                self._pending_clarifications.pop(memory_key, None)
+                self._recent_lights.pop(memory_key, None)
+                self._information_topics.pop(memory_key, None)
+                return delegated
+
         frigate_url=get(self.hass, 'frigate_url', '')
         if frigate_url and getattr(user_input, 'satellite_id', None):
             await inspect_speaker_camera(self.hass, user_input.satellite_id, frigate_url)
@@ -311,7 +328,8 @@ class JarvisAgent(conversation.ConversationEntity):
             # Never retry validation, correction, clarification or compound failures:
             # doing so could execute an action that Declan deliberately rejected.
             if (
-                correction_error is None
+                sentence_api is None
+                and correction_error is None
                 and not request_preview
                 and not self_corrected
                 and not cross_corrected
@@ -319,7 +337,6 @@ class JarvisAgent(conversation.ConversationEntity):
                 and str(err).endswith('Try "help" for supported requests.')
                 and not re.search(r'\s+(?:and then|then|and)\s+|;', original_text, re.I)
             ):
-                from .ha_conversation_fallback import delegate_unmatched
                 # STT corrections and planner normalisation must not alter the
                 # phrase used by Home Assistant's conversation trigger.
                 delegated = await delegate_unmatched(self.hass, user_input, original_text)
@@ -332,6 +349,30 @@ class JarvisAgent(conversation.ConversationEntity):
                 return await self.async_handle(replace(user_input, text=recovered),area_override)
             speech = str(err)
             failure=str(err)
+            if (
+                correction_error is None
+                and not request_preview
+                and not self_corrected
+                and not cross_corrected
+                and not self._pending_clarifications.get(memory_key)
+                and speech.startswith('I did not understand "')
+                and len(original_text.split()) >= 5
+            ):
+                from .intent_interpreter import extract_request
+
+                proposed = await extract_request(self.hass, original_text)
+                if proposed:
+                    candidate, _ = normalize_request(proposed)
+                    information = parse_information(candidate)
+                    if information and information['topic'] == 'time' and not information['preview']:
+                        speech, available = await read_information(
+                            self.hass, information, user_input.context
+                        )
+                        outcome = 'completed' if available else 'failed'
+                        failure = None if available else speech
+                    else:
+                        # Model suggestions cannot dispatch device actions or HA routines.
+                        speech = f'Did you mean “{proposed}”? If so, say that request on its own.'
         else:
             if preview:
                 outcome='preview'
@@ -503,57 +544,9 @@ class JarvisAgent(conversation.ConversationEntity):
                                 await self.hass.services.async_call('script',step['name'],step['data'],blocking=True,context=user_input.context)
                                 replies.append('I requested '+step['data']['music']+' in '+step['data']['location']+'.')
                                 continue
-                            if step['kind'] == 'sexy_routine':
-                                reply = await self.hass.services.async_call(
-                                    'script', 'declan_sexy_time',
-                                    {'operation': step['operation']}, blocking=True,
-                                    return_response=True, context=user_input.context)
-                                # External routine speech may contain private Home banter.
-                                # Do not relay it verbatim to guests or during quiet hours.
-                                routine_speech = (reply or {}).get('speech') or 'Routine request sent.'
-                                if audience_mode(self.hass) == 'Guest':
-                                    routine_speech = await confirmation(self.hass, user_input.context,
-                                        'Routine request sent.', action='general')
-                                replies.append(routine_speech)
-                                continue
-                            if step['kind'] == 'dinner_routine':
-                                await self.hass.services.async_call(
-                                    'script', 'turn_on', {},
-                                    target={'entity_id': step['entity_id']},
-                                    blocking=True, context=user_input.context)
-                                replies.append('Dinner Time routine started.')
-                                continue
                             if step['kind'] == 'status':
                                 replies.append(answer(self.hass, step['text']))
                                 continue
-                            reply = await self.hass.services.async_call(
-                                'script', step['name'], step['data'], blocking=True,
-                                return_response=True, context=user_input.context)
-                            if step['name'] == 'declan_local_movie':
-                                movie_status, action, routine_reply = movie_result(reply)
-                                step['routine_status'] = movie_status
-                                if movie_status == 'success':
-                                    routine_reply = await confirmation(
-                                        self.hass, user_input.context, routine_reply, action=action)
-                                elif movie_status == 'unknown':
-                                    step['unverified'] = True
-                                else:
-                                    outcome = movie_status
-                                    failure = routine_reply
-                                replies.append(routine_reply)
-                                continue
-                            if step.get('kind')=='action' or (reply or {}).get('response'):
-                                routine_reply=(reply or {}).get('response') or 'Routine request sent.'
-                                if step['name'] != 'declan_local_good_morning':
-                                    action = 'bedtime' if step['name'] == 'declan_local_good_night' else 'general'
-                                    routine_reply = await confirmation(
-                                        self.hass, user_input.context, 'Routine request sent.', action=action)
-                                if step['name']=='declan_local_good_morning':
-                                    if audience_mode(self.hass) == 'Guest':
-                                        routine_reply=await confirmation(self.hass,user_input.context,'Good morning. The morning routine is underway.',action='morning')
-                                    else:
-                                        routine_reply=morning_reply(voice_profile, cfg.get('profiles', {}), self.hass.data.setdefault('declan_local', {}).setdefault('morning_history', {}))
-                                replies.append(routine_reply)
                     except (HomeAssistantError, ValueError) as err:
                         outcome='failed'
                         failure=str(err)

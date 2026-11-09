@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 
-from .music_assistant_voice import ROOMS
+from .music_assistant_voice import music_destinations
 from .music_variety import choose_playlist, updated_history
 from .spotify_discovery import QUERIES, SpotifyRateLimited, curate, credentials, search, uri
 
@@ -148,10 +148,10 @@ async def async_register(hass):
     async def play(call):
         nonlocal cached_history, cached_weights
         category = call.data["category"].lower().strip().replace(" ", "_")
-        room = call.data["room"]
-        if category not in QUERIES or room not in ROOMS:
-            raise HomeAssistantError("Unknown music category or room")
-        entity = ROOMS[room]
+        room = " ".join(call.data["room"].casefold().split())
+        entity = music_destinations(hass).get(room)
+        if category not in QUERIES or entity is None:
+            raise HomeAssistantError("Unknown music category or configured music destination")
         state = hass.states.get(entity)
         if state is None or state.state in ("unavailable", "unknown"):
             raise HomeAssistantError("Music player unavailable")
@@ -214,7 +214,7 @@ async def async_register(hass):
 
     hass.services.async_register(DOMAIN, "play_music_category", play,
         schema=vol.Schema({vol.Required("category"): str,
-                           vol.Optional("room", default="everywhere"): vol.In(sorted(ROOMS))}))
+                           vol.Optional("room", default="everywhere"): str}))
     hass.services.async_register(DOMAIN, "refresh_music_categories", refresh)
     hass.services.async_register(DOMAIN, "rate_music_playlist", prefer,
         schema=vol.Schema({vol.Required("playlist"): str,

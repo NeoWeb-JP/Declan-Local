@@ -1,16 +1,13 @@
-"""Regression tests for Declan and legacy Jarvis invocation names."""
-from custom_components.declan_local.parser import parse
+"""Household phrases must not resolve to source-coded routines."""
+import pytest
+from test_commands import Hass
+from jarvis_test.planner import plan
 
 
-def test_declan_wake_prefix():
-    assert parse("Declan good morning") == ("declan_local_good_morning", {})
-    assert parse("Hey Declan, good night") == ("declan_local_good_night", {})
-
-
-def test_declan_suffix_and_legacy_name():
-    assert parse("movie time Declan") == ("declan_local_movie", {"requested_action": "toggle"})
-    assert parse("Jarvis good morning") == ("declan_local_good_morning", {})
-
-
-def test_unknown_command_remains_rejected():
-    assert parse("Declan do something unexpected") is None
+@pytest.mark.parametrize("phrase", [
+    "Declan good morning", "Hey Declan, good night", "movie time Declan",
+    "Jarvis good morning", "dinner time", "start sexy time",
+])
+def test_household_phrases_are_not_local_actions(phrase):
+    with pytest.raises(ValueError, match="did not understand"):
+        plan(Hass(), phrase)

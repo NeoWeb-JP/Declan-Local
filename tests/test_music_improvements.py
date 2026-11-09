@@ -4,7 +4,17 @@ import pytest
 import test_commands as fixtures
 import test_agent_dialogue as dialogue
 from jarvis_test.music_assistant_voice import (
-    ROOMS, plan_music, plan_music_transport, plan_stop_music, plan_music_volume, plan_music_status)
+    plan_music, plan_music_transport, plan_stop_music, plan_music_volume, plan_music_status)
+
+
+TEST_DESTINATIONS = {
+    'kitchen': 'media_player.test_kitchen',
+    'bedroom': 'media_player.test_bedroom',
+    'living room': 'media_player.test_living_room',
+    'lounge': 'media_player.test_living_room',
+    'downstairs': 'media_player.test_downstairs',
+    'everywhere': 'media_player.test_everywhere',
+}
 
 
 def complete(coroutine):
@@ -15,8 +25,9 @@ def complete(coroutine):
 
 
 def hass():
-    value=fixtures.Hass();value.data={}
-    for entity in set(ROOMS.values()):
+    value=fixtures.Hass()
+    value.data={'declan_local': {'settings': {'music_players': TEST_DESTINATIONS.copy()}}}
+    for entity in set(TEST_DESTINATIONS.values()):
         state=fixtures.State(entity,entity,'playing')
         state.attributes.update(volume_level=0.5,media_title='Africa',media_artist='Toto')
         value.states.values[entity]=state
@@ -44,30 +55,30 @@ def test_restart_seeks_to_start_and_transport_case_is_consistent():
     assert plan_music_transport(value,'restart track in bedroom')['data']['seek_position']==0
     assert plan_music_transport(value,'restart track in bedroom')['name']=='media_seek'
     assert plan_music_transport(value,'skip this song in kitchen')['name']=='media_next_track'
-    assert plan_stop_music(value,'stop music in BEDROOM')['data']['entity_id']==ROOMS['bedroom']
+    assert plan_stop_music(value,'stop music in BEDROOM')['data']['entity_id']==TEST_DESTINATIONS['bedroom']
 
 
 def test_volume_routes_to_same_room_and_is_bounded():
     value=hass();area=SimpleNamespace(name='Bedroom')
     assert plan_music_volume(value,'set music volume to 30 percent',area)['data']=={
-        'entity_id':ROOMS['bedroom'],'volume_level':0.3}
+        'entity_id':TEST_DESTINATIONS['bedroom'],'volume_level':0.3}
     assert plan_music_volume(value,'turn it down in kitchen')['data']['volume_level']==0.4
-    value.states.get(ROOMS['kitchen']).attributes['volume_level']=0.98
+    value.states.get(TEST_DESTINATIONS['kitchen']).attributes['volume_level']=0.98
     assert plan_music_volume(value,'louder in kitchen')['data']['volume_level']==1
     with pytest.raises(ValueError):plan_music_volume(value,'set volume to 101 percent',area)
     with pytest.raises(ValueError):plan_music_volume(value,'set volume in garage to 20 percent',area)
-    value.states.get(ROOMS['bedroom']).attributes['volume_level']=None
+    value.states.get(TEST_DESTINATIONS['bedroom']).attributes['volume_level']=None
     with pytest.raises(ValueError,match='percentage'):plan_music_volume(value,'turn music down',area)
 
 
 def test_status_uses_reported_metadata_and_honestly_handles_missing_title():
     value=hass();area=SimpleNamespace(name='Kitchen')
     assert 'Africa by Toto' in plan_music_status(value,"what's playing",area)['response']
-    value.states.get(ROOMS['kitchen']).attributes.pop('media_title')
+    value.states.get(TEST_DESTINATIONS['kitchen']).attributes.pop('media_title')
     assert 'not reported' in plan_music_status(value,"what's playing",area)['response']
 
 
-@pytest.mark.parametrize('room,entity',list(ROOMS.items()))
+@pytest.mark.parametrize('room,entity',list(TEST_DESTINATIONS.items()))
 def test_playback_transport_volume_and_status_share_room_mapping(room,entity):
     value=hass()
     assert plan_music(value,'play Queen in '+room)['entity_id']==entity
@@ -78,7 +89,7 @@ def test_playback_transport_volume_and_status_share_room_mapping(room,entity):
 
 def test_unsupported_and_unavailable_players_fail_before_dispatch():
     value=hass()
-    state=value.states.get(ROOMS['kitchen'])
+    state=value.states.get(TEST_DESTINATIONS['kitchen'])
     state.attributes['supported_features']=0
     with pytest.raises(ValueError,match='support'):
         plan_music_transport(value,'pause music in kitchen')
@@ -92,12 +103,14 @@ def test_unsupported_and_unavailable_players_fail_before_dispatch():
 def test_agent_volume_preview_and_execution_use_music_player():
     case=dialogue.Dialogue('test_other_conversation_cannot_answer');case.setUp()
     try:
-        case.hass.states.values.update(hass().states.values)
+        configured = hass()
+        case.hass.states.values.update(configured.states.values)
+        case.hass.data.setdefault('declan_local', {})['settings'] = configured.data['declan_local']['settings']
         area=case.hass.areas.entries['kitchen']
         complete(case.agent.async_handle(dialogue.UserInput('preview set volume to 30 percent'),area))
         assert case.hass.services.calls==[]
         complete(case.agent.async_handle(dialogue.UserInput('set volume to 30 percent'),area))
-        assert case.hass.services.calls[-1][0]==('media_player','volume_set',{'entity_id':ROOMS['kitchen'],'volume_level':0.3})
+        assert case.hass.services.calls[-1][0]==('media_player','volume_set',{'entity_id':TEST_DESTINATIONS['kitchen'],'volume_level':0.3})
         count=len(case.hass.services.calls)
         result=complete(case.agent.async_handle(dialogue.UserInput("what's playing"),area))
         assert 'Africa' in result.response.speech and len(case.hass.services.calls)==count

@@ -26,11 +26,11 @@ class MediaAgent(unittest.TestCase):
         self.addCleanup(verification.stop)
 
     @immediate
-    async def test_compound_movie_request_is_one_search_with_no_routine_or_playback(self):
+    async def test_title_search_does_not_run_routine_or_playback(self):
         self.hass.states.values["script.declan_local_movie"] = fixtures.fixtures.State(
             "script.declan_local_movie", "Movie routine", "off")
         reply = await self.agent.async_handle(fixtures.UserInput(
-            "Hey Declan, could you please start movie time and play Desperate house wives"))
+            "Hey Declan, could you please find Desperate house wives"))
         self.search.assert_awaited_once()
         request = self.search.await_args.args[1]
         self.assertEqual(request["query"], "Desperate house wives")
