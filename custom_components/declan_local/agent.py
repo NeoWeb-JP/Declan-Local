@@ -94,7 +94,7 @@ class JarvisAgent(conversation.ConversationEntity):
         self._previous_failed={k:v for k,v in self._previous_failed.items() if now-v['at'] < 90}
         self._pending_clarifications={k:v for k,v in self._pending_clarifications.items() if now-v['at'] < 120}
         self._information_topics = {
-            key: value for key, value in self._information_topics.items()
+            key: value for key, value in getattr(self, '_information_topics', {}).items()
             if now - value['at'] < _CONTEXT_IDLE_SECONDS
         }
         self._information_runs=getattr(self,'_information_runs',{})
