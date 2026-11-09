@@ -103,3 +103,17 @@ def test_dispatch_outcomes_are_reported_without_playlist_identifiers():
             assert '"category": category' in line
             assert '"room": room' in line
             assert 'selected' not in line
+
+
+def test_player_observation_is_nonblocking_and_does_not_claim_playlist_verified():
+    tree = ast.parse(SOURCE)
+    register = next(n for n in tree.body if isinstance(n, ast.AsyncFunctionDef)
+                    and n.name == "async_register")
+    observe = next(n for n in register.body if isinstance(n, ast.AsyncFunctionDef)
+                   and n.name == "observe_player")
+    assert any(isinstance(n, ast.Compare) and isinstance(n.left, ast.Attribute)
+               and n.left.attr == "state" for n in ast.walk(observe))
+    assert '"status": "player_playing"' in SOURCE
+    assert '"status": "unconfirmed"' in SOURCE
+    assert "hass.async_create_task(observe_player(category, room, entity))" in SOURCE
+    assert "playlist_verified" not in SOURCE
