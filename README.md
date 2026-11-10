@@ -1,5 +1,18 @@
 # Home Voice Assistant
 
+## Roadmap: Portable Home Assistant configuration
+
+**Status:** Planned; discovery/audit started. These phases are not implemented by this README update. The goal is for a new household to install Declan without editing Python or JavaScript to replace another household's entity IDs, IP addresses, names, or scripts. The existing installation must remain compatible throughout.
+
+1. **Phase 1: Audit hardcoded values and dependencies.** Inventory fixed entity IDs, household names, IP addresses, URLs, paths, service names, default routines and legacy `jarvis_local` identifiers across the integration, UI, tests and documentation. Classify each as HA-discoverable, user-configurable, safe internal default, protocol/registry compatibility requirement or migration-only legacy value. Record file locations, risks and proposed replacements. Do not bulk-rename registry IDs or persistent storage keys.
+2. **Phase 2: Native HA scripts, automations and blueprints.** Keep Declan responsible for understanding intents and selecting configured actions. Let each household select its own Home Assistant scripts or automations for routines such as Good Morning, Good Night, Movie Time and guest handover. Offer optional example scripts/blueprints, not automatically installed household-specific automations. Validate targets and report execution outcomes accurately.
+3. **Phase 3: Native configuration and first-run onboarding.** Extend the existing Home Assistant config/options flow and Declan settings dashboard with HA entity, device, area and script selectors, discovery and validation. Separate essential settings from optional features (music, guests, EV, cameras, media). No optional integration or absent entity may prevent basic startup. Avoid fixed household names and endpoints in fresh-install defaults.
+4. **Phase 4: Safe import/export of Declan settings.** Define a versioned, documented JSON format for portable preferences, mappings and routine bindings. Export excludes secrets, credentials, speaker biometric data and private learning history by default. Import supports dry-run preview, schema/version validation, entity remapping, conflicts, explicit confirmation and rollback. HA-owned automations/scripts remain managed by HA; distribute example blueprints separately rather than silently overwriting HA configuration.
+5. **Phase 5: Clean-install and upgrade verification.** Test on a fresh HA instance with none of the original household's entities, and test migration of an existing Declan installation with its current settings. Cover optional feature absence, unavailable entities, import/export round trips, registry ID stability, voice pipeline continuity, backups and rollback. Do not merge or deploy until tests and owner review pass.
+
+**Development rules:** Keep this portability work separate from the settings-dashboard draft PR and the functional-specification work. Use reviewable draft PRs, preserve current HA entity/unique IDs and stored data unless a tested migration exists, and do not deploy without approval. After documenting this roadmap, resume the [functional requirements](docs/functional-requirements.md) and [legacy reference audit](docs/legacy-jarvis-reference-audit.md).
+
+
 Existing `jarvis_local` installations must follow the [domain migration guide](docs/declan-local-migration.md) before upgrading.
 
 The software is **Home Voice Assistant**; its assistant character is **Declan**,
