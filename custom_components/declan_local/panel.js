@@ -7,7 +7,7 @@ class JarvisLocalPanel extends HTMLElement {
     if (!this.infoLoaded && !this.loadingInfo && this.root) this.loadInfo();
     if (!this.voicePipelines && !this.loadingPipelines && this.root) this.loadVoicePipelines();
     if (this.root) {
-      const id=this.config.agent_id || 'conversation.jarvis_local_test';
+      const id=this.config.agent_id || 'conversation.declan';
       const state=hass.states[id];
       const available=!!state && !['unavailable','unknown'].includes(state.state);
       this.renderVersion();
@@ -447,7 +447,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const select=this.root.querySelector('.voice-pipeline');
     try {
       const result=await this._hass.callWS({type:'assist_pipeline/pipeline/list'});
-      const agent=this.config.agent_id || 'conversation.jarvis_local_test';
+      const agent=this.config.agent_id || 'conversation.declan';
       const pipelines=result.pipelines.filter(p=>p.conversation_engine===agent && p.stt_engine);
       let saved='';try {saved=localStorage.getItem('jarvis_local_voice_pipeline') || '';} catch (_) {}
       select.replaceChildren(new Option(pipelines.length?'Choose an assistant':'No Declan voice assistant found',''));
@@ -464,7 +464,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
     const pipeline=(this.voicePipelines || []).find(p=>p.id===select?.value);
     this.root.querySelector('.overview-pipeline').textContent='Voice assistant: '+(pipeline?.name || 'not selected');
     const engine=pipeline?.stt_engine;
-    const friendly=engine==='stt.jarvis_voice_bridge_test'?'Voice Bridge':this._hass?.states?.[engine]?.attributes?.friendly_name;
+    const friendly=this._hass?.states?.[engine]?.attributes?.friendly_name;
     this.root.querySelector('.overview-stt').textContent=engine?'Speech-to-text: '+(friendly || engine.replace(/^stt\./,'').replace(/_/g,' '))+' (configured)':'Speech-to-text: not selected';
   }
   async checkBridge() {
@@ -1154,7 +1154,7 @@ ha-card{display:block;box-sizing:border-box;max-width:960px;margin:20px auto;pad
   async send(preview=false) {
     if(this.busy)return;
     const input=this.root.querySelector('form input');const original=input.value.trim();if(!original)return;const text=(preview ? 'preview ' : '')+original;
-    const agent=this.config.agent_id || 'conversation.jarvis_local_test';
+    const agent=this.config.agent_id || 'conversation.declan';
     if(!this._hass?.states[agent] || this._hass.states[agent].state==='unavailable'){this.line('Status','The conversation agent is not loaded. Check the integration startup logs. No command was sent.');return;}
     this.busy=true;this.root.querySelector('.send').disabled=true;input.value='';this.line('You',text);
     const start=performance.now();
