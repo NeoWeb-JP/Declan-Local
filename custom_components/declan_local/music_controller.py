@@ -101,11 +101,15 @@ async def async_register(hass):
             for field in ("favourites", "excluded", "discovered"):
                 item[field] = [x for x in item[field] if x != selected]
             if call.data["operation"] == "favourite":
+                if len(item["favourites"]) >= 25:
+                    raise HomeAssistantError("This category already has 25 pinned playlists. Remove one first.")
                 item["favourites"].append(selected)
             elif call.data["operation"] == "exclude":
                 item["excluded"].append(selected)
-            item["playlists"] = [x for x in item["favourites"] + item["discovered"]
-                                 if x not in item["excluded"]]
+            # Rebuild under the same lock: pins win over discovery, exclusions
+            # survive refresh, and all categories stay within 25 playlists.
+            catalogue = curate(catalogue, {name: row["discovered"]
+                                          for name, row in catalogue.items()})
             await catalogue_store.async_save(catalogue)
             cached_catalogue = catalogue
 
