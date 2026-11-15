@@ -62,6 +62,9 @@ def curate(existing, discovered, capacity=MAX_PLAYLISTS):
         banned = set(excluded)
         favourites = list(dict.fromkeys(x for x in map(uri, previous.get("favourites", [])) if x and x not in banned))
         candidates = list(dict.fromkeys(x for x in map(uri, discovered.get(category, [])) if x and x not in banned and x not in favourites))
+        # A manual favourite is a pinned playlist, not an exemption from the
+        # per-category limit. Preserve the oldest 25 pins deterministically.
+        favourites = favourites[:capacity]
         discovered_now = candidates[:max(0, capacity - len(favourites))]
         output[category] = {"favourites": favourites, "excluded": excluded,
                             "discovered": discovered_now, "playlists": favourites + discovered_now}
